@@ -8,10 +8,6 @@ ec2_resource = boto3.resource('ec2', region_name='us-west-2')
 
 INSTNACE_COUNT = 469
 
-# CREATE_GRPUP = [i for i in range(31)]
-CREATE_GRPUP = [i for i in range(3)]
-
-
 def isDone():
     # S3 버킷 정보
     bucket_name = 'us-west-2-cpuid-x86'
