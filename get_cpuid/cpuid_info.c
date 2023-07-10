@@ -50,7 +50,6 @@ int is_cpuid_available(int leaf, int subleaf, int regi, int bit){
 
     __get_cpuid_count(leaf, subleaf, &eax, &ebx, &ecx, &edx);
 
-    // EBX 레지스터의 16번째 비트를 확인합니다.
     if (*registers[regi] & (1 << bit)) {
         return 1;
     } else {
