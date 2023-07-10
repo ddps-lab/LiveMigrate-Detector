@@ -17,7 +17,6 @@ resource "aws_instance" "ec2" {
 
   user_data = <<-EOF
             #!/bin/bash
-            sleep 30
             /home/ubuntu/get_cpuid/main
             aws s3 cp /home/ubuntu/get_cpuid/cpuid.csv s3://us-west-2-cpuid-x86/$(curl http://169.254.169.254/latest/meta-data/instance-type).csv
             sudo shutdown -h now
