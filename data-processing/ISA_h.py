@@ -1,4 +1,4 @@
-ISAs = ["xsave", "aes", "clfsh", "xsave", "cmpxchg16b", "fxsave", "fxsave64", "lahf", "longmode", "movbe", "pclmulqdq", 
+ISAs = ["xsave", "aes", "clfsh", "cmpxchg16b", "fxsave", "fxsave64", "lahf", "longmode", "movbe", "pclmulqdq", 
         "pentiummmx", "popcnt", "prefetchw", "rdtscp", "smx", "sse", "sse2", "sse2mmx", "sse3", "sse3x87", "monitor", 
         "sse4", "sse42", "ssemxcsr", "ssse3", "ssse3mmx", "vtx", "cmov", "fcmov", "fcomi", "serialize", "keylocker", 
         "keylocker_wide", "avx512_vp2intersect_128", "avx512_vp2intersect_256", "avx512_vp2intersect_512", "avx512f_128", 
