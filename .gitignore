@@ -2,3 +2,6 @@
 
 *.log
 *terraform*
+
+secure-outpost-380004-8d45b1504f3e.json
+*pycache*
