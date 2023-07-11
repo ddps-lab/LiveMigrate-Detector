@@ -5,7 +5,7 @@ import copy
 import GspreadUtils
 import ISA_h
 
-df = GspreadUtils.read_CPU_Feature_Visualization('us-west-2 x86 isa set')
+df = GspreadUtils.read_gspread('us-west-2 x86 isa set')
 
 # Extract instance types with the same CPU ISA
 columns = copy.deepcopy(ISA_h.ISAs)
@@ -29,4 +29,4 @@ for features, group in grouped:
 
     df_new = pd.concat([df_new, row], ignore_index=True)
 
-GspreadUtils.write_CPU_Feature_Visualization('groupby isa', df_new)
+GspreadUtils.write_gspread('groupby isa', df_new)

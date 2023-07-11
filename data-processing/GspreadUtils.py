@@ -8,13 +8,13 @@ root_path = str(Path(__file__).resolve().parent.parent)
 
 gc = gs.service_account(filename=f'{root_path}/secure-outpost-380004-8d45b1504f3e.json')
 
-def read_CPU_Feature_Visualization(worksheet):
+def read_gspread(worksheet):
     sheet = gc.open('us-west-2 x86 isa set').worksheet(worksheet)
     df = pd.DataFrame(sheet.get_all_records())
     
     return df
 
-def write_CPU_Feature_Visualization(worksheet, df):
+def write_gspread(worksheet, df):
     '''
     The function writes the contents of the dataframe to a Google Spreadsheet.
     '''
