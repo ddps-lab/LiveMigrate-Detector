@@ -31,4 +31,4 @@ print(df2_only_instance_types)
 
 df2.reset_index(inplace=True)
 
-# GspreadUtils.write_gspread('us-west-2 x86 isa set', df2)
+GspreadUtils.write_gspread('us-west-2 x86 isa set', df2)
