@@ -17,6 +17,7 @@ df2.set_index('instancetype', inplace=True)
 """
 kernel에서 TSX 관련 CPU features를 disable 하므로 cpuid를 통해 rtm을 조회하여도 0의 값만 확인됨.
 따라서 rtm에 한해서 cpuid를 통해 조회하지 않고 kernel에서 설정한 cpu flag를 대입함.
+CPU Feature Visualization - all features.csv는 23년1월에 수집된 데이터셋.
 """
 for idx1, row1 in df1.iterrows():
     instance_type = row1['InstanceType']
