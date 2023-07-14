@@ -44,3 +44,21 @@ def mat_mul():
     transferableGroups = [group2, group3, group4, group5, group6, group7, group8, group9, group10, group11]
 
     return transferableGroups
+
+def mat_mul_for_t3_large():
+    group2 = [2, 3, 4, 5]
+    group3 = [3, 4, 5]
+    group4 = [4, 5]
+    group5 = [5]
+
+    transferableGroups = [group2, group3, group4, group5]
+
+    return transferableGroups
+
+def mat_mul_for_c5a_large():
+    group2 = [2, 3]
+    group3 = [3]
+
+    transferableGroups = [group2, group3]
+
+    return transferableGroups
