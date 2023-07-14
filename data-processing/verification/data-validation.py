@@ -13,6 +13,8 @@ import GspreadUtils
 # CSV 파일 읽기
 df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
 
+transferableGroups = transferable_h.all()
+
 # 'migration_success' 열이 'true'인 행 추출
 migration_success = df[df['migration_success'] == True]
 migration_failed = df[df['migration_success'] == False]
@@ -39,8 +41,8 @@ for index, row in migration_success.iterrows():
     # 같은 그룹에 있지 않은 경우
     if(src_index != dst_index):
         # transferable 그룹이 아닌 경우
-        if((dst_index + 2) not in transferable_h.transferableGroups[src_index]):
-            print(f'[success] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferable_h.transferableGroups[src_index]}')
+        if((dst_index + 2) not in transferableGroups[src_index]):
+            print(f'[success] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
             cnt += 1
 print(f'count : {cnt}')
 
@@ -60,7 +62,7 @@ for index, row in migration_failed.iterrows():
     dst_index = dst_index[0]
 
     # transferable 그룹인데 실패
-    if((dst_index + 2) in transferable_h.transferableGroups[src_index]):
+    if((dst_index + 2) in transferableGroups[src_index]):
         filtered_df = df2[df2['feature groups'].str.contains(row.source)]
         indices1 = filtered_df.index.tolist()
 
@@ -69,7 +71,7 @@ for index, row in migration_failed.iterrows():
 
         print(f'src : {indices1[0] + 2}, dst : {indices2[0] + 2}')
 
-        print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferable_h.transferableGroups[src_index]}')
+        print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
         cnt += 1
 
         print()
