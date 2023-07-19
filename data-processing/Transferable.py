@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import graphviz_layout
 
 
-def tranferable_check(GROUP_NUMBER, df):
+def transferable_check(GROUP_NUMBER, df):
     values = []
     for i in range(len(df)):
         values.append(df.iloc[i].tolist())
@@ -46,7 +46,7 @@ def tranferable_check(GROUP_NUMBER, df):
 
 
 def Digraph(GROUP_NUMBER, df):
-    matrix = tranferable_check(GROUP_NUMBER, df)
+    matrix = transferable_check(GROUP_NUMBER, df)
 
     # 방향성 그래프 생성
     G = nx.DiGraph()
