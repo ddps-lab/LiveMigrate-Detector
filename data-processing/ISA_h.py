@@ -23,7 +23,13 @@ ISAs_for_matmul = ['sse2', 'sse', 'cmov', 'longmode', 'ssemxcsr', 'fcmov', 'fma'
                    'sse3', 'sse42', 'avx2', 'bmi2', 'movbe', 'avx512f_512', 'avx512f_256', 'avx512bw_512', 'avx512f_128n', 
                    'avx512f_128', 'avx512bw_256', 'pentiummmx', 'avx512f_kop', 'fxsave', 'xsave', 'xsavec', 'avx512dq_kop', 
                    'popcnt', 'avx512f_scalar', 'avx512dq_512', 'avx512bw_128', 'lahf', 'sse3x87', 'avx2gather', 'aes', 'avxaes', 
-                   'sha', 'adox_adcx', 'pclmulqdq', 'sse2mmx', 'vtx', 'clfsh', 'rdrand', 'rdseed', 'rdtscp', 'sgx']
+                   'sha', 'adox_adcx', 'pclmulqdq', 'sse2mmx', 'vtx', 'clfsh', 'rdrand', 'rdseed', 'rdtscp', 'rdpid', 'sgx']
+
+ISAs_for_matmul_c5a_large = ['sse2', 'sse', 'cmov', 'longmode', 'ssemxcsr', 'fcmov', 'fma', 'sse4', 'avx', 'cet', 'bmi1', 'rtm', 'ssse3', 
+                   'sse3', 'sse42', 'avx2', 'bmi2', 'movbe', 'avx512f_512', 'avx512f_256', 'avx512bw_512', 'avx512f_128n', 
+                   'avx512f_128', 'avx512bw_256', 'pentiummmx', 'avx512f_kop', 'fxsave', 'xsave', 'xsavec', 'avx512dq_kop', 
+                   'popcnt', 'avx512f_scalar', 'avx512dq_512', 'avx512bw_128', 'lahf', 'sse3x87', 'avx2gather', 'aes', 'avxaes', 
+                   'sha', 'adox_adcx', 'pclmulqdq', 'sse2mmx', 'vtx', 'clfsh', 'rdrand', 'rdseed', 'rdtscp', 'rdpid', 'sgx']
 
 ISAs_for_redis = ['sse2', 'longmode', 'sse', 'cmov', 'avx', 'cmpxchg16b', 'bmi1', 'ssemxcsr', 'fcmov', 'fma', 'sse4', 'rdrand', 
                   'lahf', 'sse3x87', 'pentiummmx', 'aes', 'avxaes', 'ssse3', 'sha', 'avx2', 'bmi2', 'movbe', 'avx512f_256', 
