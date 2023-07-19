@@ -10,106 +10,8 @@ root_path = str(Path(__file__).resolve().parent.parent.parent)
 sys.path.append(str(Path(root_path).joinpath('data-processing')))
 import GspreadUtils
 
-def accuracy_test(df, transferableGroups, migration_success):
-    cnt = 0
-    print('호환맵 상 실패로 판단하나 실제 실험이 성공한 경우')
-    for index, row in migration_success.iterrows():
-        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
-        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
-
-    # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
-        if(len(src_index) <= 0 or len(dst_index) <= 0):
-            continue
-
-        src_index = src_index[0]
-        dst_index = dst_index[0]
-
-    # 같은 그룹에 있지 않은 경우
-        if(src_index != dst_index):
-        # transferable 그룹이 아닌 경우
-            if((dst_index + 2) not in transferableGroups[src_index]):
-                print(f'[success] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
-                cnt += 1
-    print(f'count : {cnt}')
-
-
-def error_test(df, transferableGroups, migration_failed):
-    cnt = 0
-    print('호환맵 상 성공함으로 판단하나 실제 실험이 실패한 경우')
-    for index, row in migration_failed.iterrows():
-        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
-        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
-
-    # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
-        if(len(src_index) <= 0 or len(dst_index) <= 0):
-            continue
-
-        src_index = src_index[0]
-        dst_index = dst_index[0]
-
-    # transferable 그룹인데 실패
-        if((dst_index + 2) in transferableGroups[src_index]):
-            print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
-            cnt += 1
-
-            print()
-
-    print(f'count : {cnt}')
-
-def test_for_specific_instance(df, transferableGroups, migration_success, migration_failed, instanceType):
-    migration_success = migration_success[migration_success['source'] == instanceType]
-    migration_failed = migration_failed[migration_failed['source'] == instanceType]
-
-    cnt = 0
-    print('호환맵 상 실패로 판단하나 실제 실험이 성공한 경우')
-    for index, row in migration_success.iterrows():
-        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
-        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
-
-    # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
-        if(len(src_index) <= 0 or len(dst_index) <= 0):
-            continue
-
-        src_index = src_index[0]
-        dst_index = dst_index[0]
-
-    # 같은 그룹에 있지 않은 경우
-        if(src_index != dst_index):
-        # transferable 그룹이 아닌 경우
-            if((dst_index + 2) not in transferableGroups[src_index]):
-                print(f'[success] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
-                cnt += 1
-    print(f'count : {cnt}')
-
-    cnt = 0
-    print('호환맵 상 성공함으로 판단하나 실제 실험이 실패한 경우')
-    for index, row in migration_failed.iterrows():
-        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
-        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
-
-    # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
-        if(len(src_index) <= 0 or len(dst_index) <= 0):
-            continue
-
-        src_index = src_index[0]
-        dst_index = dst_index[0]
-
-    # transferable 그룹인데 실패
-        if((dst_index + 2) in transferableGroups[src_index]):
-            print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination}) {transferableGroups[src_index]}')
-            cnt += 1
-
-            print()
-
-    print(f'count : {cnt}')    
-
-
-
-if __name__ == "__main__":
-    # CSV 파일 읽기
+def readCSV():
     df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
-
-    # 'migration_success' 열이 'true'인 행 추출
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -117,12 +19,80 @@ if __name__ == "__main__":
     migration_success = migration_success[selected_columns]
     migration_failed = migration_failed[selected_columns]
 
+    return migration_success, migration_failed
+
+
+def validateSuccessPrediction(df, transferableGroups, migration_success):
+    global falseNagative
+    global truePositive
+    for index, row in migration_success.iterrows():
+        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
+        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
+
+        # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
+        if(len(src_index) <= 0 or len(dst_index) <= 0):
+            continue
+
+        src_index = src_index[0]
+        dst_index = dst_index[0]
+
+        if((dst_index + 2) in transferableGroups[src_index]):
+            truePositive += 1
+        else:
+            falseNagative += 1
+            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+
+
+def validateFailurePrediction(df, transferableGroups, migration_failed):
+    global falsePositive
+    global trueNagative
+    for index, row in migration_failed.iterrows():
+        src_index = list(df[df['instance groups'].str.contains(row.source)].index)
+        dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
+
+        # 마이그레이션 실험 대상과 isa set 데이터 수집 대상에서 몇몇 인스턴스가 없음
+        if(len(src_index) <= 0 or len(dst_index) <= 0):
+            continue
+
+        src_index = src_index[0]
+        dst_index = dst_index[0]
+
+        # transferable 그룹인데 실패
+        if((dst_index + 2) in transferableGroups[src_index]):
+            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+            falsePositive += 1
+        else:
+            trueNagative += 1
+
+def validateForAllInstances(df, transferableGroups):
+    migration_success, migration_failed = readCSV()
+
+    validateSuccessPrediction(df, transferableGroups, migration_success)
+    validateFailurePrediction(df, transferableGroups, migration_failed)
+
+def validateForSpecificInstance(df, transferableGroups, instanceType):
+    migration_success, migration_failed = readCSV()
+
+    migration_success = migration_success[migration_success['source'] == instanceType]
+    migration_failed = migration_failed[migration_failed['source'] == instanceType]
+
+    validateSuccessPrediction(df, transferableGroups, migration_success)
+    validateFailurePrediction(df, transferableGroups, migration_failed)
+
+
+if __name__ == "__main__":
+    truePositive = 0
+    falsePositive = 0
+    trueNagative = 0
+    falseNagative = 0
+
     transferableGroups = transferable_h.mat_mul()
     df = GspreadUtils.read_gspread('mat_mul')
+    # validateForAllInstances(df, transferableGroups)
+    validateForSpecificInstance(df, transferableGroups, 'c5a.large')
 
-    accuracy_test(df, transferableGroups, migration_success)
-    error_test(df, transferableGroups, migration_failed)
-
-    transferableGroups = transferable_h.mat_mul_for_c5a_large()
-    df = GspreadUtils.read_gspread('mat_mul_for_c5a.large')
-    test_for_specific_instance(df, transferableGroups, migration_success, migration_failed, 'c5a.large')
+    print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
+    print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNagative}')
+    print(f'FP(마이그레이션 성공 예측 및 실제 실패) : {falsePositive}')
+    print(f'FN(마이그레이션 실패 예측 및 실제로 성공) : {falseNagative}')
+    print(f'recall : {truePositive / (truePositive + falseNagative):.3f}')
