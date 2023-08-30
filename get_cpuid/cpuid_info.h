@@ -5,7 +5,7 @@
 
 #define MAX_CPUIDS 4
 #define MAX_TOKEN_LENGTH 50
-#define MAX_ITEMS 153
+#define MAX_ITEMS 151
 #define MAX_LINE_LENGTH 120
 
 #define EAX 0
