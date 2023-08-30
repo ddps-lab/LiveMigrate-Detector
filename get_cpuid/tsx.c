@@ -1,24 +1,29 @@
 #include <stdio.h>
 #include <immintrin.h> // TSX 관련 함수 포함
-#include <unistd.h>
 #include <signal.h>
-#include <stdlib.h>
+#include <setjmp.h>
 
-int xtest_availabe = 1;
-volatile int globalVar = 0;
+int xtest_available = 1;
+sigjmp_buf jump_buffer;
 
 void handle_sigill(int sig) {
     // xtest is illegal instruction
-    xtest_availabe = 0;
+    xtest_available = 0;
+    siglongjmp(jump_buffer, 1); // Jump back to the point where sigsetjmp was set
 }
 
 int try_xtest(){
+    if (sigsetjmp(jump_buffer, 1)) {
+        // This block is executed if handle_sigill has been called
+        return xtest_available;
+    }
+    
     signal(SIGILL, handle_sigill);
 
     int inTx = _xtest();
     
     // xtest is available
-    return xtest_availabe;
+    return xtest_available;
 }
 
 int is_rtm_visible(){
