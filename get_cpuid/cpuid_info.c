@@ -7,7 +7,7 @@
 
 #define CPUID_PATH "/home/ubuntu/get_cpuid/cpuid.txt"
 
-CPUID_info info_array[MAX_ITEMS];
+CPUID_info info_array[MAX_ITEMS - 1];
 
 void parse_line(char* line, int index) {
     char delimit[] = " ,\t\n";
@@ -36,7 +36,7 @@ void init_info_array() {
     char line[MAX_LINE_LENGTH];
     int index = 0;
 
-    while (fgets(line, MAX_LINE_LENGTH, file) != NULL && index < MAX_ITEMS) {
+    while (fgets(line, MAX_LINE_LENGTH, file) != NULL && index < MAX_ITEMS - 1) {
         parse_line(line, index);
         index++;
     }
@@ -50,6 +50,7 @@ int is_cpuid_available(int leaf, int subleaf, int regi, int bit){
 
     __get_cpuid_count(leaf, subleaf, &eax, &ebx, &ecx, &edx);
 
+    // EBX 레지스터의 ? 번째 비트를 확인.
     if (*registers[regi] & (1 << bit)) {
         return 1;
     } else {
@@ -60,7 +61,7 @@ int is_cpuid_available(int leaf, int subleaf, int regi, int bit){
 int parse_cpuid(char* cpuid, int args[]){
     char cpuid_copy[MAX_TOKEN_LENGTH];
     strncpy(cpuid_copy, cpuid, MAX_TOKEN_LENGTH);  // cpuid 문자열 복사
-    cpuid_copy[MAX_TOKEN_LENGTH - 1] = '\0';  // Null 종료 문자를 추가합니다.
+    cpuid_copy[MAX_TOKEN_LENGTH - 1] = '\0';  // Null 종료 문자를 추가.
     
     char *token;
 

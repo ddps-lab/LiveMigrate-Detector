@@ -9,13 +9,13 @@ sigjmp_buf jump_buffer;
 void handle_sigill(int sig) {
     // xtest is illegal instruction
     xtest_available = 0;
-    siglongjmp(jump_buffer, 1); // Jump back to the point where sigsetjmp was set
+    siglongjmp(jump_buffer, 1);
 }
 
 void handle_gpf(int sig) {
     // Handle the general protection fault
     xtest_available = 0;
-    siglongjmp(jump_buffer, 1); // Jump back to the point where sigsetjmp was set
+    siglongjmp(jump_buffer, 1);
 }
 
 int try_xtest(){
@@ -23,12 +23,12 @@ int try_xtest(){
         // This block is executed if handle_sigill has been called
         return xtest_available;
     }
-    
+
     signal(SIGILL, handle_sigill);
     signal(SIGSEGV, handle_gpf);
-    
+
     int inTx = _xtest();
-    
+
     // xtest is available
     return xtest_available;
 }

@@ -18,7 +18,7 @@ typedef struct {
     char cpuids[MAX_CPUIDS][MAX_TOKEN_LENGTH];
 } CPUID_info;
 
-extern CPUID_info info_array[MAX_ITEMS];
+extern CPUID_info info_array[MAX_ITEMS - 1];
 
 void parse_line(char* line, int index);
 void init_info_array();
