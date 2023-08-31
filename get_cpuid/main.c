@@ -15,9 +15,8 @@ int main() {
     int args[4] = {0};
     init_info_array();
 
-    bool is_available = true;
-    // TSX check
     for (int i = 0; i < MAX_ITEMS - 1; i++) {
+        bool is_available = true;
         // If the ISA being checked is rtm
         if (i == 145){
             // cpuinfo에서 rtm flag 체크
