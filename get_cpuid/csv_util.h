@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define MAX_ITEMS 153
+#define MAX_ITEMS 151
 #define MAX_LSCPU_COLUMNS 5
 #define MAX_TOKEN_LENGTH 50
 
