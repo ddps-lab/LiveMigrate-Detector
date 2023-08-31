@@ -12,6 +12,12 @@ void handle_sigill(int sig) {
     siglongjmp(jump_buffer, 1); // Jump back to the point where sigsetjmp was set
 }
 
+void handle_gpf(int sig) {
+    // Handle the general protection fault
+    xtest_available = 0;
+    siglongjmp(jump_buffer, 1); // Jump back to the point where sigsetjmp was set
+}
+
 int try_xtest(){
     if (sigsetjmp(jump_buffer, 1)) {
         // This block is executed if handle_sigill has been called
@@ -19,7 +25,8 @@ int try_xtest(){
     }
     
     signal(SIGILL, handle_sigill);
-
+    signal(SIGSEGV, handle_gpf);
+    
     int inTx = _xtest();
     
     // xtest is available
