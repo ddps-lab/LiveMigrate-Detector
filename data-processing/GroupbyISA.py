@@ -3,11 +3,12 @@ import pandas as pd
 import copy
 
 import GspreadUtils
-import ISA_h
+import ISA
 
-df = GspreadUtils.read_gspread('us-west-2 x86 isa set')
+df = GspreadUtils.read_gspread('us-west-2 x86 isa set(23.08.31)')
 
-ISAs = ISA_h.ISAs
+ISAs = ISA.get_ISAs()
+print(ISAs)
 
 # Extract instance types with the same CPU ISA
 columns = copy.deepcopy(ISAs)
@@ -31,4 +32,4 @@ for features, group in grouped:
 
     df_new = pd.concat([df_new, row], ignore_index=True)
 
-GspreadUtils.write_gspread('groupby isa', df_new)
+GspreadUtils.write_gspread('redis(r4.large,func,tsx)', df_new)
