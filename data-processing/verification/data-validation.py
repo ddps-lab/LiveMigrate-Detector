@@ -12,7 +12,9 @@ import Transferable
 
 
 def readCSV():
-    df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
+    # df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
+    df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
+    # df = pd.read_csv(f'{root_path}/data-processing/verification/xgboost.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -81,6 +83,7 @@ def validateFailurePrediction(df, transferableGroups, migration_failed):
             falsePositive += 1
         else:
             trueNagative += 1
+            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
 
 def validateForAllInstances(df, transferableGroups):
     migration_success, migration_failed = readCSV()
@@ -105,9 +108,9 @@ if __name__ == "__main__":
     trueNagative = 0
     falseNagative = 0
 
-    df = GspreadUtils.read_gspread('mat_mul(m5.large,func)')
+    df = GspreadUtils.read_gspread('redis(r4.large,func,tsx)')
     transferableGroups = calTransferableMap(len(df), df)
-    validateForSpecificInstance(df, transferableGroups, 'm5.large')
+    validateForSpecificInstance(df, transferableGroups, 'r4.large')
 
     print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
     print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNagative}')
