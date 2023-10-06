@@ -13,8 +13,9 @@ import Transferable
 
 def readCSV():
     # df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
-    df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
+    # df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
     # df = pd.read_csv(f'{root_path}/data-processing/verification/xgboost.csv')
+    df = pd.read_csv(f'{root_path}/data-processing/verification/rubin.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -108,9 +109,9 @@ if __name__ == "__main__":
     trueNagative = 0
     falseNagative = 0
 
-    df = GspreadUtils.read_gspread('redis(r4.large,func,tsx)')
+    df = GspreadUtils.read_gspread('rubin(m5a.large)')
     transferableGroups = calTransferableMap(len(df), df)
-    validateForSpecificInstance(df, transferableGroups, 'r4.large')
+    validateForSpecificInstance(df, transferableGroups, 'm5a.large')
 
     print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
     print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNagative}')
