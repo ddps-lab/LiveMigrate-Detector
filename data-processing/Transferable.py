@@ -35,13 +35,6 @@ def transferable_check(GROUP_NUMBER, df):
     transferable.index = range(2, len(transferable)+2)
     transferable = transferable.groupby(groupNumber).size()
 
-    for i in range(len(matrix)):
-        print(f'Transferable group{i+2} to ', end='')
-        for j in range(len(matrix[i])):
-            if (matrix[i][j]):
-                print(j + 2, end=', ')
-        print()
-
     return matrix
 
 

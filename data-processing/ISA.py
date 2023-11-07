@@ -3,9 +3,7 @@ from pathlib import Path
 
 currentPath = str(Path(__file__).resolve().parent)
 
-# exit()
-
-def get_ISAs():
+def get_ISAs(isa = None):
     ISAs = ["xsave", "aes", "clfsh", "cmpxchg16b", "fxsave", "fxsave64", "lahf", "longmode", "movbe", "pclmulqdq",
             "pentiummmx", "popcnt", "prefetchw", "rdtscp", "smx", "sse", "sse2", "sse2mmx", "sse3", "sse3x87", "monitor",
             "sse4", "sse42", "ssemxcsr", "ssse3", "ssse3mmx", "vtx", "cmov", "fcmov", "fcomi", "serialize", "keylocker",
@@ -27,13 +25,14 @@ def get_ISAs():
             "avx512_ifma_128", "avx512_ifma_256", "avx512_ifma_512", "tsx_ldtrk", "hreset", "amx_fp16", "sgx", "rtm", "invpcid",
             "lzcnt", "rdpid", "rao_int", 'xtest']
 
-    # CSV 파일 로드
-    df = pd.read_csv(currentPath + '/isa_set.csv')
+    if isa is None:
+        # CSV 파일 로드
+        isa = pd.read_csv(currentPath + '/isa_set.csv')
 
     # DataFrame의 모든 값을 소문자로 변환
-    df = df.applymap(lambda s:s.lower() if type(s) == str else s)
+    isa = isa.applymap(lambda s:s.lower() if type(s) == str else s)
 
-    column_values = [x.strip() if isinstance(x, str) else x for x in df['ISA_SET'].tolist()] 
+    column_values = [x.strip() if isinstance(x, str) else x for x in isa['ISA_SET'].tolist()] 
 
     # ISAs 리스트에 없는 값 제거
     column_values = [x for x in column_values if x in ISAs]

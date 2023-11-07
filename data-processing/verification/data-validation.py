@@ -3,19 +3,33 @@ from pathlib import Path
 
 import sys
 import copy
+import boto3
+import json
+
+from pprint import pprint
+
+from io import StringIO
 
 root_path = str(Path(__file__).resolve().parent.parent.parent)
 
 sys.path.append(str(Path(root_path).joinpath('data-processing')))
 import GspreadUtils
 import Transferable
+import GroupbyISA
 
+ec2_client = boto3.client('ec2', region_name='us-west-2')
+ec2_resource = boto3.resource('ec2', region_name='us-west-2')
+s3_client = boto3.client('s3')
+
+bucket_name = 'migration-compatibility'
+prefix = 'func_tracking/c_matrix_multiplication/'
 
 def readCSV():
     # df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
     # df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
     # df = pd.read_csv(f'{root_path}/data-processing/verification/xgboost.csv')
-    df = pd.read_csv(f'{root_path}/data-processing/verification/rubin.csv')
+    # df = pd.read_csv(f'{root_path}/data-processing/verification/rubin.csv')
+    df = pd.read_csv(f'{root_path}/data-processing/verification/c_matrix_multiplication.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -44,7 +58,7 @@ def calTransferableMap(GROUP_NUMBER, df):
     
 
 def validateSuccessPrediction(df, transferableGroups, migration_success):
-    global falseNagative
+    global falseNegative
     global truePositive
     for index, row in migration_success.iterrows():
         src_index = list(df[df['instance groups'].str.contains(row.source)].index)
@@ -60,13 +74,12 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
         if((dst_index + 2) in transferableGroups[src_index]):
             truePositive += 1
         else:
-            falseNagative += 1
-            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+            falseNegative += 1
 
 
 def validateFailurePrediction(df, transferableGroups, migration_failed):
     global falsePositive
-    global trueNagative
+    global trueNegative
     for index, row in migration_failed.iterrows():
         src_index = list(df[df['instance groups'].str.contains(row.source)].index)
         dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
@@ -80,17 +93,50 @@ def validateFailurePrediction(df, transferableGroups, migration_failed):
 
         # transferable 그룹인데 실패
         if((dst_index + 2) in transferableGroups[src_index]):
-            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
             falsePositive += 1
         else:
-            trueNagative += 1
-            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+            trueNegative += 1
 
-def validateForAllInstances(df, transferableGroups):
-    migration_success, migration_failed = readCSV()
 
-    validateSuccessPrediction(df, transferableGroups, migration_success)
-    validateFailurePrediction(df, transferableGroups, migration_failed)
+def validateForAllInstances():
+    result = dict()
+    global truePositive, falsePositive, trueNegative, falseNegative
+
+    isa_lookup = GspreadUtils.read_gspread('us-west-2 x86 isa set(23.08.31)')
+
+    # 버킷 내의 모든 객체 조회
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+    objects = response.get('Contents', [])
+
+    # 객체 이름만 리스트로 저장
+    file_names = [obj['Key'].split('/')[-1] for obj in objects]
+    file_names = set(file_names)
+    file_names.discard('')
+    for file_name in file_names:
+        validate = dict()
+
+        instanceType = file_name.split('.csv')[0]
+        response = s3_client.get_object(Bucket=bucket_name, Key=prefix + file_name)
+        file_content = response['Body'].read().decode('utf-8')
+
+        isa_from_workload = pd.read_csv(StringIO(file_content))
+
+        group = GroupbyISA.groupby_isa(isa_lookup, isa_from_workload)
+        
+        transferableGroups = calTransferableMap(len(group), group)
+
+        validateForSpecificInstance(group, transferableGroups, instanceType)
+
+        validate['TN(마이그레이션 실패 예측 및 실제 실패)'] = trueNegative
+        validate['FN(마이그레이션 실패 예측 및 실제 성공)'] = falseNegative
+        validate['FP(마이그레이션 성공 예측 및 실제 실패)'] = falsePositive
+        validate['TP(마이그레이션 성공 예측 및 실제 성공)'] = truePositive
+        validate['recall'] = truePositive / (truePositive + falseNegative)
+
+        result[instanceType] = validate
+        truePositive = falsePositive = trueNegative = falseNegative = 0
+
+    pprint(result)
 
 
 def validateForSpecificInstance(df, transferableGroups, instanceType):
@@ -106,15 +152,18 @@ def validateForSpecificInstance(df, transferableGroups, instanceType):
 if __name__ == "__main__":
     truePositive = 0
     falsePositive = 0
-    trueNagative = 0
-    falseNagative = 0
+    trueNegative = 0
+    falseNegative = 0
 
-    df = GspreadUtils.read_gspread('rubin(m5a.large)')
+    validateForAllInstances()
+    exit()
+
+    df = GspreadUtils.read_gspread('mat_mul_c(r4.large)')
     transferableGroups = calTransferableMap(len(df), df)
-    validateForSpecificInstance(df, transferableGroups, 'm5a.large')
+    validateForSpecificInstance(df, transferableGroups, 'r4.large')
 
     print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
-    print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNagative}')
+    print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNegative}')
     print(f'FP(마이그레이션 성공 예측 및 실제 실패) : {falsePositive}')
-    print(f'FN(마이그레이션 실패 예측 및 실제로 성공) : {falseNagative}')
-    print(f'recall : {truePositive / (truePositive + falseNagative):.3f}')
+    print(f'FN(마이그레이션 실패 예측 및 실제로 성공) : {falseNegative}')
+    print(f'recall : {truePositive / (truePositive + falseNegative):.3f}')
