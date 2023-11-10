@@ -6,7 +6,10 @@ import GspreadUtils
 import ISA
 
 def groupby_isa(df, isa = None):
-    ISAs = ISA.get_ISAs()
+    if isa is None:
+        ISAs = ISA.get_ISAs()
+    else:
+        ISAs = ISA.get_ISAs(isa)
 
     # Extract instance types with the same CPU ISA
     columns = copy.deepcopy(ISAs)
@@ -32,4 +35,4 @@ def groupby_isa(df, isa = None):
 
 df = GspreadUtils.read_gspread('us-west-2 x86 isa set(23.08.31)')
 group = groupby_isa(df)
-GspreadUtils.write_gspread('mat_mul_c(h1.16xlarge)', group)
+GspreadUtils.write_gspread('adx(r4.large)', group)

@@ -4,7 +4,6 @@ from pathlib import Path
 import sys
 import copy
 import boto3
-import json
 
 from pprint import pprint
 
@@ -22,14 +21,10 @@ ec2_resource = boto3.resource('ec2', region_name='us-west-2')
 s3_client = boto3.client('s3')
 
 bucket_name = 'migration-compatibility'
-prefix = 'func_tracking/c_matrix_multiplication/'
+prefix = 'func_tracking/redis/'
 
 def readCSV():
-    # df = pd.read_csv(f'{root_path}/data-processing/verification/matrix_multiplication.csv')
-    # df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
-    # df = pd.read_csv(f'{root_path}/data-processing/verification/xgboost.csv')
-    # df = pd.read_csv(f'{root_path}/data-processing/verification/rubin.csv')
-    df = pd.read_csv(f'{root_path}/data-processing/verification/c_matrix_multiplication.csv')
+    df = pd.read_csv(f'{root_path}/data-processing/verification/redis.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -60,7 +55,9 @@ def calTransferableMap(GROUP_NUMBER, df):
 def validateSuccessPrediction(df, transferableGroups, migration_success):
     global falseNegative
     global truePositive
-    for index, row in migration_success.iterrows():
+
+    check = False
+    for _, row in migration_success.iterrows():
         src_index = list(df[df['instance groups'].str.contains(row.source)].index)
         dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
 
@@ -75,12 +72,18 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
             truePositive += 1
         else:
             falseNegative += 1
+            check = True
+            print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+    
+    if check:
+        print(df)
+    print
 
 
 def validateFailurePrediction(df, transferableGroups, migration_failed):
     global falsePositive
     global trueNegative
-    for index, row in migration_failed.iterrows():
+    for _, row in migration_failed.iterrows():
         src_index = list(df[df['instance groups'].str.contains(row.source)].index)
         dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
 
@@ -104,7 +107,7 @@ def validateForAllInstances():
 
     isa_lookup = GspreadUtils.read_gspread('us-west-2 x86 isa set(23.08.31)')
 
-    # 버킷 내의 모든 객체 조회
+    # func tracking 결과 조회
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
     objects = response.get('Contents', [])
 
@@ -156,14 +159,13 @@ if __name__ == "__main__":
     falseNegative = 0
 
     validateForAllInstances()
-    exit()
 
-    df = GspreadUtils.read_gspread('mat_mul_c(r4.large)')
-    transferableGroups = calTransferableMap(len(df), df)
-    validateForSpecificInstance(df, transferableGroups, 'r4.large')
+    # df = GspreadUtils.read_gspread('adx(r4.large)')
+    # transferableGroups = calTransferableMap(len(df), df)
+    # validateForSpecificInstance(df, transferableGroups, 'r4.large')
 
-    print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
-    print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNegative}')
-    print(f'FP(마이그레이션 성공 예측 및 실제 실패) : {falsePositive}')
-    print(f'FN(마이그레이션 실패 예측 및 실제로 성공) : {falseNegative}')
-    print(f'recall : {truePositive / (truePositive + falseNegative):.3f}')
+    # print(f'TP(마이그레이션 성공 예측 및 실제 성공) : {truePositive}')
+    # print(f'TN(마이그레이션 실패 예측 및 실제 실패) : {trueNegative}')
+    # print(f'FP(마이그레이션 성공 예측 및 실제 실패) : {falsePositive}')
+    # print(f'FN(마이그레이션 실패 예측 및 실제로 성공) : {falseNegative}')
+    # print(f'recall : {truePositive / (truePositive + falseNegative):.3f}')
