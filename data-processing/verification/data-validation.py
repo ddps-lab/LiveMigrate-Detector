@@ -21,10 +21,9 @@ ec2_resource = boto3.resource('ec2', region_name='us-west-2')
 s3_client = boto3.client('s3')
 
 bucket_name = 'migration-compatibility'
-prefix = 'func_tracking/rdseed/'
 
 def readCSV():
-    df = pd.read_csv(f'{root_path}/data-processing/verification/rdseed.csv')
+    df = pd.read_csv(f'{root_path}/data-processing/verification/adox_adcx.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -37,6 +36,7 @@ def readCSV():
 
 def criu_cpu_info_check():
     recall = 0
+    precision = 0
 
     instances =["m5a.large", "m5a.2xlarge", "m5a.8xlarge", "c5a.large", "c6a.large", "m4.large", "h1.2xlarge", "x1e.xlarge", "r4.large", "i3.large", "c5a.24xlarge", "c6a.24xlarge", "c4.8xlarge", "h1.8xlarge", "h1.16xlarge", "x1e.8xlarge", "m4.16xlarge", "r4.8xlarge", "r4.16xlarge", "c6i.large", "c5.large", "m5n.large", "m5.large", "c6i.16xlarge", "c5d.9xlarge", "m5zn.6xlarge", "c5.9xlarge"]
 
@@ -73,7 +73,7 @@ def criu_cpu_info_check():
         false_positive = false_positive.drop(columns=['_merge'])
     
     result = dict()
-
+    except_precision = 0
     for instanceType in instances:
         validate = dict()
 
@@ -93,13 +93,20 @@ def criu_cpu_info_check():
             validate['recall'] = TP / (TP + FN)
             recall += TP / (TP + FN)
 
+        if TP + FP == 0:
+            except_precision += 1
+        else:
+            validate['precision'] = TP / (TP + FP)
+            precision += TP / (TP + FP)
+
         result[instanceType] = validate
 
         TN = FN = FP = TP = 0
 
-    pprint(result)
+    # pprint(result)
 
     print(f'total recall : {recall / 27:.3f}')
+    print(f'total precision : {precision / (27 - except_precision):.3f}')
 
 
 def calTransferableMap(GROUP_NUMBER, df):
@@ -140,10 +147,10 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
         else:
             falseNegative += 1
             check = True
-            print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
     
-    if check:
-        print(df)
+    # if check:
+        # print(df)
 
 
 def validateFailurePrediction(df, transferableGroups, migration_failed):
@@ -170,6 +177,7 @@ def validateFailurePrediction(df, transferableGroups, migration_failed):
 def validateForAllInstances():
     result = dict()
     recall = 0
+    precision = 0
 
     global truePositive, falsePositive, trueNegative, falseNegative
 
@@ -178,6 +186,8 @@ def validateForAllInstances():
     # func tracking 결과 조회
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
     objects = response.get('Contents', [])
+
+    except_precision = 0
 
     # 객체 이름만 리스트로 저장
     file_names = [obj['Key'].split('/')[-1] for obj in objects]
@@ -208,6 +218,12 @@ def validateForAllInstances():
         else:
             validate['recall'] = truePositive / (truePositive + falseNegative)
             recall += truePositive / (truePositive + falseNegative)
+        
+        if truePositive + falsePositive == 0:
+            except_precision += 1
+        else:
+            validate['precision'] = truePositive / (truePositive + falsePositive)
+            precision += truePositive / (truePositive + falsePositive)
 
         result[instanceType] = validate
         truePositive = falsePositive = trueNegative = falseNegative = 0
@@ -215,6 +231,7 @@ def validateForAllInstances():
     pprint(result)
 
     print(f'total recall : {recall / 27:.3f}')
+    print(f'total precision : {precision / (27 - except_precision):.3f}')
 
 
 def validateForSpecificInstance(df, transferableGroups, instanceType):
@@ -233,5 +250,18 @@ if __name__ == "__main__":
     trueNegative = 0
     falseNegative = 0
 
-    criu_cpu_info_check()
-    validateForAllInstances()
+    # criu_cpu_info_check()
+
+    print('Select evaluation option')
+    print('1. entire scanning\n2. function tracking')
+    option = int(input()) - 1
+
+    if option == 0:
+        prefix = 'entire-scanning/adox_adcx/'
+    elif option == 1:
+        prefix = 'func_tracking/adox_adcx/'
+    else:
+        print('invalid option')
+        exit()
+
+    validateForAllInstances(prefix)
