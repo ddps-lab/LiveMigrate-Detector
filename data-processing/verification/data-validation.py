@@ -103,8 +103,6 @@ def criu_cpu_info_check():
 
         TN = FN = FP = TP = 0
 
-    # pprint(result)
-
     print(f'total recall : {recall / 27:.3f}')
     print(f'total precision : {precision / (27 - except_precision):.3f}')
 
@@ -130,7 +128,6 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
     global falseNegative
     global truePositive
 
-    check = False
     for _, row in migration_success.iterrows():
         src_index = list(df[df['instance groups'].str.contains(row.source)].index)
         dst_index = list(df[df['instance groups'].str.contains(row.destination)].index)
@@ -146,12 +143,8 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
             truePositive += 1
         else:
             falseNegative += 1
-            check = True
             # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
     
-    # if check:
-        # print(df)
-
 
 def validateFailurePrediction(df, transferableGroups, migration_failed):
     global falsePositive
@@ -250,7 +243,7 @@ if __name__ == "__main__":
     trueNegative = 0
     falseNegative = 0
 
-    # criu_cpu_info_check()
+    criu_cpu_info_check()
 
     print('Select evaluation option')
     print('1. entire scanning\n2. function tracking')
