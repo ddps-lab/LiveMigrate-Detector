@@ -30,3 +30,9 @@ def write_gspread(worksheet, df):
     )
 
     format_cell_range(sheet, '1:500', format_cell)
+
+def read_CPU_Feature_Visualization():
+    sheet = gc.open('CPU Feature Visualization').worksheet('all features')
+    df = pd.DataFrame(sheet.get_all_records())
+    
+    return df
