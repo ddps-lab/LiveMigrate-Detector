@@ -3,7 +3,7 @@ from pathlib import Path
 
 currentPath = str(Path(__file__).resolve().parent)
 
-def get_ISAs(isa = None):
+def get_ISAs(isa):
     ISAs = ["xsave", "aes", "clfsh", "cmpxchg16b", "fxsave", "fxsave64", "lahf", "longmode", "movbe", "pclmulqdq",
             "pentiummmx", "popcnt", "prefetchw", "rdtscp", "smx", "sse", "sse2", "sse2mmx", "sse3", "sse3x87", "monitor",
             "sse4", "sse42", "ssemxcsr", "ssse3", "ssse3mmx", "vtx", "cmov", "fcmov", "fcomi", "serialize", "keylocker",
@@ -24,10 +24,6 @@ def get_ISAs(isa = None):
             "avx512dq_512", "avx512dq_kop", "avx512dq_scalar", "avx512_4vnniw_512", "f16c", "msrlist", "xsavec", "rdwrfsgs",
             "avx512_ifma_128", "avx512_ifma_256", "avx512_ifma_512", "tsx_ldtrk", "hreset", "amx_fp16", "sgx", "rtm", "invpcid",
             "lzcnt", "rdpid", "rao_int", 'xtest']
-
-    if isa is None:
-        # CSV 파일 로드
-        isa = pd.read_csv(currentPath + '/isa_set.csv')
 
     # DataFrame의 모든 값을 소문자로 변환
     isa = isa.applymap(lambda s:s.lower() if type(s) == str else s)
