@@ -1,7 +1,5 @@
-import time
 import pandas as pd
 
-xed_pkl = '/home/ubuntu/migration_test/ins_disas/log/unique_instructions.pkl'
 workload_isa_file = '/home/ubuntu/migration_test/ins_disas/log/isa_set.csv'
 
 def create_csv(workload_data_list, is_tsx_run=None, xtest_enable=None):
@@ -19,7 +17,3 @@ def create_csv(workload_data_list, is_tsx_run=None, xtest_enable=None):
             workload_df.loc[len(workload_df)] = ['XTEST', '']
 
     workload_df.to_csv(workload_isa_file, index=False)
-
-    end_time = time.time()
-    total_time = end_time - temp_time
-    print("create csv: {:.3f} s".format(total_time))

@@ -1,6 +1,5 @@
 import gdb
 
-import time
 from pathlib import Path
 import sys
 import os
@@ -15,9 +14,6 @@ glibc_rtm_enable = False
 LD_BIND_NOW = False
 xtest_enable = False
 is_tsx_run = False
-
-untraceable_instruction = 0
-traceable_instruction = 0
 
 # xed wrapper 라이브러리 로드
 libxedwrapper = ctypes.CDLL('/home/ubuntu/migration_test/ins_disas/xedlib/libxedwrapper.so')
@@ -75,25 +71,18 @@ def binding_check(PID):
 def dis_func(addr, tracked_instructions):
     global xtest_enable
     global is_tsx_run
-    global untraceable_instruction
-    global traceable_instruction
     
     tsx_enabled_glibc_functions = ['__GI___lll_lock_elision', '__GI___lll_unlock_elision']
 
     func = {}
-    instructions = {}
 
     transfer_instructions = set(('call', 'jmp', 'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je', 'jz', 'jnc', 'jne', 'jnz', 
     'jnp', 'jpo', 'jp', 'jpe', 'jcxz', 'jecxz', 'jg', 'jnle', 'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'))
-
-    tsx_instructions = set(('xabort', 'xacquire', 'xrelese', 'xbegin', 'xend', 'xtest', 'xresldtrk', 'xsusldtrk'))
-    rtm_instructions = set(('xbegin', 'xend'))
 
     try:
         disas_result = gdb.execute(f"disas /r {addr}", to_string=True)
     except gdb.error as e:
         print(f'error: {addr}')
-
 
     lines = disas_result.split('\n')
 
@@ -118,7 +107,7 @@ def dis_func(addr, tracked_instructions):
 
         # ex) "48 8d 3d bb 02 00 00	lea    rdi,[rip+0x2bb]        # 0x56116174033a <main>"
         instruction_part = parts[1].strip()
-
+        instruction_hex = instruction_part.split('\t')[0].replace(' ', '')
         instruction = instruction_part.split('\t')[1].split(' ')[0]
 
         if instruction in transfer_instructions:
@@ -126,34 +115,33 @@ def dis_func(addr, tracked_instructions):
         elif instruction in tracked_instructions:
             continue
         else:
-            tracked_instructions.add(instruction)
-            
-        # ex) ["48 8d 3d bb 02 00 00 lea", "rdi,[rip+0x2bb]        # 0x56116174033a <main>"]
-        instruction_hex = instruction_part.split('\t')[0].replace(' ', '')
-
-        # ex) "0x0000561161740078 <_start+24>"
-        addresse_part = parts[0].strip()
+            tracked_instructions.add(instruction)        
 
         gdb_comment = instruction_part.split(' ')[-1]
         # exclude cold functions
         if '-' in gdb_comment or '.cold' in gdb_comment:
             continue
 
+        # ex) "0x0000561161740078 <_start+24>"
+        addresse_part = parts[0].strip()
         # ex) ["0x0000561161740078", "<_start+24>"]
         addresse_part = addresse_part.split(' ')
         # ex) "0x0000561161740078"
         address = addresse_part[0]
         offset = addresse_part[1]
 
-        # ex) ["48 8d 3d bb 02 00 00 lea", "rdi,[rip+0x2bb]        # 0x56116174033a <main>"]
-        instruction_hex = instruction_part.split('\t')[0].replace(' ', '')
-        instruction = instruction_part.split('\t')[1].split(' ')[0]
+        # instruction not within function
+        if len(addresse_part) < 2:
+            continue
+
+        # exclude cold functions
+        if '-' in offset or '.cold' in offset:
+            continue
 
         is_func_call = None
         if instruction in transfer_instructions:
             # 레지스터 콜 제외..
             if gdb_comment.startswith('<'):
-                traceable_instruction += 1
                 if '@plt' in gdb_comment:
                     is_func_call = 'plt'
                 elif '+' in gdb_comment:
@@ -164,28 +152,14 @@ def dis_func(addr, tracked_instructions):
                 abs_addr = int(gdb_comment, 16)
                 if got_addr[0] <= abs_addr <= got_addr[1]:
                     is_func_call = 'got'
-                
-                traceable_instruction += 1
-            else:
-                untraceable_instruction += 1
-        
+
         if instruction == 'xtest':
             xtest_enable = True
         elif instruction in ['xbegin', 'xend']:
             is_tsx_run = True
 
-        # instruction not within function
-        if len(addresse_part) < 2:
-            continue
-        else:
-            offset = addresse_part[1]
-
-        # exclude cold functions
-        if '-' in offset or '.cold' in offset:
-            continue
-
         func[instruction_hex] = address, is_func_call, gdb_comment
-
+    
     return func
 
 def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions):
@@ -230,10 +204,7 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
     else:
         return None
 
-def preprocessing():
-    global disas_time
-    global xed_time
-
+def tracking():
     executable_instructions = []
     tracking_functions = set()
     list_tracking_functions = []
@@ -242,18 +213,13 @@ def preprocessing():
 
     # search the starting point of tracking
     start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
-    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
     start_addr = "0x{:016x}".format(int(start_addr, 16))
 
     tracking_functions.add(start_addr)
     list_tracking_functions.append(start_addr)
 
     for function_address in list_tracking_functions:
-        # disas time check
-        temp_time = time.time()
         func = dis_func(function_address, tracked_instructions)
-        end_time = time.time()
-        disas_time += end_time - temp_time
 
         if func is None:
             continue
@@ -263,14 +229,9 @@ def preprocessing():
             is_func_call = instruction_meta[1]
             gdb_comment = instruction_meta[2]
 
-            # result = xed_script.interpret_instruction(instruction_hex)  # interpreting instruction with xed
             instruction_data = {}
 
-            # xed time check
-            temp_time = time.time()
             result = libxedwrapper.print_isa_set(instruction_hex.encode())
-            end_time = time.time()
-            xed_time += end_time - temp_time
 
             instruction_data['ISA_SET'] = result.isa_set.decode('utf-8') if result.isa_set else "Error"
             instruction_data['SHORT'] = result.disassembly.decode('utf-8') if result.disassembly else "Error"
@@ -287,29 +248,10 @@ def preprocessing():
     
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
 
-    print(f'tracking func count : {len(list_tracking_functions)}')
-    # print(f'traceable branch instructions : {traceable_instruction}')
-    # print(f'untraceable branch instructions : {untraceable_instruction}')
-    # print(f'missing rate : {untraceable_instruction / traceable_instruction:.3f}')
-    # print(f'instruction count : {len(tracked_instructions)}')
-    print("disassemble time: {:.3f} s".format(disas_time))
-    print("xed time: {:.3f} s".format(xed_time))
-
 
 if __name__ == '__main__':
-    disas_time = 0
-    xed_time = 0
-
     gdb.execute(f"set pagination off")
     
-    # 스크립트 시작 시간 기록
-    script_start_time = time.time()
-    # 쉘 스크립트에서 전달된 GDB 시작 시간 가져오기
-    gdb_start_time = float(os.getenv('GDB_START_TIME', '0'))
-    # GDB 실행에 걸린 시간 계산
-    gdb_load_time = script_start_time - gdb_start_time
-    print("GDB uptime : {:.3} s".format(gdb_load_time))
-
     # 쉘 스크립트에서 전달된 workload PID 가져오기
     PID = int(os.getenv('WORKLOAD_PID', '0'))
 
@@ -318,14 +260,6 @@ if __name__ == '__main__':
     
     got_addr = get_got_sections()
 
-    temp_time = time.time()
-    preprocessing()
-    end_time = time.time()
-    total_time = end_time - temp_time
-    print("function tracking and instruction interpretation: {:.3f} s".format(total_time - disas_time - xed_time))
-
-    end_time = time.time()
-    total_time = end_time - gdb_start_time
-    print("total: {:.3f} s".format(total_time))
+    tracking()
 
     exit()

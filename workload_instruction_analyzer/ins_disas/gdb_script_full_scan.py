@@ -1,10 +1,8 @@
 import capstone
 import gdb
 
-import time
 from pathlib import Path
 import sys
-import os
 
 from tqdm import tqdm
 
@@ -114,22 +112,9 @@ def preprocessing():
     utils.create_csv(workload_data_list)
 
 if __name__ == '__main__':
-    # 스크립트 시작 시간 기록
-    script_start_time = time.time()
-
     gdb.execute(f"set pagination off")
 
-    # 쉘 스크립트에서 전달된 GDB 시작 시간 가져오기
-    gdb_start_time = float(os.getenv('GDB_START_TIME', '0'))
-    # GDB 실행에 걸린 시간 계산
-    gdb_load_time = script_start_time - gdb_start_time
-    print("GDB uptime : {:.3} s".format(gdb_load_time))
-
-    temp_time = time.time()
     sections = get_text_sections()
-    end_time = time.time()
-    total_time = end_time - temp_time
-    print("get text sections: {:.3f} s".format(total_time))
     
     temp_time = time.time()
     seen = set()
@@ -139,19 +124,8 @@ if __name__ == '__main__':
     
     with open(disas_file, 'w') as f:
         f.write(''.join(buffered_output))
-    end_time = time.time()
-    total_time = end_time - temp_time
     remove_ins_duplicate()
-    print("entire disassemble: {:.3f} s".format(total_time))
     
-    temp_time = time.time()
     preprocessing()
-    end_time = time.time()
-    total_time = end_time - temp_time
-    print("instruction interpretation: {:.3f} s".format(total_time))
-
-    end_time = time.time()
-    total_time = end_time - gdb_start_time
-    print("total: {:.3f} s".format(total_time))
 
     exit()
