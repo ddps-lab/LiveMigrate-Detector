@@ -1,0 +1,5 @@
+# build
+gcc -shared -fPIC -o libxedwrapper.so xed_decoding.c -I/home/ubuntu/xed/include/public/xed/ -I/home/ubuntu/xed/obj/ -L/home/ubuntu/xed/obj/ -lxed
+
+# 실행 시 설정
+export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
