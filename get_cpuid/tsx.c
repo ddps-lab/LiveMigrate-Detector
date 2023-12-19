@@ -4,6 +4,7 @@
 #include <setjmp.h>
 
 int xtest_available = 1;
+volatile int globalVar = 0;
 sigjmp_buf jump_buffer;
 
 void handle_sigill(int sig) {
@@ -31,6 +32,23 @@ int try_xtest(){
 
     // xtest is available
     return xtest_available;
+}
+
+int try_transaction() {
+    unsigned status = _xbegin();
+    if (status == _XBEGIN_STARTED) {
+        // 트랜잭션이 성공적으로 시작되면
+        globalVar++;
+        _xend(); // 트랜잭션 종료
+
+        if (globalVar > 0){
+            // TSX is available
+            return 1;
+        }
+    } else {
+        // TSX is not available
+        return 0;
+    }
 }
 
 int is_rtm_visible(){
