@@ -6,7 +6,8 @@ import os
 
 import ctypes
 
-sys.path.append(str(Path(__file__).resolve().parent))
+rootdir = str(Path(__file__).resolve().parent)
+sys.path.append(rootdir)
 
 import utils
 
@@ -16,7 +17,7 @@ xtest_enable = False
 is_tsx_run = False
 
 # xed wrapper 라이브러리 로드
-libxedwrapper = ctypes.CDLL('/home/ubuntu/migration_test/ins_disas/xedlib/libxedwrapper.so')
+libxedwrapper = ctypes.CDLL(f'{rootdir}/xedlib/libxedwrapper.so')
 
 class XedResult(ctypes.Structure):
     _fields_ = [("isa_set", ctypes.c_char_p),

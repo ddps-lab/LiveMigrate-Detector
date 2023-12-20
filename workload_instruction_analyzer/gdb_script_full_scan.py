@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 import utils
 
 # xed wrapper 라이브러리 로드
-libxedwrapper = ctypes.CDLL('/home/ubuntu/migration_test/ins_disas/xedlib/libxedwrapper.so')
+libxedwrapper = ctypes.CDLL('/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/xedlib/libxedwrapper.so')
 
 class XedResult(ctypes.Structure):
     _fields_ = [("isa_set", ctypes.c_char_p),
@@ -25,7 +25,7 @@ libxedwrapper.print_isa_set.argtypes = [ctypes.c_char_p]
 libxedwrapper.print_isa_set.restype = XedResult
 
 disassembler = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
-disas_file = '/home/ubuntu/migration_test/ins_disas/log/disas.txt'
+disas_file = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/log/disas.txt'
 
 def get_text_sections():
     files = gdb.execute("info files", to_string=True)

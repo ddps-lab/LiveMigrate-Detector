@@ -12,4 +12,4 @@ export WORKLOAD_PID=$1
 export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
 
 # Run GDB
-gdb -p $1 -x /home/ubuntu/migration_test/ins_disas/gdb_script_full_scan.py
+gdb -p $1 -x /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/gdb_script_full_scan.py
