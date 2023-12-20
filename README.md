@@ -1,31 +1,50 @@
-# isa-set-lookup-aws-ec2
+# Workload-Aware Live Migratable Cloud Instance Detector
 
-Create and collect CPU feature (ISA SET) information for all supported Linux instances, excluding ARM architecture, in the us-west-2c region of AWS. The ISA SET and CPUID depend on the data files written in Intel XED.
+### A project to extract the CPU features used in a workload to achieve migration compatibility.
 
-### Directory Structure
+computing provides a variety of distinct computing resources on demand. Supporting live migration in the cloud can be beneficial to dynamically build a reliable and cost-optimal environment, especially when using spot instances. Users can apply the process of live migration technology using the Checkpoint/Restore In Userspace (CRIU) to achieve the goal. Due to the nature of live migration, ensuring the compatibility of the central processing unit (CPU) features between the source and target hosts is crucial for flawsless execution after migration. To detect migratable instances precisely while lowering falsenegative detection on the cloud-scale, we propose a workloadaware migratable instance detector. Unlike the implementation of the CRIU compatibility checking algorithm, which audits the source and target host CPU features, the proposed system thoroughly investigates instructions used in a migrating process to consider CPU features that are actually in use. With a thorough evaluation under various workloads, we demonstrate that the proposed system improves the recall of migratable instance detection over 5× compared to the default CRIU implementation with 100% detection accuracy. To demonstrate its practicability, we apply it to the spot-instance environment, revealing that it can improve the median cost savings by 16% and the interruption ratio by 15% for quarter cases.
 
-* /get_cpuid/*
-    * get_cpuid_for_xed.py - Traverse the XED directory to collect CPUID information for the ISA sets defined in XED.
-        * Unless new ISA sets are defined in XED, there is no need to run get_cpuid_for_xed.py to collect new data.
-        * cpuid.txt and the main binary must be deployed.
-    * main - Query the CPUID to check the availability of specific ISA sets.
-* /infrastructure/*
-    * Terraform scripts for AWS instances.
-* /x86-instance-filter/
-    * Retrieve all available (supported) Linux instances, excluding ARM architecture, in the us-west-2c region of AWS.
-    * We collect the ISA SET for the retrieved instances.
-* /main.py
-    * Main workload for initiating the collection of ISA SETs
+## CPU Feature Collector
 
-### Execution Steps
-1. Deploy the get_cpuid scripts to the AWS instances.
-2. Create an AMI of those instances.
-3. Update the AMI ID in /infrastructure/variables.tf.
-4. Create an S3 bucket and modify the user_data in /infrastructure/modules/EC2/ec2.tf.
-5. Run /main.py.
+Various instance types, even a few hundred with unique CPU features, are offered by public cloud service providers. The CPU feature collector module gathers CPU features of unique instance types off-line to make a prompt decision about migratable instance types. In systems with X86 architecture, CPU features can be extracted using the CPUID instruction. 
 
-### Example of Collected Data
+**How to run?**  
+Step 1: Deploy /cpu_feature_collector/get_cpuid/ to the instance and create an AMI.  
+Step 2: Create a S3 bucket to upload the collected CPU feature data and modify /cpu_feature_collector/infrastructure/modules/EC2/ec2.tf (modify the user_data).  
+Step 3: Update the AMI and key in /cpu_feature_collector/infrastructure/variables.tf. At this step, you can choose the desired region and availability zone.  
+Step 4: Simply run it. cpu_feature_collector.py will automatically collect the CPUID.  
 
-|InstanceType|Architecture|Vendor_ID   |Model_name                                    |CPU_family|Stepping|XSAVE|AES|CLFSH|CMPXCHG16B|FXSAVE|FXSAVE64|LAHF|LONGMODE|MOVBE|PCLMULQDQ|PENTIUMMMX|POPCNT|PREFETCHW|RDTSCP|SMX|SSE|SSE2|SSE2MMX|SSE3|SSE3X87|MONITOR|SSE4|SSE42|SSEMXCSR|SSSE3|SSSE3MMX|VTX|CMOV|FCMOV|FCOMI|SERIALIZE|KEYLOCKER|KEYLOCKER_WIDE|AVX512_VP2INTERSECT_128|AVX512_VP2INTERSECT_256|AVX512_VP2INTERSECT_512|AVX512F_128|AVX512F_128N|AVX512F_256|AVX512F_512|AVX512F_KOP|AVX512F_SCALAR|ICACHE_PREFETCH|AVX2|AVX2GATHER|FMA|AVX_VNNI_INT8|AVX512_VBMI2_128|AVX512_VBMI2_256|AVX512_VBMI2_512|AVX512_FP16_128N|AVX512_FP16_128|AVX512_FP16_256|AVX512_FP16_512|AVX512_FP16_SCALAR|RDRAND|AVX_VNNI|AVX_IFMA|AVX512_4FMAPS_512|AVX512_4FMAPS_SCALAR|PKU|XSAVEOPT|CMPCCXADD|CLDEMOTE|WRMSRNS|CLFLUSHOPT|AVX512_BF16_128|AVX512_BF16_256|AVX512_BF16_512|AMX_TILE|AMX_INT8|AMX_BF16|CET|AVX_NE_CONVERT|BMI1|BMI2|AVX512_BITALG_128|AVX512_BITALG_256|AVX512_BITALG_512|PTWRITE|AVX512_VBMI_128|AVX512_VBMI_256|AVX512_VBMI_512|AVX512_VPOPCNTDQ_128|AVX512_VPOPCNTDQ_256|SHA|ADOX_ADCX|SMAP|AVX_GFNI|AVX512_GFNI_128|AVX512_GFNI_256|AVX512_GFNI_512|AVX512_VAES_128|AVX512_VAES_256|AVX512_VAES_512|AVX512_VPCLMULQDQ_128|AVX512_VPCLMULQDQ_256|AVX512_VPCLMULQDQ_512|MOVDIR|AVX512_VPOPCNTDQ_512|AVX512_VNNI_128|AVX512_VNNI_256|AVX512_VNNI_512|ENQCMD|MPX|AVX|AVXAES|AVX512ER_512|AVX512ER_SCALAR|AVX512PF_512|PREFETCHWT1|AVX512CD_128|AVX512CD_256|AVX512CD_512|PCONFIG|WAITPKG|CLWB|WBNOINVD|RDSEED|AVX512_4VNNIW_512|AVX512_4FMAPS_512|AVX512_4FMAPS_SCALAR|XSAVES|AMX_COMPLEX|UINTR|AVX512BW_128|AVX512BW_128N|AVX512BW_256|AVX512BW_512|AVX512BW_KOP|AVX512DQ_128|AVX512DQ_128N|AVX512DQ_256|AVX512DQ_512|AVX512DQ_KOP|AVX512DQ_SCALAR|AVX512_4VNNIW_512|F16C|MSRLIST|XSAVEC|RDWRFSGS|AVX512_IFMA_128|AVX512_IFMA_256|AVX512_IFMA_512|TSX_LDTRK|HRESET|AMX_FP16|SGX|RTM|INVPCID|LZCNT|RDPID|RAO_INT|
-|------------|------------|------------|----------------------------------------------|----------|--------|-----|---|-----|----------|------|--------|----|--------|-----|---------|----------|------|---------|------|---|---|----|-------|----|-------|-------|----|-----|--------|-----|--------|---|----|-----|-----|---------|---------|--------------|-----------------------|-----------------------|-----------------------|-----------|------------|-----------|-----------|-----------|--------------|---------------|----|----------|---|-------------|----------------|----------------|----------------|----------------|---------------|---------------|---------------|------------------|------|--------|--------|-----------------|--------------------|---|--------|---------|--------|-------|----------|---------------|---------------|---------------|--------|--------|--------|---|--------------|----|----|-----------------|-----------------|-----------------|-------|---------------|---------------|---------------|--------------------|--------------------|---|---------|----|--------|---------------|---------------|---------------|---------------|---------------|---------------|---------------------|---------------------|---------------------|------|--------------------|---------------|---------------|---------------|------|---|---|------|------------|---------------|------------|-----------|------------|------------|------------|-------|-------|----|--------|------|-----------------|-----------------|--------------------|------|-----------|-----|------------|-------------|------------|------------|------------|------------|-------------|------------|------------|------------|---------------|-----------------|----|-------|------|--------|---------------|---------------|---------------|---------|------|--------|---|---|-------|-----|-----|-------|
-|t3.medium   |x86_64      |GenuineIntel|Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz|6         |7       |1    |1  |1    |1         |1     |0       |0   |0       |1    |1        |1         |1     |0        |0     |0  |1  |1   |1      |1   |1      |0      |1   |1    |1       |1    |1       |0  |1   |1    |1    |0        |0        |0             |0                      |0                      |0                      |1          |1           |1          |1          |1          |1             |0              |1   |1         |1  |0            |0               |0               |0               |0               |0              |0              |0              |0                 |1     |0       |0       |0                |0                   |1  |1       |0        |0       |0      |1         |0              |0              |0              |0       |0       |0       |0  |0             |1   |1   |0                |0                |0                |0      |0              |0              |0              |0                   |0                   |0  |1        |1   |0       |0              |0              |0              |0              |0              |0              |0                    |0                    |0                    |0     |0                   |0              |0              |0              |0     |1  |1  |1     |0           |0              |0           |0          |1           |1           |1           |0      |0      |1   |1       |1     |0                |0                |0                   |1     |0          |0    |1           |1            |1           |1           |1           |1           |1            |1           |1           |1           |1              |0                |1   |0      |0     |1       |0              |0              |0              |0        |0     |0       |0  |0  |1      |0    |0    |0      |
+> If you want to collect data for specific instance types or update the list of instances, please modify the file /cpu_feature_collector/infrastructure/AWS x86 instances(us-west-2, 23.07.07).csv.
+
+## Workload Instruction Analyzer
+
+The proposed system analyzes the operations of a workload with respect to the CPU features that the workload needs in a new host. To extract the CPU features, we propose two methods: the text-segment full scan and execution path tracking. These methods analyze the text section of the process memory, which contains all instructions and function calls from an executable binary file and the shared libraries that might be executed during the program runtime. For the extracted operations, the system applies the Intel X86 Encoder Decoder (XED), which can encode and decode details of X86 instructions, to identify the mapping of an instruction to a CPU feature.
+
+The text-segment full scan method analyzes all executable code loaded into a process, which can lead to significant overhead and produce inaccurate inspection results. There is a concern of unnecessary inspection overhead and the extraction of unused CPU features because there is no guarantee that all code from loaded libraries will be executed.
+
+On the other hand, execution path tracking traces branching instructions such as call and jmp. Therefore, it includes only code that is likely to be actually executed, ensuring low overhead and very high accuracy. **We recommend this method.**
+
+**How to run?**  
+You can simply analyze the desired process by running the workload_instruction_analyzer/ins_disas/execution_path_tracking.sh script. The results can be checked in the log, and by migrating to a system where the extracted CPU features exist, you can ensure perfect stability!
+
+### Mandatory requirements
+
+Unlike lazy binding, the now binding approach resolves the addresses of all external symbols at the beginning. With now binding, execution path tracking can trace all function addresses even at the beginning of program execution, enabling tracking at any point during the process runtime. Due to the limited function address identification of lazy binding, **the current system supports the now binding approach.**
+
+You can easily enable now binding by setting environment variables as follows and running the process: ```export LD_BIND_NOW=1```
+
+### Dependencies
+
+[GNU Debugger (GDB)](https://www.sourceware.org/gdb/)  
+[Intel® X86 Encoder Decoder (Intel® XED)](https://github.com/intelxed/xed)
+
+## Compatibility Checker
+
+The compatibility checker module determines the compatibility of the source and destination hosts based on the CPU features of a process extracted from the workload instruction analyzer and the CPU feature collector. Compatibility checking is conducted by comparing whether the CPU features used in the migrating workload on the source hosts are present on the destination host. Although this evaluation method is similar to the default CRIU implementation, it focuses on the CPU features that a target workload uses.
+
+**How to run?**  
+Step 1: Merge the collected CPU features into a Google Spreadsheet.
+Step 2: Modify the parameter of the read_gspread function in compatibility_checker/verification/migratable_instances.py to be the spreadsheet name.
+Step 3: Update the S3 bucket name and prefix in migratable_instances.py to point to the storage where CPU features extracted from the workload are located.
+Step 4: Configure the instanceTypes in migratable_instances.py.
+Step 5: Simply run it.
