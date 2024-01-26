@@ -3,6 +3,7 @@ settings.json
 
 *.log
 *terraform*
+*.txt
 
 secure-outpost-380004-8d45b1504f3e.json
 *pycache*
