@@ -16,6 +16,8 @@ B = np.array([[5, 6], [7, 8]])
 # 행렬 곱 계산
 C = np.matmul(A, B)
 
+teststr = 'tttest'.split('e')
+
 class ExampleClass:
     def __init__(self, value):
         self.value = value
@@ -27,6 +29,8 @@ def asd():
     print('asd')
     C = np.matmul(A, B)
     math = importlib.import_module("math")
+    outer = OuterClass()
+    outer.inner_obj.inner_method('ttt')
     return ttttest(C)
 
 def ttttest(tlist):

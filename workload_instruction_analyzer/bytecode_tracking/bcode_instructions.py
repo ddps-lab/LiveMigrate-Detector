@@ -9,13 +9,26 @@ def import_name(byte_code, idx):
         module = (pattern.search(line).group(1))
         root_module = (pattern.search(line).group(1)).split('.')[0]
         # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
-        next_line = byte_code[i + 1]
+        next_line = byte_code[idx + 1]
         if 'STORE_NAME' in next_line:
             alias = (pattern.search(next_line).group(1))
-            return alias
+            return module, alias
         # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
         else:
-            return root_module
+            return module, root_module
+
+def import_from(byte_code, idx):
+    line = byte_code[idx]
+        
+    func = (pattern.search(line).group(1))
+    # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
+    next_line = byte_code[idx + 1]
+    if 'STORE_NAME' in next_line:
+        alias = (pattern.search(next_line).group(1))
+        return func, alias
+
+        # call_map[root_module][alias] = None if func == alias else func    
+    return func, None
 
 def load(byte_code, idx, LOAD):
     line = byte_code[idx]
@@ -31,7 +44,6 @@ def load(byte_code, idx, LOAD):
         LOAD.insert(0, value)
     # LOAD_METHOD는 스택의 최상단에 있는 객체에서 메서드를 찾음
     elif 'LOAD_METHOD' in line:
-        # parents_object.insert(0, LOAD[0])
         parents_object = LOAD[0]
         LOAD.insert(0, pattern.search(line).group(1))
         return parents_object
@@ -73,6 +85,7 @@ def build(byte_code, idx, LOAD):
             merge_str += LOAD.pop(0)
         LOAD.insert(0, merge_str)
     elif 'BUILD_LIST' in line:
+        print(line)
         args_count = int(line.split('BUILD_LIST')[1].strip())
         merge_list = ''
         if args_count == 0:
@@ -89,17 +102,17 @@ def store_attr(byte_code, idx, LOAD):
     # 따라서 명령어 블록을 조사해 STORE_ATTR 위의 명령들에서 함수 또는 메서드 호출이 있는지 확인함.
     offset = 0
     prev_line = byte_code[idx - 1]
-    object_assign = False
+    with_call = False
     while True:
         if 'CALL_FUNCTION' in prev_line or 'CALL_METHOD' in prev_line:
-            object_assign = True
+            with_call = True
             break
         offset -= 1
         if idx + offset == 0:
             return None
         prev_line = byte_code[idx + offset]
 
-    if object_assign:
+    if with_call:
         result = (pattern.search(line).group(1))
         return result
     return None
