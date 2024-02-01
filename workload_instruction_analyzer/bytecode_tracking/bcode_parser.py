@@ -74,9 +74,13 @@ def parse_def(byte_code, addr_map, obj_sets, obj_map):
         elif 'LIST_EXTEND' in line:
             bcode_instructions.list_extend(byte_code, i, LOAD)
         elif 'STORE_ATTR' in line:
+            # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
+            obj_addr = byte_code[0].split('at ')[1].split(',')[0].strip()
+            parents_obj = list(addr_map[obj_addr].keys())[0]
+
             result = bcode_instructions.store_attr(byte_code, i, LOAD)
             if result != None:
-                obj_map[LOAD[-1]] = result
+                obj_map[parents_obj + '.' + result] = LOAD[-1]
         elif 'CALL_FUNCTION' in line:
             func = bcode_instructions.call_function(byte_code, i, LOAD, parents_object)
             called_objs.add(func)
@@ -139,7 +143,8 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
         elif 'STORE_ATTR' in line:
             result = bcode_instructions.store_attr(byte_code, i, LOAD)
             if result != None:
-                obj_map[LOAD[-1]] = result
+                # obj_map[LOAD[-1]] = result
+                obj_map[result] = LOAD[-1]
                 
         elif 'CALL_FUNCTION' in line:
             func_offset = int(line.split('CALL_FUNCTION')[1].strip())
