@@ -5,7 +5,7 @@ import re
 
 pattern = re.compile(r'\((.*?)\)')
 
-def func_classification(func, called_objs, obj_sets, obj_map):
+def func_classification(func, called_objs, obj_sets, obj_map, LOAD):
     '''
     함수 또는 메서드를 를 아래 세 가지 범주로 분류함.
       1. 파싱중인 스크립트에서 정의된 객체
@@ -15,6 +15,7 @@ def func_classification(func, called_objs, obj_sets, obj_map):
 
     if '.' in func:
         root_obj = func.split('.')[0]
+
         # 외부 모듈로부터 호출되는 함수 또는 메서드
         if root_obj in called_objs.keys():
             return root_obj
@@ -24,9 +25,6 @@ def func_classification(func, called_objs, obj_sets, obj_map):
             # 최상위 객체가 사용자 정의 함수 또는 클래스 등에서 할당된 경우
             if obj_map[root_obj] in obj_sets:
                 return '__user_def'
-
-            elif 'importlib' in obj_map[root_obj]:
-                return root_obj
 
     # 파싱중인 스크립트에 정의된 함수 호출
     elif func in obj_sets:
@@ -40,6 +38,15 @@ def func_classification(func, called_objs, obj_sets, obj_map):
             return outer_key
 
     return '__builtin'
+
+def lazy_loading(byte_code, idx, called_objs, cap_stack):
+    quotes = re.compile(r"'([^']*)'")
+    module = quotes.search(cap_stack[0]).group(1)
+
+    if module not in called_objs.keys():
+        next_line = byte_code[idx + 1]
+        store = (pattern.search(next_line).group(1)).replace("'", '')
+        called_objs[store] = {'__called':set(), '__origin':module}    
 
 def parse_def(byte_code, addr_map, obj_sets, obj_map):
     LOAD = []
@@ -87,7 +94,7 @@ def parse_def(byte_code, addr_map, obj_sets, obj_map):
 
         # next line(source code)
         if line.strip() == '':
-            LOAD, parents_object = [], []
+            parents_object = []
     
     return called_objs
 
@@ -141,7 +148,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             # __build_class__
             if func == None:
                 continue
-            category = func_classification(func, called_objs, obj_sets, obj_map)
+            category = func_classification(func, called_objs, obj_sets, obj_map, LOAD)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(func)
@@ -155,21 +162,25 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
 
         elif 'CALL_METHOD' in line:
             method_offset = int(line.split('CALL_METHOD')[1].strip())
+            cap_stack = LOAD.copy()
             method = bcode_instructions.call_method(byte_code, i, LOAD, parents_object)
-            category = func_classification(method, called_objs, obj_sets, obj_map)
+            category = func_classification(method, called_objs, obj_sets, obj_map, LOAD)
+
+            if method == 'importlib.import_module' or method == 'ctypes.CDLL':
+                lazy_loading(byte_code, i, called_objs, cap_stack)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(method)
             else:
                 if category not in called_objs.keys():
                     called_objs[category] = {'__called':set()}
-                called_objs[category]['__called'].add(LOAD[method_offset])
+                called_objs[category]['__called'].add(method.split('.')[-1])
 
             next_line = byte_code[i + 1]
             if 'STORE_NAME' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = method
-
+            
         # next line(source code)
         if line.strip() == '':
             LOAD, parents_object = [], []

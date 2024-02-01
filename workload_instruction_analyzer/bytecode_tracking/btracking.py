@@ -11,8 +11,6 @@ import bcode_parser
 from stdlib_list import stdlib_list
 # temp
 from pprint import pprint
-import json
-import numpy
 
 def parse_pychaces():
     pymodules = set()
@@ -103,6 +101,7 @@ if __name__ == '__main__':
 
     byte_code = compile(source_code, '<string>', 'exec')
     codes, definitions = preprocessing_bytecode(byte_code)
+    # 현재 파싱중인 스크립트에 정의된 객체(함수, 클래스, 메서드)
     obj_sets, user_def_list = parse_definition(definitions)
 
     print(obj_sets)

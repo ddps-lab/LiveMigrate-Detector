@@ -85,7 +85,6 @@ def build(byte_code, idx, LOAD):
             merge_str += LOAD.pop(0)
         LOAD.insert(0, merge_str)
     elif 'BUILD_LIST' in line:
-        print(line)
         args_count = int(line.split('BUILD_LIST')[1].strip())
         merge_list = ''
         if args_count == 0:
@@ -119,6 +118,7 @@ def store_attr(byte_code, idx, LOAD):
 
 def call_function(byte_code, idx, LOAD, parents_object):
     line = byte_code[idx]
+    called_func = None
 
     func_offset = int(line.split('CALL_FUNCTION')[1].strip())
     if LOAD[func_offset] == '__build_class__':
@@ -126,20 +126,40 @@ def call_function(byte_code, idx, LOAD, parents_object):
     else:
         # func() 형태의 호출
         if len(parents_object) == 0:
-            return LOAD[func_offset]
+            called_func = LOAD[func_offset]
         # obj.func 형태의 호출
         else:
-            return parents_object[0] + '.' + LOAD[func_offset]
+            called_func = parents_object.pop(0) + '.' + LOAD[func_offset]
+    
+    call_result = ''
+    # 호출되는 함수와 인자들을 pop
+    for _ in range(func_offset + 1):
+        call_result += LOAD.pop(0)
+    LOAD.insert(0, call_result)
+
+    # 객체로부터 호출되는 경우 해당 객체도 pop
+    if len(parents_object) != 0:
+        LOAD.pop(0)
+
+    return called_func
 
 def call_method(byte_code, idx, LOAD, parents_object):
     line = byte_code[idx]
 
     method_offset = int(line.split('CALL_METHOD')[1].strip())
     if len(parents_object) == 0:
-        return LOAD[method_offset]
+        called_method = LOAD[method_offset]
     else:
-        return parents_object[0] + '.' + LOAD[method_offset]
+        called_method = parents_object.pop(0) + '.' + LOAD[method_offset]
+    
+    call_result = ''
+    # 호출되는 메서드와 상위 객체, 인자들을 pop
+    for _ in range(method_offset + 2):
+        call_result += LOAD.pop(0)
 
+    LOAD.insert(0, call_result)
+
+    return called_method
 
 def list_extend(byte_code, idx, LOAD):
     line = byte_code[idx]

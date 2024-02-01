@@ -28,7 +28,7 @@ class ExampleClass:
 def asd():
     print('asd')
     C = np.matmul(A, B)
-    math = importlib.import_module("math")
+    mathhhh = importlib.import_module("math")
     outer = OuterClass()
     outer.inner_obj.inner_method('ttt')
     return ttttest(C)
@@ -38,10 +38,10 @@ def ttttest(tlist):
     return 1
 
 # 동적으로 모듈 임포트
-math = importlib.import_module("math")
+mathhhh = importlib.import_module("math")
 # 제곱근 계산 예제
 number = 16
-sqrt_number = math.sqrt(number)
+sqrt_number = mathhhh.sqrt(number)
 print(f"The square root of {number} is {sqrt_number}")
 
 testpymodule.print_isa_set()
