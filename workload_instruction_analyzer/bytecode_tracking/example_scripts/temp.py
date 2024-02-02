@@ -7,4 +7,4 @@ def tempfunc2():
     print('test!')
 
 def tempfunc3():
-    print('test!')
+    return 'test'

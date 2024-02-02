@@ -101,16 +101,65 @@ def parse_definition(definitions):
     return obj_sets, obj_lists
 
 def user_def_tracking(called_map, obj_map, def_map, tracked):
+    '''
+    userdef 객체에서 호출되는 함수를 트래킹.
+    '''
+    new_tracked = {'__builtin':set(), '__user_def':set()}
+
+    def func_classification(func):
+        level = func.count('.')
+        # 객체를 참조하는 호출
+        if level > 0:
+            objs = func.split('.')
+            # 최상위 객체가 모듈인 경우
+            if objs[0] in called_map.keys():
+                return objs[0]
+            
+            key = objs[0]
+            for i in range(level - 1):
+                # if key in obj_map.keys():
+                value = obj_map[key]
+                    
+            root_obj = func.split('.')[0]
+            # 할당된 객체로부터 호출되는 경우
+            if root_obj in obj_map.keys():
+                print(f"\033[31m{func}\033[0m")
+                print(f"\033[31m{root_obj}\033[0m")
+                while obj_map[root_obj] in obj_map.keys():
+                    root_obj = obj_map[root_obj]
+                print(f"\033[31m{obj_map[root_obj]}\033[0m")
+
+        else:
+            if func in def_map.keys():
+                return '__user_def'
+            # alias로 사용되는 외부 모듈의 함수 또는 메서드
+            for outer_key, inner_dict in called_map.items():
+                if '__func_alias' not in inner_dict:
+                    continue
+                if func in inner_dict['__func_alias']:
+                    return outer_key
+
+
+        # if func in def_map.keys():
+        #     return '__user_def'
+
+        return '__builtin'
 
     for obj in called_map['__user_def']:
-        tracked.add(obj)
         # 클래스 선언 또는 단독 함수 호출
         if obj in def_map.keys():
-            tracked.update(def_map[obj])
+            # userdef 객체에서 호출되는 객체
+            for func in def_map[obj]:
+                category = func_classification(func)
+                if category == '__user_def' and func not in called_map['__user_def']:
+                    new_tracked['__user_def'].add(func)
+                else:
+                    print(func)
         else:
-            print(obj)
+            # print(obj)
+            pass
     
-    print(tracked)
+    pprint(new_tracked)
 
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
@@ -142,6 +191,7 @@ if __name__ == '__main__':
     print('==== called map ====')
     pprint(called_map)
     print('------------------------------------------------------------------------------------------------------------')
+    print('==== obj map ====')
     pprint(obj_map)
     print('------------------------------------------------------------------------------------------------------------')
 

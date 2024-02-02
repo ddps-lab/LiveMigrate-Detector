@@ -3,11 +3,32 @@ import time
 import example
 import testpymodule
 import temp2
-from temp import tempfunc1 as t, tempfunc2
+from temp import tempfunc1 as t, tempfunc2, tempfunc3 as t3
 import importlib
 import xml.parsers.expat.model
 import collections.abc as asdgsadg
 import numpy as np
+
+class MyClass:
+    def method(self):
+        print("메서드 호출")
+
+class ExampleClass:
+    def __init__(self, value):
+        self.value = value
+
+    def example_method(self):
+        print(f"The value is {self.value}")
+
+class InnerClass:
+    def inner_method(self, arg1):
+        print(f"Inner method called {arg1}")
+    def testmtd():
+        t()
+
+class OuterClass:
+    def __init__(self):
+        self.inner_obj = InnerClass()
 
 # 두 행렬 A와 B 정의
 A = np.array([[1, 2], [3, 4]])
@@ -17,13 +38,6 @@ B = np.array([[5, 6], [7, 8]])
 C = np.matmul(A, B)
 
 teststr = 'tttest'.split('e')
-
-class ExampleClass:
-    def __init__(self, value):
-        self.value = value
-
-    def example_method(self):
-        print(f"The value is {self.value}")
 
 def asd():
     print('asd')
@@ -35,6 +49,7 @@ def asd():
 
 def ttttest(tlist):
     print(tlist)
+    test3 = t3()
     return 1
 
 # 동적으로 모듈 임포트
@@ -58,14 +73,6 @@ example_instance = ExampleClass(10)
 example_instance.example_method()
 
 asd()
-
-class InnerClass:
-    def inner_method(self, arg1):
-        print(f"Inner method called {arg1}")
-
-class OuterClass:
-    def __init__(self):
-        self.inner_obj = InnerClass()
 
 if __name__ == '__main__':
     # 객체 생성 및 메서드 호출
