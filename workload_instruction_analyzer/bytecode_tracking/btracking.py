@@ -1,9 +1,7 @@
 import dis
 import io
-import re
 from contextlib import redirect_stdout
 import os
-import sys
 
 import bcode_parser
 
@@ -72,20 +70,6 @@ def postprocessing_defmap(DEF_MAP, addr_map):
         else:
             DEF_MAP[key.split('.')[1]] = DEF_MAP.pop(key)
 
-def postprocessing_bytecode():
-    global CALL_TRACE
-    global USER_DEF
-
-    pymodules = parse_pychaces()
-
-    for module in CALL_TRACE.keys():
-        if is_builtin_module(module):
-            CALL_TRACE[module]['__module_type'] = 'built-in'
-        elif module in pymodules:
-            CALL_TRACE[module]['__module_type'] = 'pymodule'
-        else:
-            CALL_TRACE[module]['__module_type'] = 'cmodule'
-
 def parse_definition(definitions):
     '''
     사용자 정의 객체를 수집.
@@ -100,64 +84,52 @@ def parse_definition(definitions):
 
     return obj_sets, obj_lists
 
-def user_def_tracking(called_map, obj_map, def_map, tracked):
+def final_call(obj_map, def_map, obj):
+    level = obj.count('.') + 1
+    # 객체를 참조하는 호출
+    if level > 0:
+        objs = obj.split('.')
+        
+        key = objs[0]
+        for i in range(level):
+            try:
+                value = obj_map[key]
+                key = value + '.' + objs[i + 1]
+            except KeyError:
+                break
+        
+        # 최종 호출 함수가 사용자 정의 함수인 경우
+        if key in def_map.keys():
+            return def_map[key]
+    else:
+        return obj
+
+# 너비탐색으로 진행.
+def user_def_tracking(called_map, obj_map, def_map):
     '''
     userdef 객체에서 호출되는 함수를 트래킹.
     '''
+    # 새로 추적된 함수들을 저장할 곳.
     new_tracked = {'__builtin':set(), '__user_def':set()}
-
-    def func_classification(func):
-        level = func.count('.')
-        # 객체를 참조하는 호출
-        if level > 0:
-            objs = func.split('.')
-            # 최상위 객체가 모듈인 경우
-            if objs[0] in called_map.keys():
-                return objs[0]
-            
-            key = objs[0]
-            for i in range(level - 1):
-                # if key in obj_map.keys():
-                value = obj_map[key]
-                    
-            root_obj = func.split('.')[0]
-            # 할당된 객체로부터 호출되는 경우
-            if root_obj in obj_map.keys():
-                print(f"\033[31m{func}\033[0m")
-                print(f"\033[31m{root_obj}\033[0m")
-                while obj_map[root_obj] in obj_map.keys():
-                    root_obj = obj_map[root_obj]
-                print(f"\033[31m{obj_map[root_obj]}\033[0m")
-
-        else:
-            if func in def_map.keys():
-                return '__user_def'
-            # alias로 사용되는 외부 모듈의 함수 또는 메서드
-            for outer_key, inner_dict in called_map.items():
-                if '__func_alias' not in inner_dict:
-                    continue
-                if func in inner_dict['__func_alias']:
-                    return outer_key
-
-
-        # if func in def_map.keys():
-        #     return '__user_def'
-
-        return '__builtin'
+    for key in called_map.keys():
+        if key == '__builtin' or key == '__user_def':
+            continue
+        new_tracked[key] = {'__called':set()}
 
     for obj in called_map['__user_def']:
-        # 클래스 선언 또는 단독 함수 호출
-        if obj in def_map.keys():
-            # userdef 객체에서 호출되는 객체
-            for func in def_map[obj]:
-                category = func_classification(func)
-                if category == '__user_def' and func not in called_map['__user_def']:
-                    new_tracked['__user_def'].add(func)
-                else:
-                    print(func)
-        else:
-            # print(obj)
-            pass
+        # print(f'\033[31muser_def: {obj}\033[0m')
+        chain = final_call(obj_map, def_map, obj)
+
+        for func in chain:
+            category = bcode_parser.func_classification(func, called_map, obj_sets, obj_map)
+            if category == '__builtin' or category == '__user_def':
+                if func not in called_map[category]:
+                    new_tracked[category].add(func)
+            elif func not in called_map[category]:
+                func = func.replace(f'{category}.', '')
+                if func not in called_map[category]['__called']:
+                    new_tracked[category]['__called'].add(func)
+            
     
     pprint(new_tracked)
 
@@ -182,17 +154,17 @@ if __name__ == '__main__':
         key, value = next(iter(user_def_list[i].items()))
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_sets, obj_map)
 
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('------------------------------------------------------------------------------------------------------------')
     postprocessing_defmap(def_map, addr_map)
-    print('==== def map ====')
-    pprint(def_map)
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('==== def map ====')
+    # pprint(def_map)
+    # print('------------------------------------------------------------------------------------------------------------')
     called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
-    print('==== called map ====')
-    pprint(called_map)
-    print('------------------------------------------------------------------------------------------------------------')
-    print('==== obj map ====')
-    pprint(obj_map)
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('==== called map ====')
+    # pprint(called_map)
+    # print('------------------------------------------------------------------------------------------------------------')
+    # print('==== obj map ====')
+    # pprint(obj_map)
+    # print('------------------------------------------------------------------------------------------------------------')
 
-    # user_def_tracking(called_map, obj_map, def_map, tracked)
+    user_def_tracking(called_map, obj_map, def_map)
