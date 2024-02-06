@@ -151,9 +151,6 @@ def search_module_path(called_map, pycaches):
     
     pprint(pycaches)
 
-def restart_program():
-    os.execv(sys.executable, ['python'] + sys.argv)
-
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
     called_map = {}
@@ -166,8 +163,8 @@ if __name__ == '__main__':
     if script_path not in sys.path:
         sys.path.append(script_path)
 
-    # script_path += '/main.py'
-    script_path += '/testpymodule.py'
+    script_path += '/main.py'
+    # script_path += '/testpymodule.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
 
@@ -180,18 +177,18 @@ if __name__ == '__main__':
         key, value = next(iter(user_def_list[i].items()))
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_sets, obj_map)
 
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('------------------------------------------------------------------------------------------------------------')
     postprocessing_defmap(def_map, addr_map)
-    print('==== def map ====')
-    pprint(def_map)
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('==== def map ====')
+    # pprint(def_map)
+    # print('------------------------------------------------------------------------------------------------------------')
     called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
-    print('==== called map ====')
-    pprint(called_map)
-    print('------------------------------------------------------------------------------------------------------------')
-    print('==== obj map ====')
-    pprint(obj_map)
-    print('------------------------------------------------------------------------------------------------------------')
+    # print('==== called map ====')
+    # pprint(called_map)
+    # print('------------------------------------------------------------------------------------------------------------')
+    # print('==== obj map ====')
+    # pprint(obj_map)
+    # print('------------------------------------------------------------------------------------------------------------')
 
     # user_def_tracking(called_map, obj_map, def_map)
     search_module_path(called_map, pycaches)
