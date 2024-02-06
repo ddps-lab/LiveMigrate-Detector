@@ -46,7 +46,7 @@ def lazy_loading(byte_code, idx, called_objs, cap_stack):
     if module not in called_objs.keys():
         next_line = byte_code[idx + 1]
         store = (pattern.search(next_line).group(1)).replace("'", '')
-        called_objs[store] = {'__called':set(), '__origin':module}    
+        called_objs[store] = {'__called':set(), '__origin_name':module}    
 
 def parse_def(byte_code, addr_map, obj_sets, obj_map):
     LOAD = []

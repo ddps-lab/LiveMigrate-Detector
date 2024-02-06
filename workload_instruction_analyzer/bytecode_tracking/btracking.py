@@ -2,7 +2,8 @@ import dis
 import io
 from contextlib import redirect_stdout
 import os
-
+import sys
+import importlib
 import bcode_parser
 
 # get python builtin modules
@@ -130,8 +131,28 @@ def user_def_tracking(called_map, obj_map, def_map):
                 if func not in called_map[category]['__called']:
                     new_tracked[category]['__called'].add(func)
             
-    
     pprint(new_tracked)
+
+def search_module_path(called_map, pycaches):
+    modules = [module_info['__origin_name'] for _, module_info in called_map.items() if '__origin_name' in module_info]
+
+    for module in modules:
+        try:
+            loaded_module = importlib.import_module(module)
+            pycaches[module] = loaded_module.__cached__
+        except AttributeError:
+            if is_builtin_module(module):
+                pycaches[module] = '__builtin'
+            else:
+                pycaches[module] = '__not_pymodule'
+        except ModuleNotFoundError:
+            # FIXME: C모듈이라 못찾는건지 경로때문에 못찾는건지?
+            pycaches[module] = '__not_pymodule'
+    
+    pprint(pycaches)
+
+def restart_program():
+    os.execv(sys.executable, ['python'] + sys.argv)
 
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
@@ -139,10 +160,15 @@ if __name__ == '__main__':
     def_map = {}
     addr_map = {}
     obj_map = {}
-    tracked = set()
+    pycaches = {}
 
-    with open('example_scripts/main.py', 'r') as f:
-    # with open('example_scripts/testpymodule.py', 'r') as f:
+    script_path = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/example_scripts'
+    if script_path not in sys.path:
+        sys.path.append(script_path)
+
+    # script_path += '/main.py'
+    script_path += '/testpymodule.py'
+    with open(script_path, 'r') as f:
         source_code = f.read()
 
     byte_code = compile(source_code, '<string>', 'exec')
@@ -154,17 +180,18 @@ if __name__ == '__main__':
         key, value = next(iter(user_def_list[i].items()))
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_sets, obj_map)
 
-    # print('------------------------------------------------------------------------------------------------------------')
+    print('------------------------------------------------------------------------------------------------------------')
     postprocessing_defmap(def_map, addr_map)
-    # print('==== def map ====')
-    # pprint(def_map)
-    # print('------------------------------------------------------------------------------------------------------------')
+    print('==== def map ====')
+    pprint(def_map)
+    print('------------------------------------------------------------------------------------------------------------')
     called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
-    # print('==== called map ====')
-    # pprint(called_map)
-    # print('------------------------------------------------------------------------------------------------------------')
-    # print('==== obj map ====')
-    # pprint(obj_map)
-    # print('------------------------------------------------------------------------------------------------------------')
+    print('==== called map ====')
+    pprint(called_map)
+    print('------------------------------------------------------------------------------------------------------------')
+    print('==== obj map ====')
+    pprint(obj_map)
+    print('------------------------------------------------------------------------------------------------------------')
 
-    user_def_tracking(called_map, obj_map, def_map)
+    # user_def_tracking(called_map, obj_map, def_map)
+    search_module_path(called_map, pycaches)
