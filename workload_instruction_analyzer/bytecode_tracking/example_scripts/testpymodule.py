@@ -8,6 +8,10 @@ import time
 rootdir = str(Path(__file__).resolve().parent)
 sys.path.append(rootdir)
 
+# FIXME: 아래처럼 변수로 라이브러리를 로드하는 경우 변수 값을 모름..
+# libpath = rootdir + '/libxedwrapper.so'
+# libxedwrapper = ctypes.CDLL(libpath)
+
 # xed wrapper 라이브러리 로드
 libxedwrapper = ctypes.CDLL(f'{rootdir}/libxedwrapper.so')
 
