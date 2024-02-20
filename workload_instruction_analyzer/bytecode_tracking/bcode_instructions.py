@@ -1,5 +1,5 @@
 import re
-
+from pprint import pprint
 pattern = re.compile(r'\((.*?)\)')
 
 def import_name(byte_code, idx):
@@ -51,8 +51,6 @@ def load(byte_code, idx, LOAD):
         LOAD.insert(0, pattern.search(line).group(1))
 
 def make_function(byte_code, idx, LOAD, addr_map):
-    line = byte_code[idx]
-
     value = 'function object for ' + LOAD.pop(0)
     LOAD.pop(0)
     LOAD.insert(0, value)
