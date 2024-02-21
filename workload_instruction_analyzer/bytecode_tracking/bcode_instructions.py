@@ -1,5 +1,5 @@
 import re
-from pprint import pprint
+
 pattern = re.compile(r'\((.*?)\)')
 
 def import_name(byte_code, idx):
@@ -118,7 +118,11 @@ def call_function(byte_code, idx, LOAD, parents_object):
     line = byte_code[idx]
     called_func = None
 
-    func_offset = int(line.split('CALL_FUNCTION')[1].strip())
+    if 'CALL_FUNCTION_KW' in line:
+        func_offset = int(line.split('CALL_FUNCTION_KW')[1].strip())
+    else:
+        func_offset = int(line.split('CALL_FUNCTION')[1].strip())
+
     if LOAD[func_offset] == '__build_class__':
         pass
     else:
@@ -167,5 +171,9 @@ def list_extend(byte_code, idx, LOAD):
     for i in range(args_count):
         LOAD.pop(0)
     
-def pop(LOAD):
-    LOAD.pop(0)
+def pop(LOAD, line):
+    try:
+        LOAD.pop(0)
+    except:
+        print(line)
+        exit()

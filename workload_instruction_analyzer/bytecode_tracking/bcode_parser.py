@@ -63,7 +63,7 @@ def parse_def(byte_code, addr_map, obj_sets, obj_map):
             if pobject != None:
                 parents_object.insert(0, pobject)
         elif 'POP_TOP' in line:
-            bcode_instructions.pop(LOAD)
+            bcode_instructions.pop(LOAD, line)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in line:
             bcode_instructions.make_function(byte_code, i, LOAD, addr_map)
@@ -126,7 +126,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 parents_object.insert(0, pobject)
 
         elif 'POP_TOP' in line:
-            bcode_instructions.pop(LOAD)
+            bcode_instructions.pop(LOAD, line)
 
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in line:
@@ -147,7 +147,11 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 obj_map[result] = LOAD[-1]
                 
         elif 'CALL_FUNCTION' in line:
-            func_offset = int(line.split('CALL_FUNCTION')[1].strip())
+            if 'CALL_FUNCTION_KW' in line:
+                func_offset = int(line.split('CALL_FUNCTION_KW')[1].strip())
+            else:
+                func_offset = int(line.split('CALL_FUNCTION')[1].strip())     
+
             func = bcode_instructions.call_function(byte_code, i, LOAD, parents_object)
             
             # __build_class__
