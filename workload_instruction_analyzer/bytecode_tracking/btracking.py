@@ -74,7 +74,9 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
     return new_tracked
 
 # FIXME: module이름은 출력용이므로 추후 제거
-def create_call_map(def_map, addr_map, obj_map, byte_code, module):
+def create_call_map(byte_code, module):
+    print(f'\033[33m==== {module} ====\033[0m')
+    def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions = bcode_utils.preprocessing_bytecode(byte_code)
 
     # 현재 파싱중인 스크립트에 정의된 객체(함수, 클래스, 메서드)
@@ -82,14 +84,15 @@ def create_call_map(def_map, addr_map, obj_map, byte_code, module):
     for i in range(len(definitions)):
         key, value = next(iter(user_def_list[i].items()))
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_sets, obj_map)
-
+    
     # print('------------------------------------------------------------------------------------------------------------')
-    print(f'\033[33m==== {module} ====\033[0m')
-    bcode_utils.postprocessing_defmap(def_map, addr_map)
+    # bcode_utils.postprocessing_defmap(def_map, addr_map)
     # print('==== def map ====')
     # pprint(def_map)
     # print('------------------------------------------------------------------------------------------------------------')
     called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
+
+    bcode_utils.postprocessing_defmap(def_map, addr_map)
     # print('==== called map ====')
     pprint(called_map)
     # print('------------------------------------------------------------------------------------------------------------')
@@ -97,23 +100,42 @@ def create_call_map(def_map, addr_map, obj_map, byte_code, module):
     # pprint(obj_map)
     # print('------------------------------------------------------------------------------------------------------------')
 
-    return called_map, obj_sets
+    return called_map, obj_sets, def_map, obj_map
 
-def module_tracking(pycaches):
-    def_map = {}
-    addr_map = {}
-    obj_map = {}
+def module_tracking(pycaches, base_map):
+    new_called_map = {'__builtin':set(), '__user_def':set()}
 
     for module, path in pycaches.items():
         if path == '__builtin' or path == '__not_pymodule':
             continue
 
         byte_code = bcode_utils.read_pyc(path)
-        called_map, obj_sets = create_call_map(def_map, addr_map, obj_map, byte_code, module)
-        new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+        called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, module)
 
-        # FIXME: tracked_map에서 호출된 현재 모듈의 함수를 new_tracked에 추가해야함.
-        break
+        # FIXME alias 확인해서 본래 함수 이름으로 서치해야함.
+        called_func = base_map[module]['__called']
+
+        print(f'\033[33mcalled func : {called_func}\033[0m')
+        print(f'\033[33muser def : {obj_sets}\033[0m')
+
+        for func in called_func:
+            origin_name = func
+            if '__func_alias' in base_map[module]:
+                origin_name = base_map[module]['__func_alias'][func]
+            if origin_name in obj_sets:
+                called_map['__user_def'].add(origin_name)
+        pprint(called_map)
+
+        while(True):
+            new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+            if bcode_utils.dict_empty_check(new_tracked):
+                break
+            called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+
+        new_called_map = bcode_utils.merge_dictionaries(new_called_map, called_map)
+        print(f'\033[35m==== new called map ====\033[0m')
+        pprint(new_called_map)
+        # break
 
 def search_module_path(called_map, pycaches):
     modules = [module_info['__origin_name'] for _, module_info in called_map.items() if '__origin_name' in module_info]
@@ -137,10 +159,6 @@ def search_module_path(called_map, pycaches):
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
 
-    # called_map = {}
-    def_map = {}
-    addr_map = {}
-    obj_map = {}
     pycaches = {}
 
     script_path = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/example_scripts'
@@ -148,15 +166,19 @@ if __name__ == '__main__':
         sys.path.append(script_path)
 
     script_path += '/main.py'
-    # script_path += '/testpymodule.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
 
     byte_code = compile(source_code, '<string>', 'exec')
 
-    called_map, obj_sets = create_call_map(def_map, addr_map, obj_map, byte_code, 'main')
+    called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, 'main')
 
     search_module_path(called_map, pycaches)
-    new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
 
-    module_tracking(pycaches)
+    while(True):
+        new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+        if bcode_utils.dict_empty_check(new_tracked):
+            break
+        called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+
+    module_tracking(pycaches, called_map)

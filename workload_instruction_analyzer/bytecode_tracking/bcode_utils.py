@@ -63,3 +63,37 @@ def parse_definition(definitions):
         obj_lists.append({obj:addr})
 
     return obj_sets, obj_lists
+
+def merge_dictionaries(dictA, dictB):
+    for key, value in dictB.items():
+        if isinstance(value, set):
+            # dictB.key의 값이 비어있는 세트가 아닌 경우에만 업데이트
+            if value:
+                if key in dictA and isinstance(dictA[key], set):
+                    dictA[key].update(value)
+                else:
+                    dictA[key] = value.copy()
+        elif isinstance(value, dict):
+            # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
+            if '__called' in value and value['__called']:
+                if key in dictA and '__called' in dictA[key] and isinstance(dictA[key]['__called'], set):
+                    dictA[key]['__called'].update(value['__called'])
+                else:
+                    # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
+                    if key not in dictA:
+                        dictA[key] = {}
+                    dictA[key]['__called'] = value['__called'].copy()
+
+    return dictA
+
+def dict_empty_check(input_dict):
+    for key, value in input_dict.items():
+        if isinstance(value, dict) and '__called' in value:
+            # __called 키의 값이 세트이고 비어 있지 않으면 False 반환
+            if not value['__called'].issubset(set()):
+                return False
+        elif isinstance(value, set) and value:
+            # 값이 비어 있지 않은 세트인 경우 False 반환
+            return False
+    # 모든 검사를 통과했다면, 모든 세트가 비어 있음
+    return True
