@@ -63,7 +63,9 @@ def parse_def(byte_code, addr_map, obj_sets, obj_map):
             if pobject != None:
                 parents_object.insert(0, pobject)
         elif 'POP_TOP' in line:
-            bcode_instructions.pop(LOAD, line)
+            bcode_instructions.pop(LOAD)
+        elif 'DUP_TOP' in line:
+            bcode_instructions.dup(LOAD)            
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in line:
             bcode_instructions.make_function(byte_code, i, LOAD, addr_map)
@@ -126,7 +128,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 parents_object.insert(0, pobject)
 
         elif 'POP_TOP' in line:
-            bcode_instructions.pop(LOAD, line)
+            bcode_instructions.pop(LOAD)
+
+        elif 'DUP_TOP' in line:
+            bcode_instructions.dup(LOAD)
 
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in line:

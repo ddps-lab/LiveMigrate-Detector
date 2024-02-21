@@ -171,9 +171,8 @@ def list_extend(byte_code, idx, LOAD):
     for i in range(args_count):
         LOAD.pop(0)
     
-def pop(LOAD, line):
-    try:
-        LOAD.pop(0)
-    except:
-        print(line)
-        exit()
+def pop(LOAD):
+    LOAD.pop(0)
+
+def dup(LOAD):
+    LOAD.insert(0, LOAD[0])
