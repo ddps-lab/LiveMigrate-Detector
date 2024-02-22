@@ -48,7 +48,7 @@ def lazy_loading(byte_code, idx, called_objs, cap_stack):
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called':set(), '__origin_name':module}    
 
-def parse_def(byte_code, addr_map, obj_sets, obj_map):
+def parse_def(byte_code, addr_map, obj_map):
     LOAD = []
     parents_object = []
 
@@ -78,11 +78,17 @@ def parse_def(byte_code, addr_map, obj_sets, obj_map):
         elif 'STORE_ATTR' in line:
             # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
             obj_addr = byte_code[0].split('at ')[1].split(',')[0].strip()
-            parents_obj = list(addr_map[obj_addr].keys())[0]
 
-            result = bcode_instructions.store_attr(byte_code, i, LOAD)
-            if result != None:
-                obj_map[parents_obj + '.' + result] = LOAD[-1]
+            if obj_addr in addr_map:
+                parents_obj = list(addr_map[obj_addr].keys())[0]
+                result = bcode_instructions.store_attr(byte_code, i, LOAD)
+                if result != None:
+                    obj_map[parents_obj + '.' + result] = LOAD[-1]                
+            else:
+                # FIXME:
+                # 상위 객체 정보가 없는 경우
+                # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
+                pass
         elif 'CALL_FUNCTION' in line:
             func = bcode_instructions.call_function(byte_code, i, LOAD, parents_object)
             called_objs.add(func)
@@ -131,6 +137,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             bcode_instructions.pop(LOAD)
 
         elif 'DUP_TOP' in line:
+            print(line)
             bcode_instructions.dup(LOAD)
 
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
@@ -148,7 +155,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
         elif 'STORE_ATTR' in line:
             result = bcode_instructions.store_attr(byte_code, i, LOAD)
             if result != None:
-                # obj_map[LOAD[-1]] = result
                 obj_map[result] = LOAD[-1]
                 
         elif 'CALL_FUNCTION' in line:
