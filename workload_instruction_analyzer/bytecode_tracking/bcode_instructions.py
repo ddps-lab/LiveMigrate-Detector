@@ -171,6 +171,9 @@ def list_extend(byte_code, idx, LOAD):
     for i in range(args_count):
         LOAD.pop(0)
     
+def setup_finally(LOAD):
+    LOAD.insert(0, 'tryblock')
+
 def pop(LOAD):
     LOAD.pop(0)
 
