@@ -78,7 +78,29 @@ def parse_shared_instructions(content, LOAD, parents_object):
         bcode_instructions.list_extend(content, LOAD)
     # 두 값을 pop해 비교 후 true or flase를 푸시
     elif 'COMPARE_OP' in content:
-        bcode_instructions.comapre_op(LOAD)
+        bcode_instructions.pop2_push1(LOAD)
+    
+    # -=
+    elif 'INPLACE_SUBTRACT' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # +=
+    elif 'INPLACE_ADD' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # *=
+    elif 'INPLACE_MULTIPLY' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # /=
+    elif 'INPLACE_TRUE_DIVIDE' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # %=    
+    elif 'INPLACE_MODULO' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # //=
+    elif 'INPLACE_FLOOR_DIVIDE' in content:
+        bcode_instructions.pop2_push1(LOAD)
+    # **=
+    elif 'INPLACE_POWER' in content:
+        bcode_instructions.pop2_push1(LOAD)
 
 
 def parse_def(byte_code, addr_map, obj_map):
@@ -137,83 +159,92 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     keys_list = list(byte_code.keys())
     LOAD = []
     parents_object = []
-    branch = True
-
     called_objs = {'__builtin':set(), '__user_def':set()}
 
-    # def scan_bcode(branch):
-    for i, (offset, content) in enumerate(byte_code.items()):
-        if offset == '__name' or offset == '__addr':
-            continue
+    def scan_bcode(branch):
+        branch_target = 0
+        branch_depth = 0
+        for i, (offset, content) in enumerate(byte_code.items()):
+            if offset == '__name' or offset == '__addr':
+                continue
 
-        if 'POP_JUMP_IF_FALSE' in content:
-            if branch:
-                target = int((pattern.search(content).group(1)).split()[1])
-
-                if offset < target:
+            # 분기문 처리
+            if offset < branch_target:
+                continue
+            if 'POP_JUMP_IF_FALSE' in content:
+                if branch:
+                    branch_target = int((pattern.search(content).group(1)).split()[1])
+                bcode_instructions.pop(LOAD)
+                continue
+            elif 'JUMP_FORWARD' in content:
+                if offset < branch_target:
                     continue
+                branch_target = int((pattern.search(content).group(1)).split()[1])
+
+            if 'IMPORT_NAME' in content:
+                module, alias = bcode_instructions.import_name(byte_code, i, keys_list)
+                called_objs[alias] = {'__origin_name':module, '__called':set()}
+            if 'IMPORT_FROM' in content:
+                from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list)
+
+                if '__func_alias' not in called_objs[alias]:
+                    called_objs[alias]['__func_alias'] = {}
+                called_objs[alias]['__func_alias'][from_alias] = from_func
+
+            # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
+            elif 'MAKE_FUNCTION' in content:
+                bcode_instructions.make_function(byte_code, i, keys_list, LOAD, addr_map)
+            elif 'STORE_ATTR' in content:
+                result = bcode_instructions.store_attr(byte_code, i, keys_list)
+                if result != None:
+                    obj_map[result] = LOAD[-1]
+            elif 'CALL_FUNCTION' in content:
+                if 'CALL_FUNCTION_KW' in content:
+                    func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip())
+                else:
+                    func_offset = int(content.split('CALL_FUNCTION')[1].strip())     
+
+                func = bcode_instructions.call_function(content, LOAD, parents_object)
+                # __build_class__
+                if func == None:
+                    continue
+                category = func_classification(func, called_objs, obj_sets, obj_map)
+
+                if category == '__builtin' or category == '__user_def':
+                    called_objs[category].add(func)
+                else:
+                    called_objs[category]['__called'].add(LOAD[func_offset])
+
+                next_line = byte_code[keys_list[i + 1]]
+                if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
+                    result = (pattern.search(next_line).group(1))
+                    obj_map[result] = func
+
+            elif 'CALL_METHOD' in content:
+                cap_stack = LOAD.copy()
+                method = bcode_instructions.call_method(content, LOAD, parents_object)
+                category = func_classification(method, called_objs, obj_sets, obj_map)
+
+                if method == 'importlib.import_module' or method == 'ctypes.CDLL':
+                    lazy_loading(byte_code, i, keys_list, called_objs, cap_stack)
+
+                if category == '__builtin' or category == '__user_def':
+                    called_objs[category].add(method)
+                else:
+                    if category not in called_objs.keys():
+                        called_objs[category] = {'__called':set()}
+                    called_objs[category]['__called'].add(method.split('.')[-1])
+
+                next_line = byte_code[keys_list[i + 1]]
+                if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
+                    result = (pattern.search(next_line).group(1))
+                    obj_map[result] = method
             else:
-                continue
+                parse_shared_instructions(content, LOAD, parents_object)             
+    
+    # 깊이가 0인 모든 분기를 참으로 판단(분기 불허)
+    scan_bcode(branch = False)
+    # 깊이가 0인 모든 분기를 거짓으로 판단(분기 허용)
+    scan_bcode(branch = True)
 
-        if 'IMPORT_NAME' in content:
-            module, alias = bcode_instructions.import_name(byte_code, i, keys_list)
-            called_objs[alias] = {'__origin_name':module, '__called':set()}
-        if 'IMPORT_FROM' in content:
-            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list)
-
-            if '__func_alias' not in called_objs[alias]:
-                called_objs[alias]['__func_alias'] = {}
-            called_objs[alias]['__func_alias'][from_alias] = from_func
-
-        # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
-        elif 'MAKE_FUNCTION' in content:
-            bcode_instructions.make_function(byte_code, i, keys_list, LOAD, addr_map)
-        elif 'STORE_ATTR' in content:
-            result = bcode_instructions.store_attr(byte_code, i, keys_list)
-            if result != None:
-                obj_map[result] = LOAD[-1]
-        elif 'CALL_FUNCTION' in content:
-            if 'CALL_FUNCTION_KW' in content:
-                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip())
-            else:
-                func_offset = int(content.split('CALL_FUNCTION')[1].strip())     
-
-            func = bcode_instructions.call_function(content, LOAD, parents_object)
-            # __build_class__
-            if func == None:
-                continue
-            category = func_classification(func, called_objs, obj_sets, obj_map)
-
-            if category == '__builtin' or category == '__user_def':
-                called_objs[category].add(func)
-            else:
-                called_objs[category]['__called'].add(LOAD[func_offset])
-
-            next_line = byte_code[keys_list[i + 1]]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
-                obj_map[result] = func
-
-        elif 'CALL_METHOD' in content:
-            cap_stack = LOAD.copy()
-            method = bcode_instructions.call_method(content, LOAD, parents_object)
-            category = func_classification(method, called_objs, obj_sets, obj_map)
-
-            if method == 'importlib.import_module' or method == 'ctypes.CDLL':
-                lazy_loading(byte_code, i, keys_list, called_objs, cap_stack)
-
-            if category == '__builtin' or category == '__user_def':
-                called_objs[category].add(method)
-            else:
-                if category not in called_objs.keys():
-                    called_objs[category] = {'__called':set()}
-                called_objs[category]['__called'].add(method.split('.')[-1])
-
-            next_line = byte_code[keys_list[i + 1]]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
-                obj_map[result] = method
-        else:
-            parse_shared_instructions(content, LOAD, parents_object)                
-            
     return called_objs

@@ -181,10 +181,10 @@ def list_extend(content, LOAD):
     for i in range(args_count):
         LOAD.pop(0)
 
-def comapre_op(LOAD):
+def pop2_push1(LOAD):
     LOAD.pop(0)
     LOAD.pop(0)
-    LOAD.insert(0, '__compare_result')
+    LOAD.insert(0, 'pop2_push1')
     
 def setup_finally(LOAD):
     LOAD.insert(0, 'tryblock')
