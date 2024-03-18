@@ -161,23 +161,55 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     parents_object = []
     called_objs = {'__builtin':set(), '__user_def':set()}
 
-    def scan_bcode(branch):
+    def scan_bcode(LOAD, condition):
         branch_target = 0
-        branch_depth = 0
+        branch_out = 0
+        inner_branch_targets = {}
         for i, (offset, content) in enumerate(byte_code.items()):
             if offset == '__name' or offset == '__addr':
                 continue
 
-            # 분기문 처리
+            '''
+            외부 분기문 처리 알고리즘
+            1. 깊이가 0인 즉, 가장 바깥의 분기는 무조건 True or False로 가정하여 전체 바이트코드를 2회 스캔한다.
+            
+            내부 분기문 처리 알고리즘
+            1. POP_JUMP_IF_FALSE 명령을 만나면 현재의 스택과 분기 타겟 지점을 기록한다.
+            2. 조건의 True를 먼저 수행한다. False의 시작 지점은 내부 분기문의 타겟 지점과 동일하다.
+            3. 현재 offset이 분기 타겟 지점과 동일하다면 True를 수행하기 이전의 스택 상태로 초기화한다.
+            4. 조건의 False를 수행한다.
+            * 더 깊은 분기문도 마찬가지로 True부터 수행한다. (깊이 우선 탐색)
+            * 내부 분기문을 순회할 때는 JUMP_FORWARD를 무시한다.
+            '''
+
+            # 외부 분기문 처리
             if offset < branch_target:
                 continue
+
+            if inner_branch_targets and offset in inner_branch_targets:
+                LOAD = inner_branch_targets[offset].copy()
+                inner_branch_targets.pop(offset, None)
+            
+            # 바깥 분기가 true일 때 바깥 분기의 false 지점까지 스캔 완료한 경우
+            if offset == branch_out:
+                inner_branch_targets.pop(offset, None)
+
             if 'POP_JUMP_IF_FALSE' in content:
-                if branch:
-                    branch_target = int((pattern.search(content).group(1)).split()[1])
                 bcode_instructions.pop(LOAD)
-                continue
+
+                if condition:
+                    branch_target = 0
+                    if branch_out:
+                        inner_branch_targets[int((pattern.search(content).group(1)).split()[1])] = LOAD.copy()
+
+                    branch_out = int((pattern.search(content).group(1)).split()[1])
+                else:
+                    branch_target = int((pattern.search(content).group(1)).split()[1])
+
             elif 'JUMP_FORWARD' in content:
-                if offset < branch_target:
+                # POP_JUMP_IF_FALSE의 FALSE로 이동 중일 때 branch_target이 변경되는 것을 방지
+                # 또는 내부 분기문을 스캔중일 때 바깥으로 나가는 것을 방지
+                if offset < branch_target or len(inner_branch_targets) > 1:
                     continue
                 branch_target = int((pattern.search(content).group(1)).split()[1])
 
@@ -243,8 +275,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 parse_shared_instructions(content, LOAD, parents_object)             
     
     # 깊이가 0인 모든 분기를 참으로 판단(분기 불허)
-    scan_bcode(branch = False)
+    # FIXME: 2레벨 이상 깊이 테스트 필요
+    scan_bcode(LOAD, condition = True)
     # 깊이가 0인 모든 분기를 거짓으로 판단(분기 허용)
-    scan_bcode(branch = True)
+    # FIXME: 내부 분기문 처리 못함
+    scan_bcode(LOAD, condition = False)
 
     return called_objs
