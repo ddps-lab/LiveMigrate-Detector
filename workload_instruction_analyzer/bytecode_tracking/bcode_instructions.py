@@ -180,6 +180,11 @@ def list_extend(content, LOAD):
     args_count = int(content.split('LIST_EXTEND')[1].strip())
     for i in range(args_count):
         LOAD.pop(0)
+
+def comapre_op(LOAD):
+    LOAD.pop(0)
+    LOAD.pop(0)
+    LOAD.insert(0, '__compare_result')
     
 def setup_finally(LOAD):
     LOAD.insert(0, 'tryblock')

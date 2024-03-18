@@ -76,6 +76,10 @@ def parse_shared_instructions(content, LOAD, parents_object):
     # 스택의 최상단에서 N번째 리스트를 확장
     elif 'LIST_EXTEND' in content:
         bcode_instructions.list_extend(content, LOAD)
+    # 두 값을 pop해 비교 후 true or flase를 푸시
+    elif 'COMPARE_OP' in content:
+        bcode_instructions.comapre_op(LOAD)
+
 
 def parse_def(byte_code, addr_map, obj_map):
     keys_list = list(byte_code.keys())
