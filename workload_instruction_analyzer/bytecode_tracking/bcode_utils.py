@@ -26,6 +26,9 @@ def preprocessing_bytecode(byte_code):
         if parts[1].isdigit():
             offset = parts[1]
             content = parts[2:]
+        elif parts[1] == '>>':
+            offset = parts[2]
+            content = parts[3:]
         else:
             offset = parts[0]
             content = parts[1:]
