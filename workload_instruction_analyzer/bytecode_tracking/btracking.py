@@ -57,7 +57,6 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
         return
     
     for obj in called_map['__user_def']:
-        # print(f'\033[31muser_def: {obj}\033[0m')
         chain = final_call(obj_map, def_map, obj)
         for func in chain:
             category = bcode_parser.func_classification(func, called_map, obj_sets, obj_map)
@@ -75,30 +74,24 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
 
 # FIXME: module이름은 출력용이므로 추후 제거
 def create_call_map(byte_code, module):
-    print(f'\033[33m==== {module} ====\033[0m')
+    print(f'\033[33m======================================== {module} ========================================\033[0m')
     def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions = bcode_utils.preprocessing_bytecode(byte_code)
-
     # 현재 파싱중인 스크립트에 정의된 객체(함수, 클래스, 메서드)
-    obj_sets, user_def_list = bcode_utils.parse_definition(definitions)
+    obj_sets, user_def_list = bcode_utils.scan_definition(definitions)
     for i in range(len(definitions)):
         key, value = next(iter(user_def_list[i].items()))
-        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_sets, obj_map)
-    
-    # print('------------------------------------------------------------------------------------------------------------')
-    # bcode_utils.postprocessing_defmap(def_map, addr_map)
-    # print('==== def map ====')
-    # pprint(def_map)
-    # print('------------------------------------------------------------------------------------------------------------')
-    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
+        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map)
 
+    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
-    # print('==== called map ====')
+    print('================ def map ================')
+    pprint(def_map)
+    print('================ called map ================')
     pprint(called_map)
-    # print('------------------------------------------------------------------------------------------------------------')
-    # print('==== obj map ====')
-    # pprint(obj_map)
-    # print('------------------------------------------------------------------------------------------------------------')
+    print('================ obj map ================')
+    pprint(obj_map)
+    print('------------------------------------------------------------------------------------------------------------')
 
     return called_map, obj_sets, def_map, obj_map
 
@@ -135,7 +128,6 @@ def module_tracking(pycaches, base_map):
         new_called_map = bcode_utils.merge_dictionaries(new_called_map, called_map)
         print(f'\033[35m==== new called map ====\033[0m')
         pprint(new_called_map)
-        # break
 
 def search_module_path(called_map, pycaches):
     modules = [module_info['__origin_name'] for _, module_info in called_map.items() if '__origin_name' in module_info]
@@ -180,5 +172,5 @@ if __name__ == '__main__':
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-
+    
     module_tracking(pycaches, called_map)

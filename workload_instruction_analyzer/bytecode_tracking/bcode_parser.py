@@ -39,58 +39,63 @@ def func_classification(func, called_objs, obj_sets, obj_map):
 
     return '__builtin'
 
-def lazy_loading(byte_code, idx, called_objs, cap_stack):
+def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
     quotes = re.compile(r"'([^']*)'")
     module = quotes.search(cap_stack[0]).group(1)
 
     if module not in called_objs.keys():
-        next_line = byte_code[idx + 1]
+        next_line = byte_code[keys_list[idx + 1]]
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called':set(), '__origin_name':module}    
 
 def parse_def(byte_code, addr_map, obj_map):
+    keys_list = list(byte_code.keys())
+    keys_list = keys_list[2:]
     LOAD = []
     parents_object = []
 
     called_objs = set()
 
-    for i, line in enumerate(byte_code):
-        if 'IMPORT_NAME' in line:
+    for i, (offset, content) in enumerate(byte_code.items()):
+        if offset == '__name' or offset == '__addr':
+            continue
+
+        if 'IMPORT_NAME' in content:
             # ctypes, libimport만 확인
             pass
-        elif 'LOAD' in line:
-            pobject = bcode_instructions.load(byte_code, i, LOAD)
+        elif 'LOAD' in content:
+            pobject = bcode_instructions.load(content, LOAD)
             if pobject != None:
                 parents_object.insert(0, pobject)
-        elif 'POP_TOP' in line:
+        elif 'POP_TOP' in content:
             bcode_instructions.pop(LOAD)
-        elif 'DUP_TOP' in line:
+        elif 'DUP_TOP' in content:
             bcode_instructions.dup(LOAD)         
         # try-except
-        elif 'SETUP_FINALLY' in line:
+        elif 'SETUP_FINALLY' in content:
             bcode_instructions.setup_finally(LOAD)
-        elif 'END_FINALLY' in line:
+        elif 'END_FINALLY' in content:
             bcode_instructions.pop(LOAD)
-        elif 'POP_BLOCK' in line:
+        elif 'POP_BLOCK' in content:
             bcode_instructions.pop(LOAD)
-        elif 'POP_EXCEPT' in line:
+        elif 'POP_EXCEPT' in content:
             bcode_instructions.pop(LOAD)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
-        elif 'MAKE_FUNCTION' in line:
-            bcode_instructions.make_function(byte_code, i, LOAD, addr_map)
+        elif 'MAKE_FUNCTION' in content:
+            bcode_instructions.make_function(byte_code, i - 2, keys_list, LOAD, addr_map)
         # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
-        elif 'BUILD' in line:
-            bcode_instructions.build(byte_code, i, LOAD)
+        elif 'BUILD' in content:
+            bcode_instructions.build(content, LOAD)
         # 스택의 최상단에서 N번째 리스트를 확장
-        elif 'LIST_EXTEND' in line:
-            bcode_instructions.list_extend(byte_code, i, LOAD)
-        elif 'STORE_ATTR' in line:
+        elif 'LIST_EXTEND' in content:
+            bcode_instructions.list_extend(content, LOAD)
+        elif 'STORE_ATTR' in content:
             # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
-            obj_addr = byte_code[0].split('at ')[1].split(',')[0].strip()
+            obj_addr = byte_code['__addr']
 
             if obj_addr in addr_map:
                 parents_obj = list(addr_map[obj_addr].keys())[0]
-                result = bcode_instructions.store_attr(byte_code, i, LOAD)
+                result = bcode_instructions.store_attr(byte_code, i - 2, keys_list)
                 if result != None:
                     obj_map[parents_obj + '.' + result] = LOAD[-1]                
             else:
@@ -98,90 +103,87 @@ def parse_def(byte_code, addr_map, obj_map):
                 # 상위 객체 정보가 없는 경우
                 # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
                 pass
-        elif 'CALL_FUNCTION' in line:
-            func = bcode_instructions.call_function(byte_code, i, LOAD, parents_object)
+        elif 'CALL_FUNCTION' in content:
+            func = bcode_instructions.call_function(content, LOAD, parents_object)
             called_objs.add(func)
-            next_line = byte_code[i + 1]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
+
+            next_content = byte_code[keys_list[i - 1]]
+            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
+                result = (pattern.search(next_content).group(1))
                 obj_map[result] = func
-        elif 'CALL_METHOD' in line:
-            method = bcode_instructions.call_method(byte_code, i, LOAD, parents_object)
+        elif 'CALL_METHOD' in content:
+            method = bcode_instructions.call_method(content, LOAD, parents_object)
             called_objs.add(method)
-            next_line = byte_code[i + 1]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
+            next_content = byte_code[keys_list[i - 1]]
+            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
+                result = (pattern.search(next_content).group(1))
                 obj_map[result] = method
 
-        # next line(source code)
-        if line.strip() == '':
+        if content.strip() == '':
             parents_object = []
     
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map):
+    keys_list = list(byte_code.keys())
     LOAD = []
     parents_object = []
 
     called_objs = {'__builtin':set(), '__user_def':set()}
 
-    for i, line in enumerate(byte_code):
-        if 'IMPORT_NAME' in line:
-            module, alias = bcode_instructions.import_name(byte_code, i)
-            called_objs[alias] = {'__origin_name':module, '__called':set()}
+    for i, (offset, content) in enumerate(byte_code.items()):
+        if offset == '__name' or offset == '__addr':
+            continue
 
-        if 'IMPORT_FROM' in line:
-            from_func, from_alias = bcode_instructions.import_from(byte_code, i)
+        if 'IMPORT_NAME' in content:
+            module, alias = bcode_instructions.import_name(byte_code, i, keys_list)
+            called_objs[alias] = {'__origin_name':module, '__called':set()}
+        if 'IMPORT_FROM' in content:
+            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list)
 
             if '__func_alias' not in called_objs[alias]:
                 called_objs[alias]['__func_alias'] = {}
             called_objs[alias]['__func_alias'][from_alias] = from_func
 
-        elif 'LOAD' in line:
-            pobject = bcode_instructions.load(byte_code, i, LOAD)
+        elif 'LOAD' in content:
+            pobject = bcode_instructions.load(content, LOAD)
             if pobject != None:
                 parents_object.insert(0, pobject)
 
-        elif 'POP_TOP' in line:
+        elif 'POP_TOP' in content:
             bcode_instructions.pop(LOAD)
 
-        elif 'DUP_TOP' in line:
-            print(line)
+        elif 'DUP_TOP' in content:
             bcode_instructions.dup(LOAD)
         # try-except
-        elif 'SETUP_FINALLY' in line:
+        elif 'SETUP_FINALLY' in content:
             bcode_instructions.setup_finally(LOAD)
-        elif 'END_FINALLY' in line:
+        elif 'END_FINALLY' in content:
             bcode_instructions.pop(LOAD)
-        elif 'POP_BLOCK' in line:
+        elif 'POP_BLOCK' in content:
             bcode_instructions.pop(LOAD)
-        elif 'POP_EXCEPT' in line:
+        elif 'POP_EXCEPT' in content:
             bcode_instructions.pop(LOAD)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
-        elif 'MAKE_FUNCTION' in line:
-            bcode_instructions.make_function(byte_code, i, LOAD, addr_map)
-
+        elif 'MAKE_FUNCTION' in content:
+            bcode_instructions.make_function(byte_code, i, keys_list, LOAD, addr_map)
         # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
-        elif 'BUILD' in line:
-            bcode_instructions.build(byte_code, i, LOAD)
-
+        elif 'BUILD' in content:
+            bcode_instructions.build(content, LOAD)
         # 스택의 최상단에서 N번째 리스트를 확장
-        elif 'LIST_EXTEND' in line:
-            bcode_instructions.list_extend(byte_code, i, LOAD)
-
-        elif 'STORE_ATTR' in line:
-            result = bcode_instructions.store_attr(byte_code, i, LOAD)
+        elif 'LIST_EXTEND' in content:
+            bcode_instructions.list_extend(content, LOAD)
+        elif 'STORE_ATTR' in content:
+            result = bcode_instructions.store_attr(byte_code, i, keys_list)
             if result != None:
                 obj_map[result] = LOAD[-1]
-                
-        elif 'CALL_FUNCTION' in line:
-            if 'CALL_FUNCTION_KW' in line:
-                func_offset = int(line.split('CALL_FUNCTION_KW')[1].strip())
+        elif 'CALL_FUNCTION' in content:
+            if 'CALL_FUNCTION_KW' in content:
+                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip())
             else:
-                func_offset = int(line.split('CALL_FUNCTION')[1].strip())     
+                func_offset = int(content.split('CALL_FUNCTION')[1].strip())     
 
-            func = bcode_instructions.call_function(byte_code, i, LOAD, parents_object)
-            
+            func = bcode_instructions.call_function(content, LOAD, parents_object)
             # __build_class__
             if func == None:
                 continue
@@ -192,19 +194,18 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             else:
                 called_objs[category]['__called'].add(LOAD[func_offset])
 
-            next_line = byte_code[i + 1]
+            next_line = byte_code[keys_list[i + 1]]
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = func
 
-        elif 'CALL_METHOD' in line:
-            method_offset = int(line.split('CALL_METHOD')[1].strip())
+        elif 'CALL_METHOD' in content:
             cap_stack = LOAD.copy()
-            method = bcode_instructions.call_method(byte_code, i, LOAD, parents_object)
+            method = bcode_instructions.call_method(content, LOAD, parents_object)
             category = func_classification(method, called_objs, obj_sets, obj_map)
 
             if method == 'importlib.import_module' or method == 'ctypes.CDLL':
-                lazy_loading(byte_code, i, called_objs, cap_stack)
+                lazy_loading(byte_code, i, keys_list, called_objs, cap_stack)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(method)
@@ -213,13 +214,12 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                     called_objs[category] = {'__called':set()}
                 called_objs[category]['__called'].add(method.split('.')[-1])
 
-            next_line = byte_code[i + 1]
+            next_line = byte_code[keys_list[i + 1]]
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = method
             
-        # next line(source code)
-        if line.strip() == '':
+        if content.strip() == '':
             LOAD, parents_object = [], []
     
     return called_objs

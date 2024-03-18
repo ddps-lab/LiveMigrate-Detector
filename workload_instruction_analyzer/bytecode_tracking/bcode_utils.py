@@ -3,6 +3,8 @@ import marshal
 import io
 from contextlib import redirect_stdout
 
+from pprint import pprint
+
 def read_pyc(path):
     with open(path, 'rb') as f:
         # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
@@ -13,9 +15,29 @@ def read_pyc(path):
     return code_obj
 
 def preprocessing_bytecode(byte_code):
+    # 라인 번호를 추출하기 위한 함수
+    def parse_bytecode_line(bytecode_line):
+        parts = bytecode_line.strip().split()
+
+        if not parts:
+            return None, None
+
+        # code line number 제외
+        if parts[1].isdigit():
+            offset = parts[1]
+            content = parts[2:]
+        else:
+            offset = parts[0]
+            content = parts[1:]
+
+        return int(offset), ' '.join(content)
+    
     '''
     바이트코드를 main과 def 파트로 구분해 각각 반환.
     '''
+    dis_bytecode = {}
+    dis_objects = []
+
     # StringIO 객체를 생성
     f = io.StringIO()
     # dis의 출력을 StringIO 객체로 리디렉션
@@ -25,11 +47,35 @@ def preprocessing_bytecode(byte_code):
     # StringIO 객체에서 값을 얻고, 이를 줄 단위로 분할
     dis_output = f.getvalue()
     codes = dis_output.split('Disassembly of <code object')[0].strip().split('\n')
+
     objects = dis_output.split('Disassembly of <code object')[1:]
     for i, obj in enumerate(objects):
         objects[i] = obj.strip().split('\n')
 
-    return codes, objects
+    for line in codes:
+        offset, content = parse_bytecode_line(line)
+        if not isinstance(offset, int):
+            continue
+
+        dis_bytecode[offset] = content
+    
+    for obj in objects:
+        dis_object = {}
+        first_line = obj[0].split()
+
+        dis_object['__name'] = first_line[0]
+        dis_object['__addr'] = first_line[2].replace(',', '')
+        obj.pop(0)
+        for line in obj:
+            offset, content = parse_bytecode_line(line)
+            if not isinstance(offset, int):
+                continue
+
+            dis_object[offset] = content
+
+        dis_objects.append(dis_object)
+
+    return dis_bytecode, dis_objects
 
 def postprocessing_defmap(DEF_MAP, addr_map):
     '''
@@ -50,17 +96,19 @@ def postprocessing_defmap(DEF_MAP, addr_map):
         else:
             DEF_MAP[key.split('.')[1]] = DEF_MAP.pop(key)
 
-def parse_definition(definitions):
+def scan_definition(definitions):
     '''
     사용자 정의 객체를 수집.
     '''
     obj_lists = []
     obj_sets = set()
-    for i in range(len(definitions)):
-        obj = definitions[i][0].split(' ')[0]
-        addr = definitions[i][0].split('at ')[1].split(',')[0].strip()
-        obj_sets.add(obj)
-        obj_lists.append({obj:addr})
+    
+    for obj in definitions:
+        __name = obj['__name']
+        __addr = obj['__addr']
+
+        obj_sets.add(__name)
+        obj_lists.append({__name:__addr})
 
     return obj_sets, obj_lists
 
