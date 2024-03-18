@@ -127,9 +127,6 @@ def parse_def(byte_code, addr_map, obj_map):
         else:
             parse_shared_instructions(content, LOAD, parents_object)
 
-        # if content.strip() == '':
-        #     parents_object = []
-    
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map):
@@ -215,8 +212,4 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
         else:
             parse_shared_instructions(content, LOAD, parents_object)                
             
-        # if content.strip() == '':
-        #     print('run?')
-        #     LOAD, parents_object = [], []
-        
     return called_objs
