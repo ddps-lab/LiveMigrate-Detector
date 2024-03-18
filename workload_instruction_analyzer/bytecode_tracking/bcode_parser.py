@@ -48,6 +48,35 @@ def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called':set(), '__origin_name':module}    
 
+def parse_shared_instructions(content, LOAD, parents_object):
+    if 'LOAD' in content:
+        pobject = bcode_instructions.load(content, LOAD)
+        if pobject != None:
+            parents_object.insert(0, pobject)
+
+    # stack controll
+    elif 'POP_TOP' in content:
+        bcode_instructions.pop(LOAD)
+    elif 'DUP_TOP' in content:
+        bcode_instructions.dup(LOAD)
+
+    # try-except
+    elif 'SETUP_FINALLY' in content:
+        bcode_instructions.setup_finally(LOAD)
+    elif 'END_FINALLY' in content:
+        bcode_instructions.pop(LOAD)
+    elif 'POP_BLOCK' in content:
+        bcode_instructions.pop(LOAD)
+    elif 'POP_EXCEPT' in content:
+        bcode_instructions.pop(LOAD)
+
+    # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
+    elif 'BUILD' in content:
+        bcode_instructions.build(content, LOAD)
+    # 스택의 최상단에서 N번째 리스트를 확장
+    elif 'LIST_EXTEND' in content:
+        bcode_instructions.list_extend(content, LOAD)
+
 def parse_def(byte_code, addr_map, obj_map):
     keys_list = list(byte_code.keys())
     keys_list = keys_list[2:]
@@ -63,32 +92,9 @@ def parse_def(byte_code, addr_map, obj_map):
         if 'IMPORT_NAME' in content:
             # ctypes, libimport만 확인
             pass
-        elif 'LOAD' in content:
-            pobject = bcode_instructions.load(content, LOAD)
-            if pobject != None:
-                parents_object.insert(0, pobject)
-        elif 'POP_TOP' in content:
-            bcode_instructions.pop(LOAD)
-        elif 'DUP_TOP' in content:
-            bcode_instructions.dup(LOAD)         
-        # try-except
-        elif 'SETUP_FINALLY' in content:
-            bcode_instructions.setup_finally(LOAD)
-        elif 'END_FINALLY' in content:
-            bcode_instructions.pop(LOAD)
-        elif 'POP_BLOCK' in content:
-            bcode_instructions.pop(LOAD)
-        elif 'POP_EXCEPT' in content:
-            bcode_instructions.pop(LOAD)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
             bcode_instructions.make_function(byte_code, i - 2, keys_list, LOAD, addr_map)
-        # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
-        elif 'BUILD' in content:
-            bcode_instructions.build(content, LOAD)
-        # 스택의 최상단에서 N번째 리스트를 확장
-        elif 'LIST_EXTEND' in content:
-            bcode_instructions.list_extend(content, LOAD)
         elif 'STORE_ATTR' in content:
             # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
             obj_addr = byte_code['__addr']
@@ -118,9 +124,11 @@ def parse_def(byte_code, addr_map, obj_map):
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = method
+        else:
+            parse_shared_instructions(content, LOAD, parents_object)
 
-        if content.strip() == '':
-            parents_object = []
+        # if content.strip() == '':
+        #     parents_object = []
     
     return called_objs
 
@@ -128,12 +136,23 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     keys_list = list(byte_code.keys())
     LOAD = []
     parents_object = []
+    branch = True
 
     called_objs = {'__builtin':set(), '__user_def':set()}
 
+    # def scan_bcode(branch):
     for i, (offset, content) in enumerate(byte_code.items()):
         if offset == '__name' or offset == '__addr':
             continue
+
+        if 'POP_JUMP_IF_FALSE' in content:
+            if branch:
+                target = int((pattern.search(content).group(1)).split()[1])
+
+                if offset < target:
+                    continue
+            else:
+                continue
 
         if 'IMPORT_NAME' in content:
             module, alias = bcode_instructions.import_name(byte_code, i, keys_list)
@@ -145,34 +164,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 called_objs[alias]['__func_alias'] = {}
             called_objs[alias]['__func_alias'][from_alias] = from_func
 
-        elif 'LOAD' in content:
-            pobject = bcode_instructions.load(content, LOAD)
-            if pobject != None:
-                parents_object.insert(0, pobject)
-
-        elif 'POP_TOP' in content:
-            bcode_instructions.pop(LOAD)
-
-        elif 'DUP_TOP' in content:
-            bcode_instructions.dup(LOAD)
-        # try-except
-        elif 'SETUP_FINALLY' in content:
-            bcode_instructions.setup_finally(LOAD)
-        elif 'END_FINALLY' in content:
-            bcode_instructions.pop(LOAD)
-        elif 'POP_BLOCK' in content:
-            bcode_instructions.pop(LOAD)
-        elif 'POP_EXCEPT' in content:
-            bcode_instructions.pop(LOAD)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
             bcode_instructions.make_function(byte_code, i, keys_list, LOAD, addr_map)
-        # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
-        elif 'BUILD' in content:
-            bcode_instructions.build(content, LOAD)
-        # 스택의 최상단에서 N번째 리스트를 확장
-        elif 'LIST_EXTEND' in content:
-            bcode_instructions.list_extend(content, LOAD)
         elif 'STORE_ATTR' in content:
             result = bcode_instructions.store_attr(byte_code, i, keys_list)
             if result != None:
@@ -218,8 +212,11 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = method
+        else:
+            parse_shared_instructions(content, LOAD, parents_object)                
             
-        if content.strip() == '':
-            LOAD, parents_object = [], []
-    
+        # if content.strip() == '':
+        #     print('run?')
+        #     LOAD, parents_object = [], []
+        
     return called_objs
