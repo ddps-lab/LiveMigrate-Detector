@@ -157,6 +157,7 @@ if __name__ == '__main__':
     if script_path not in sys.path:
         sys.path.append(script_path)
 
+    # script_path += '/branch.py'
     script_path += '/main.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
