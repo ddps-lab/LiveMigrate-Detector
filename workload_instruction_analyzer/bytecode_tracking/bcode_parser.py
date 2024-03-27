@@ -284,9 +284,15 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     jp_offset = set()
     branch_targets = set()
 
-    from_list = []
+    class SHARED_VARIABLES:
+        def __init__(self):
+            self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
+            self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+
     # FIXME: 검증용 스택, 추후 제거
     verification = []
+
+    shared_variables = SHARED_VARIABLES()
 
     for i, (offset, content) in enumerate(byte_code.items()):
         if offset == '__name' or offset == '__addr':
@@ -296,19 +302,25 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             continue
 
         if 'IMPORT_NAME' in content:
-            module, alias = bcode_instructions.import_name(byte_code, i, keys_list, from_list)
+            module, alias = bcode_instructions.import_name(byte_code, i, keys_list, shared_variables)
             
             # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
             if module == None:
                 continue
             called_objs[alias] = {'__origin_name':module, '__called':set()}
         if 'IMPORT_FROM' in content:
-            if from_list:
-                from_list.pop(0)
-                module, alias = bcode_instructions.import_from(byte_code, i, keys_list, from_list)
+            if shared_variables.from_list:
+                shared_variables.from_list.pop(0)
+                module, alias = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
                 called_objs[alias] = {'__origin_name':module, '__called':set()}
                 continue
-            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list, from_list)
+            
+            if shared_variables.from_pass:
+                _, _ = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
+                shared_variables.from_pass -= 1
+                continue
+
+            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
 
             if '__func_alias' not in called_objs[alias]:
                 called_objs[alias]['__func_alias'] = {}

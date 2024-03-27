@@ -4,32 +4,48 @@ from pprint import pprint
 
 pattern = re.compile(r'\((.*?)\)')
 
-def import_name(byte_code, idx, keys_list, from_list):
+def import_name(byte_code, idx, keys_list, shared_variables):
     line = byte_code[keys_list[idx]]
 
     if 'IMPORT_NAME' in line:
         try:
-            module = (pattern.search(line).group(1))
+            module = pattern.search(line).group(1)
         except AttributeError:
             prev_line = byte_code[keys_list[idx - 1]]
 
             # 상대경로에서 가져오는 모듈 추출
-            from_list.clear()
-            from_list.extend(re.findall(r"\'([^\']+)\'", prev_line))
+            shared_variables.from_list.clear()
+            shared_variables.from_list.extend(re.findall(r"\'([^\']+)\'", prev_line))
 
             return None, None
 
-        root_module = (pattern.search(line).group(1)).split('.')[0]
         # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
         next_line = byte_code[keys_list[idx + 1]]
         if 'STORE_NAME' in next_line:
             alias = (pattern.search(next_line).group(1))
-            return module, alias
-        # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
-        else:
-            return module, root_module
 
-def import_from(byte_code, idx, keys_list, from_list):
+            if '.' in module:
+                return module, module
+
+            return module, alias
+
+        prev_line = byte_code[keys_list[idx - 1]]
+        if 'LOAD_CONST' in prev_line:
+            args = pattern.search(prev_line).group(1)
+            if args == 'None':
+                i = 1
+                while True:
+                    next_line = byte_code[keys_list[idx + i]]
+                    if 'STORE_NAME' in next_line:
+                        alias = (pattern.search(next_line).group(1))
+                        shared_variables.from_pass = module.count('.')
+                        return module, alias
+                    i += 1
+
+        # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
+        return module, module
+
+def import_from(byte_code, idx, keys_list, shared_variables):
     line = byte_code[keys_list[idx]]
         
     func = (pattern.search(line).group(1))
@@ -39,13 +55,13 @@ def import_from(byte_code, idx, keys_list, from_list):
     if 'STORE_NAME' in next_line:
         alias = (pattern.search(next_line).group(1))
 
-        if from_list:
+        if shared_variables.from_list:
             module = func
             return module, alias
         
         return func, alias
 
-    if from_list:
+    if shared_variables.from_list:
         return module, None    
     
     return func, None
