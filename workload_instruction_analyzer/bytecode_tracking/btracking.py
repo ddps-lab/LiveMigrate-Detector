@@ -96,6 +96,11 @@ def create_call_map(byte_code, module):
     return called_map, obj_sets, def_map, obj_map
 
 def module_tracking(pycaches, base_map):
+    def check_module_origin_name(module):
+        for key, value in base_map.items():
+            if '__origin_name' in value and value['__origin_name'] == module:
+                return key
+
     new_called_map = {'__builtin':set(), '__user_def':set()}
 
     for module, path in pycaches.items():
@@ -106,11 +111,12 @@ def module_tracking(pycaches, base_map):
         called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, module)
 
         # FIXME alias 확인해서 본래 함수 이름으로 서치해야함.
+        module = check_module_origin_name(module)
         called_func = base_map[module]['__called']
-
+        
         print(f'\033[33mcalled func : {called_func}\033[0m')
         print(f'\033[33muser def : {obj_sets}\033[0m')
-
+        # 호출된 함수의 원본 이름을 찾고 사용자 정의 함수라면 __user_def에 추가
         for func in called_func:
             origin_name = func
             if '__func_alias' in base_map[module]:
@@ -158,8 +164,8 @@ if __name__ == '__main__':
         sys.path.append(script_path)
 
     # script_path += '/branch.py'
-    script_path += '/import_test.py'
-    # script_path += '/main.py'
+    # script_path += '/import_test.py'
+    script_path += '/main.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
 
@@ -167,12 +173,12 @@ if __name__ == '__main__':
 
     called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, 'main')
 
-    # search_module_path(called_map, pycaches)
+    search_module_path(called_map, pycaches)
 
-    # while(True):
-    #     new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
-    #     if bcode_utils.dict_empty_check(new_tracked):
-    #         break
-    #     called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+    while(True):
+        new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+        if bcode_utils.dict_empty_check(new_tracked):
+            break
+        called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
     
-    # module_tracking(pycaches, called_map)
+    module_tracking(pycaches, called_map)
