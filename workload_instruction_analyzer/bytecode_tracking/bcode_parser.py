@@ -48,7 +48,7 @@ def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called':set(), '__origin_name':module}    
 
-def parse_branch_instructions(content, stack_cap, branch_targets, verification, offset, jp_offset, LOAD):
+def parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
     '''
     [분기 처리 기본 동작]
     1. POP_JUMP_IF_FALSE 마다 stack을 capture하여 stack_cap에 push.
@@ -135,17 +135,17 @@ def parse_branch_instructions(content, stack_cap, branch_targets, verification, 
             f15()
     '''
     
-    if offset in branch_targets:
-        LOAD = stack_cap[-1].copy()
+    if offset in branch_shared_variables.branch_targets:
+        shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
         # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
 
-        stack_cap.pop(-1)
+        branch_shared_variables.stack_cap.pop(-1)
         # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
         return True
 
     if 'POP_JUMP_IF_FALSE' in content:
-        stack_cap.append(LOAD.copy())
-        branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
+        branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
+        branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
         if len(verification) == 0:
             verification.append(1)
         else:
@@ -154,138 +154,82 @@ def parse_branch_instructions(content, stack_cap, branch_targets, verification, 
         return True
     
     if 'JUMP_FORWARD' in content:
-        jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
+        branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
         return True
 
-def parse_shared_instructions(content, LOAD, parents_object):
+def parse_shared_instructions(content, shared_variables):
+# def parse_shared_instructions(content, LOAD, parents_object):
     if 'LOAD' in content:
-        pobject = bcode_instructions.load(content, LOAD)
+        pobject = bcode_instructions.load(content, shared_variables)
         if pobject != None:
-            parents_object.insert(0, pobject)
+            shared_variables.parents_object.insert(0, pobject)
 
     # stack controll
     elif 'POP_TOP' in content:
-        bcode_instructions.pop(LOAD)
+        bcode_instructions.pop(shared_variables)
     elif 'DUP_TOP' in content:
-        bcode_instructions.dup(LOAD)
+        bcode_instructions.dup(shared_variables)
 
     # try-except
     elif 'SETUP_FINALLY' in content:
-        bcode_instructions.setup_finally(LOAD)
+        bcode_instructions.setup_finally(shared_variables)
     elif 'END_FINALLY' in content:
-        bcode_instructions.pop(LOAD)
+        bcode_instructions.pop(shared_variables)
     elif 'POP_BLOCK' in content:
-        bcode_instructions.pop(LOAD)
+        bcode_instructions.pop(shared_variables)
     elif 'POP_EXCEPT' in content:
-        bcode_instructions.pop(LOAD)
+        bcode_instructions.pop(shared_variables)
 
     # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
     elif 'BUILD' in content:
-        bcode_instructions.build(content, LOAD)
+        bcode_instructions.build(content, shared_variables)
     # 스택의 최상단에서 N번째 리스트를 확장
     elif 'LIST_EXTEND' in content:
-        bcode_instructions.list_extend(content, LOAD)
+        bcode_instructions.list_extend(content, shared_variables)
     # 두 값을 pop해 비교 후 true or flase를 푸시
     elif 'COMPARE_OP' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     
     # -=
     elif 'INPLACE_SUBTRACT' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # +=
     elif 'INPLACE_ADD' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # *=
     elif 'INPLACE_MULTIPLY' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # /=
     elif 'INPLACE_TRUE_DIVIDE' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # %=    
     elif 'INPLACE_MODULO' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # //=
     elif 'INPLACE_FLOOR_DIVIDE' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
     # **=
     elif 'INPLACE_POWER' in content:
-        bcode_instructions.pop2_push1(LOAD)
+        bcode_instructions.pop2_push1(shared_variables)
 
 
 def parse_def(byte_code, addr_map, obj_map):
-    keys_list = list(byte_code.keys())
-    keys_list = keys_list[2:]
-    LOAD = []
-    parents_object = []
     called_objs = set()
 
-    stack_cap = []
-    jp_offset = set()
-    branch_targets = set()
-
-    from_list = []
-    # FIXME: 검증용 스택, 추후 제거
-    verification = []
-
-    for i, (offset, content) in enumerate(byte_code.items()):
-        if offset == '__name' or offset == '__addr':
-            continue
-
-        if parse_branch_instructions(content, stack_cap, branch_targets, verification, offset, jp_offset, LOAD):
-            continue
-
-        if 'IMPORT_NAME' in content:
-            # ctypes, libimport만 확인
-            pass
-        # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
-        elif 'MAKE_FUNCTION' in content:
-            bcode_instructions.make_function(byte_code, i - 2, keys_list, LOAD, addr_map)
-        elif 'STORE_ATTR' in content:
-            # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
-            obj_addr = byte_code['__addr']
-
-            if obj_addr in addr_map:
-                parents_obj = list(addr_map[obj_addr].keys())[0]
-                result = bcode_instructions.store_attr(byte_code, i - 2, keys_list)
-                if result != None:
-                    obj_map[parents_obj + '.' + result] = LOAD[-1]                
-            else:
-                # FIXME:
-                # 상위 객체 정보가 없는 경우
-                # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
-                pass
-        elif 'CALL_FUNCTION' in content:
-            func = bcode_instructions.call_function(content, LOAD, parents_object)
-            called_objs.add(func)
-
-            next_content = byte_code[keys_list[i - 1]]
-            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
-                result = (pattern.search(next_content).group(1))
-                obj_map[result] = func
-        elif 'CALL_METHOD' in content:
-            method = bcode_instructions.call_method(content, LOAD, parents_object)
-            called_objs.add(method)
-            next_content = byte_code[keys_list[i - 1]]
-            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
-                result = (pattern.search(next_content).group(1))
-                obj_map[result] = method
-        else:
-            parse_shared_instructions(content, LOAD, parents_object)
-
-    return called_objs
-
-def parse_main(byte_code, addr_map, obj_sets, obj_map):
-    keys_list = list(byte_code.keys())
-    LOAD = []
-    parents_object = []
-    called_objs = {'__builtin':set(), '__user_def':set()}
-
-    stack_cap = []
-    jp_offset = set()
-    branch_targets = set()
+    class BRANCH_SHARED_VARIABLES:
+        def __init__(self):
+            self.stack_cap = []
+            self.jp_offset = set()
+            self.branch_targets = set()
 
     class SHARED_VARIABLES:
         def __init__(self):
+            self.byte_code = byte_code
+            self.keys_list = list(byte_code.keys())[2:]
+            self.LOAD = []
+            self.addr_map = addr_map
+            self.parents_object = []
+
             self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
 
@@ -293,16 +237,90 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     verification = []
 
     shared_variables = SHARED_VARIABLES()
+    branch_shared_variables = BRANCH_SHARED_VARIABLES()
 
     for i, (offset, content) in enumerate(byte_code.items()):
         if offset == '__name' or offset == '__addr':
             continue
 
-        if parse_branch_instructions(content, stack_cap, branch_targets, verification, offset, jp_offset, LOAD):
+        if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
             continue
 
         if 'IMPORT_NAME' in content:
-            module, alias = bcode_instructions.import_name(byte_code, i, keys_list, shared_variables)
+            # ctypes, libimport만 확인
+            pass
+        # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
+        elif 'MAKE_FUNCTION' in content:
+            bcode_instructions.make_function(i - 2, shared_variables)
+        elif 'STORE_ATTR' in content:
+            # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
+            obj_addr = byte_code['__addr']
+
+            if obj_addr in addr_map:
+                parents_obj = list(addr_map[obj_addr].keys())[0]
+                result = bcode_instructions.store_attr(i - 2, shared_variables)
+                if result != None:
+                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1]                
+            else:
+                # FIXME:
+                # 상위 객체 정보가 없는 경우
+                # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
+                pass
+        elif 'CALL_FUNCTION' in content:
+            func = bcode_instructions.call_function(content, shared_variables)
+            called_objs.add(func)
+
+            next_content = byte_code[shared_variables.keys_list[i - 1]]
+            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
+                result = (pattern.search(next_content).group(1))
+                obj_map[result] = func
+        elif 'CALL_METHOD' in content:
+            method = bcode_instructions.call_method(content, shared_variables)
+            called_objs.add(method)
+            next_content = byte_code[shared_variables.keys_list[i - 1]]
+            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
+                result = (pattern.search(next_content).group(1))
+                obj_map[result] = method
+        else:
+            parse_shared_instructions(content, shared_variables)
+
+    return called_objs
+
+def parse_main(byte_code, addr_map, obj_sets, obj_map):
+    called_objs = {'__builtin':set(), '__user_def':set()}
+
+    class BRANCH_SHARED_VARIABLES:
+        def __init__(self):
+            self.stack_cap = []
+            self.jp_offset = set()
+            self.branch_targets = set()
+
+    class SHARED_VARIABLES:
+        def __init__(self):
+            self.byte_code = byte_code
+            self.keys_list = list(byte_code.keys())
+            self.LOAD = []
+            self.addr_map = addr_map
+            self.parents_object = []
+
+            self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
+            self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+
+    # FIXME: 검증용 스택, 추후 제거
+    verification = []
+
+    shared_variables = SHARED_VARIABLES()
+    branch_shared_variables = BRANCH_SHARED_VARIABLES()
+
+    for i, (offset, content) in enumerate(byte_code.items()):
+        if offset == '__name' or offset == '__addr':
+            continue
+
+        if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
+            continue
+
+        if 'IMPORT_NAME' in content:
+            module, alias = bcode_instructions.import_name(i, shared_variables)
             
             # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
             if module == None:
@@ -311,16 +329,16 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
         if 'IMPORT_FROM' in content:
             if shared_variables.from_list:
                 shared_variables.from_list.pop(0)
-                module, alias = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
+                module, alias = bcode_instructions.import_from(i, shared_variables)
                 called_objs[alias] = {'__origin_name':module, '__called':set()}
                 continue
             
             if shared_variables.from_pass:
-                _, _ = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
+                _, _ = bcode_instructions.import_from(i, shared_variables)
                 shared_variables.from_pass -= 1
                 continue
 
-            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list, shared_variables)
+            from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
 
             if '__func_alias' not in called_objs[alias]:
                 called_objs[alias]['__func_alias'] = {}
@@ -329,18 +347,18 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
 
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
-            bcode_instructions.make_function(byte_code, i, keys_list, LOAD, addr_map)
+            bcode_instructions.make_function(i, shared_variables)
         elif 'STORE_ATTR' in content:
-            result = bcode_instructions.store_attr(byte_code, i, keys_list)
+            result = bcode_instructions.store_attr(i, shared_variables)
             if result != None:
-                obj_map[result] = LOAD[-1]
+                obj_map[result] = shared_variables.LOAD[-1]
         elif 'CALL_FUNCTION' in content:
             if 'CALL_FUNCTION_KW' in content:
                 func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip())
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())     
 
-            func = bcode_instructions.call_function(content, LOAD, parents_object)
+            func = bcode_instructions.call_function(content, shared_variables)
             # __build_class__
             if func == None:
                 continue
@@ -349,20 +367,20 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(func)
             else:
-                called_objs[category]['__called'].add(LOAD[func_offset])
+                called_objs[category]['__called'].add(shared_variables.LOAD[func_offset])
 
-            next_line = byte_code[keys_list[i + 1]]
+            next_line = byte_code[shared_variables.keys_list[i + 1]]
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = func
 
         elif 'CALL_METHOD' in content:
-            cap_stack = LOAD.copy()
-            method = bcode_instructions.call_method(content, LOAD, parents_object)
+            cap_stack = shared_variables.LOAD.copy()
+            method = bcode_instructions.call_method(content, shared_variables)
             category = func_classification(method, called_objs, obj_sets, obj_map)
 
             if method == 'importlib.import_module' or method == 'ctypes.CDLL':
-                lazy_loading(byte_code, i, keys_list, called_objs, cap_stack)
+                lazy_loading(byte_code, i, shared_variables.keys_list, called_objs, cap_stack)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(method)
@@ -371,11 +389,11 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                     called_objs[category] = {'__called':set()}
                 called_objs[category]['__called'].add(method.split('.')[-1])
 
-            next_line = byte_code[keys_list[i + 1]]
+            next_line = byte_code[shared_variables.keys_list[i + 1]]
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = method
         else:
-            parse_shared_instructions(content, LOAD, parents_object)             
+            parse_shared_instructions(content, shared_variables)
     
     return called_objs

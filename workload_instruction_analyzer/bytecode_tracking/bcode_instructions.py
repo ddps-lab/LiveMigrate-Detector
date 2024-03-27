@@ -4,7 +4,10 @@ from pprint import pprint
 
 pattern = re.compile(r'\((.*?)\)')
 
-def import_name(byte_code, idx, keys_list, shared_variables):
+def import_name(idx, shared_variables):
+    byte_code = shared_variables.byte_code
+    keys_list = shared_variables.keys_list
+    
     line = byte_code[keys_list[idx]]
 
     if 'IMPORT_NAME' in line:
@@ -45,7 +48,9 @@ def import_name(byte_code, idx, keys_list, shared_variables):
         # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
         return module, module
 
-def import_from(byte_code, idx, keys_list, shared_variables):
+def import_from(idx, shared_variables):
+    byte_code = shared_variables.byte_code
+    keys_list = shared_variables.keys_list
     line = byte_code[keys_list[idx]]
         
     func = (pattern.search(line).group(1))
@@ -66,22 +71,23 @@ def import_from(byte_code, idx, keys_list, shared_variables):
     
     return func, None
 
-def load_build_class(LOAD):
-    LOAD.insert(0, '__build_class__')
+def load_build_class(shared_variables):
+    shared_variables.LOAD.insert(0, '__build_class__')
 
-def load_attr(content, LOAD):
-    value = LOAD.pop(0) + '.' + pattern.search(content).group(1)
-    LOAD.insert(0, value)
+def load_attr(content, shared_variables):
+    value = shared_variables.LOAD.pop(0) + '.' + pattern.search(content).group(1)
+    shared_variables.LOAD.insert(0, value)
 
-def load_method(content, LOAD):
-    parents_object = LOAD[0]
-    LOAD.insert(0, pattern.search(content).group(1))
+def load_method(content, shared_variables):
+    parents_object = shared_variables.LOAD[0]
+    shared_variables.LOAD.insert(0, pattern.search(content).group(1))
     return parents_object
 
-def load_etc(content, LOAD):
-    LOAD.insert(0, pattern.search(content).group(1))
+def load_etc(content, shared_variables):
+    shared_variables.LOAD.insert(0, pattern.search(content).group(1))
     
-def load(content, LOAD):
+def load(content, shared_variables):
+    LOAD = shared_variables.LOAD
     parents_object = None
 
     # 클래스 정의
@@ -100,7 +106,12 @@ def load(content, LOAD):
     else:
         LOAD.insert(0, pattern.search(content).group(1))
 
-def make_function(byte_code, idx, keys_list, LOAD, addr_map):
+def make_function(idx, shared_variables):
+    byte_code = shared_variables.byte_code
+    keys_list = shared_variables.keys_list
+    LOAD = shared_variables.LOAD
+    addr_map = shared_variables.addr_map
+
     value = 'function object for ' + LOAD.pop(0)
     LOAD.pop(0)
     LOAD.insert(0, value)
@@ -123,7 +134,9 @@ def make_function(byte_code, idx, keys_list, LOAD, addr_map):
                     break
                 prev_line = byte_code[keys_list[idx + offset]]
     
-def build(content, LOAD):
+def build(content, shared_variables):
+    LOAD = shared_variables.LOAD
+
     if 'BUILD_STRING' in content:
         args_count = int(content.split('BUILD_STRING')[1].strip())
         merge_str = ''
@@ -140,7 +153,10 @@ def build(content, LOAD):
                 merge_list += LOAD.pop(0)
             LOAD.insert(0, merge_list)    
 
-def store_attr(byte_code, idx, keys_list):
+def store_attr(idx, shared_variables):
+    byte_code = shared_variables.byte_code
+    keys_list = shared_variables.keys_list
+
     line = byte_code[keys_list[idx]]
 
     # 함수 호출이 아닌 경우를 구분해야함. 함수 호출 없이 객체.변수에 값 할당하는 경우가 있기 때문.
@@ -163,7 +179,9 @@ def store_attr(byte_code, idx, keys_list):
         return result
     return None
 
-def call_function(content, LOAD, parents_object):
+def call_function(content, shared_variables):
+    LOAD = shared_variables.LOAD
+    parents_object = shared_variables.parents_object
     called_func = None
 
     if 'CALL_FUNCTION_KW' in content:
@@ -194,7 +212,10 @@ def call_function(content, LOAD, parents_object):
 
     return called_func
 
-def call_method(content, LOAD, parents_object):
+def call_method(content, shared_variables):
+    LOAD = shared_variables.LOAD
+    parents_object = shared_variables.parents_object
+
     method_offset = int(content.split('CALL_METHOD')[1].strip())
     if len(parents_object) == 0:
         called_method = LOAD[method_offset]
@@ -210,22 +231,22 @@ def call_method(content, LOAD, parents_object):
 
     return called_method
 
-def list_extend(content, LOAD):
+def list_extend(content, shared_variables):
     # 스택의 상단부터 취합해 N 번째에 있는 리스트를 확장하지만 확장된 리스트 정보는 필요하지 않으므로 pop만 수행함.
     args_count = int(content.split('LIST_EXTEND')[1].strip())
     for i in range(args_count):
-        LOAD.pop(0)
+        shared_variables.LOAD.pop(0)
 
-def pop2_push1(LOAD):
-    LOAD.pop(0)
-    LOAD.pop(0)
-    LOAD.insert(0, 'pop2_push1')
+def pop2_push1(shared_variables):
+    shared_variables.LOAD.pop(0)
+    shared_variables.LOAD.pop(0)
+    shared_variables.LOAD.insert(0, 'pop2_push1')
     
-def setup_finally(LOAD):
-    LOAD.insert(0, 'tryblock')
+def setup_finally(shared_variables):
+    shared_variables.LOAD.insert(0, 'tryblock')
 
-def pop(LOAD):
-    LOAD.pop(0)
+def pop(shared_variables):
+    shared_variables.LOAD.pop(0)
 
-def dup(LOAD):
-    LOAD.insert(0, LOAD[0])
+def dup(shared_variables):
+    shared_variables.LOAD.insert(0, shared_variables.LOAD[0])
