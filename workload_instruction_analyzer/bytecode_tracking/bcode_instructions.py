@@ -4,11 +4,21 @@ from pprint import pprint
 
 pattern = re.compile(r'\((.*?)\)')
 
-def import_name(byte_code, idx, keys_list):
+def import_name(byte_code, idx, keys_list, from_list):
     line = byte_code[keys_list[idx]]
 
     if 'IMPORT_NAME' in line:
-        module = (pattern.search(line).group(1))
+        try:
+            module = (pattern.search(line).group(1))
+        except AttributeError:
+            prev_line = byte_code[keys_list[idx - 1]]
+
+            # 상대경로에서 가져오는 모듈 추출
+            from_list.clear()
+            from_list.extend(re.findall(r"\'([^\']+)\'", prev_line))
+
+            return None, None
+
         root_module = (pattern.search(line).group(1)).split('.')[0]
         # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
         next_line = byte_code[keys_list[idx + 1]]
@@ -19,16 +29,25 @@ def import_name(byte_code, idx, keys_list):
         else:
             return module, root_module
 
-def import_from(byte_code, idx, keys_list):
+def import_from(byte_code, idx, keys_list, from_list):
     line = byte_code[keys_list[idx]]
         
     func = (pattern.search(line).group(1))
+
     # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
     next_line = byte_code[keys_list[idx + 1]]
     if 'STORE_NAME' in next_line:
         alias = (pattern.search(next_line).group(1))
+
+        if from_list:
+            module = func
+            return module, alias
+        
         return func, alias
 
+    if from_list:
+        return module, None    
+    
     return func, None
 
 def load_build_class(LOAD):

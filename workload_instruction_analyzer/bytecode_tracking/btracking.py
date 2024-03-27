@@ -158,7 +158,8 @@ if __name__ == '__main__':
         sys.path.append(script_path)
 
     # script_path += '/branch.py'
-    script_path += '/main.py'
+    script_path += '/import_test.py'
+    # script_path += '/main.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
 
@@ -166,12 +167,12 @@ if __name__ == '__main__':
 
     called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, 'main')
 
-    search_module_path(called_map, pycaches)
+    # search_module_path(called_map, pycaches)
 
-    while(True):
-        new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
-        if bcode_utils.dict_empty_check(new_tracked):
-            break
-        called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+    # while(True):
+    #     new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+    #     if bcode_utils.dict_empty_check(new_tracked):
+    #         break
+    #     called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
     
-    module_tracking(pycaches, called_map)
+    # module_tracking(pycaches, called_map)

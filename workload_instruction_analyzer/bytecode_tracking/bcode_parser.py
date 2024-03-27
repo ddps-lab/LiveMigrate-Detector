@@ -222,6 +222,8 @@ def parse_def(byte_code, addr_map, obj_map):
     stack_cap = []
     jp_offset = set()
     branch_targets = set()
+
+    from_list = []
     # FIXME: 검증용 스택, 추후 제거
     verification = []
 
@@ -281,6 +283,8 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
     stack_cap = []
     jp_offset = set()
     branch_targets = set()
+
+    from_list = []
     # FIXME: 검증용 스택, 추후 제거
     verification = []
 
@@ -292,13 +296,23 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             continue
 
         if 'IMPORT_NAME' in content:
-            module, alias = bcode_instructions.import_name(byte_code, i, keys_list)
+            module, alias = bcode_instructions.import_name(byte_code, i, keys_list, from_list)
+            
+            # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
+            if module == None:
+                continue
             called_objs[alias] = {'__origin_name':module, '__called':set()}
         if 'IMPORT_FROM' in content:
-            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list)
+            if from_list:
+                from_list.pop(0)
+                module, alias = bcode_instructions.import_from(byte_code, i, keys_list, from_list)
+                called_objs[alias] = {'__origin_name':module, '__called':set()}
+                continue
+            from_func, from_alias = bcode_instructions.import_from(byte_code, i, keys_list, from_list)
 
             if '__func_alias' not in called_objs[alias]:
                 called_objs[alias]['__func_alias'] = {}
+
             called_objs[alias]['__func_alias'][from_alias] = from_func
 
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
