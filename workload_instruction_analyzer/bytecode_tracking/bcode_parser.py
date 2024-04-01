@@ -141,9 +141,13 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
 
         branch_shared_variables.stack_cap.pop(-1)
         # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
-        return True
+        return False
+
+    # FIXME: JUMP_IF_NOT_EXC_MATCH - except 에서 지정한 예외가 아니면 점프(스택변화는 없음)
 
     if 'POP_JUMP_IF_FALSE' in content:
+        bcode_instructions.pop(shared_variables)
+
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
         branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
         if len(verification) == 0:
@@ -151,68 +155,90 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
         else:
             verification.append(max(verification) + 1)
         # print(f'push!\t\toffset:{offset}, verification:{verification}, push:{max(verification)}')
+        print(offset, shared_variables.LOAD)
         return True
     
     if 'JUMP_FORWARD' in content:
         branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
+        print(offset, shared_variables.LOAD)
         return True
 
 def parse_shared_instructions(content, shared_variables):
-# def parse_shared_instructions(content, LOAD, parents_object):
-    if 'LOAD' in content:
+    binary_operations = {'BINARY_POWER', 'BINARY_MULTIPLY', 'BINARY_MATRIX_MULTIPLY', 'BINARY_FLOOR_DIVIDE', 
+                     'BINARY_TRUE_DIVIDE', 'BINARY_MODULO', 'BINARY_ADD', 'BINARY_SUBTRACT', 'BINARY_SUBSCR', 
+                     'BINARY_LSHIFT', 'BINARY_RSHIFT', 'BINARY_AND', 'BINARY_XOR', 'BINARY_OR'}
+
+    instruction = content.split()[0]
+    if 'LOAD' in instruction:
         pobject = bcode_instructions.load(content, shared_variables)
         if pobject != None:
             shared_variables.parents_object.insert(0, pobject)
+    elif 'STORE_NAME' in instruction:    
+        # print(content)
+        bcode_instructions.pop(shared_variables)
+    # 객체의 특정 인덱스나 키에 값을 할당 ex) sys.modules['importlib._bootstrap'] = _bootstrap
+    elif 'STORE_SUBSCR' in instruction:
+        [bcode_instructions.pop(shared_variables) for _ in range(3)]
 
     # stack controll
-    elif 'POP_TOP' in content:
+    elif 'POP_TOP' in instruction:
         bcode_instructions.pop(shared_variables)
-    elif 'DUP_TOP' in content:
+    elif 'DUP_TOP' in instruction:
         bcode_instructions.dup(shared_variables)
+    elif 'RETURN_VALUE' in instruction:
+        bcode_instructions.pop(shared_variables)
 
     # try-except
-    elif 'SETUP_FINALLY' in content:
+    elif 'SETUP_FINALLY' in instruction:
         bcode_instructions.setup_finally(shared_variables)
-    elif 'END_FINALLY' in content:
-        bcode_instructions.pop(shared_variables)
-    elif 'POP_BLOCK' in content:
-        bcode_instructions.pop(shared_variables)
-    elif 'POP_EXCEPT' in content:
-        bcode_instructions.pop(shared_variables)
+    # elif 'END_FINALLY' in instruction:
+    #     bcode_instructions.pop(shared_variables)
+    # 예외를 발생시키는 명령어
+    elif 'RAISE_VARARGS' in instruction:
+        bcode_instructions.raise_varargs(content, shared_variables)
+    elif 'RERAISE' in instruction:
+        bcode_instructions.reraise(shared_variables)
+    # elif 'POP_BLOCK' in content:
+    #     bcode_instructions.pop(shared_variables)
+    # 3.8 이상 버전에서 예외 정보는 main_stack 대신 exc_stack에서 관리함. 따라서 해당 명령은 무시함.
+    # elif 'POP_EXCEPT' in content:
+        # bcode_instructions.pop(shared_variables)
 
     # 스택에 있는 N 개의 값을 합쳐 새로운 문자열을 만듦
-    elif 'BUILD' in content:
+    elif 'BUILD' in instruction:
+        # print(content)
         bcode_instructions.build(content, shared_variables)
     # 스택의 최상단에서 N번째 리스트를 확장
-    elif 'LIST_EXTEND' in content:
+    elif 'LIST_EXTEND' in instruction:
         bcode_instructions.list_extend(content, shared_variables)
     # 두 값을 pop해 비교 후 true or flase를 푸시
-    elif 'COMPARE_OP' in content:
+    elif 'COMPARE_OP' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     
     # -=
-    elif 'INPLACE_SUBTRACT' in content:
+    elif 'INPLACE_SUBTRACT' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # +=
-    elif 'INPLACE_ADD' in content:
+    elif 'INPLACE_ADD' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # *=
-    elif 'INPLACE_MULTIPLY' in content:
+    elif 'INPLACE_MULTIPLY' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # /=
-    elif 'INPLACE_TRUE_DIVIDE' in content:
+    elif 'INPLACE_TRUE_DIVIDE' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # %=    
-    elif 'INPLACE_MODULO' in content:
+    elif 'INPLACE_MODULO' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # //=
-    elif 'INPLACE_FLOOR_DIVIDE' in content:
+    elif 'INPLACE_FLOOR_DIVIDE' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     # **=
-    elif 'INPLACE_POWER' in content:
+    elif 'INPLACE_POWER' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
 
-
+    elif instruction in binary_operations:
+        bcode_instructions.pop2_push1(shared_variables)
 def parse_def(byte_code, addr_map, obj_map):
     called_objs = set()
 
@@ -251,7 +277,7 @@ def parse_def(byte_code, addr_map, obj_map):
             pass
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
-            bcode_instructions.make_function(i - 2, shared_variables)
+            bcode_instructions.make_function(i - 2, content, shared_variables)
         elif 'STORE_ATTR' in content:
             # 객체의 속성에 할당되는 경우 이름 중복을 구분하기 위해 상위 객체정보를 함께 저장
             obj_addr = byte_code['__addr']
@@ -260,20 +286,30 @@ def parse_def(byte_code, addr_map, obj_map):
                 parents_obj = list(addr_map[obj_addr].keys())[0]
                 result = bcode_instructions.store_attr(i - 2, shared_variables)
                 if result != None:
-                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1]                
+                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1]    
             else:
                 # FIXME:
                 # 상위 객체 정보가 없는 경우
                 # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
                 pass
+            bcode_instructions.pop(shared_variables)
+            bcode_instructions.pop(shared_variables)
         elif 'CALL_FUNCTION' in content:
-            func = bcode_instructions.call_function(content, shared_variables)
+            if 'CALL_FUNCTION_KW' in content:
+                # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
+                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
+            else:
+                func_offset = int(content.split('CALL_FUNCTION')[1].strip())
+
+            func = bcode_instructions.call_function(func_offset, shared_variables)
             called_objs.add(func)
 
             next_content = byte_code[shared_variables.keys_list[i - 1]]
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = func
+            
+            bcode_instructions.call_function_stack(func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             method = bcode_instructions.call_method(content, shared_variables)
             called_objs.add(method)
@@ -326,7 +362,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             if module == None:
                 continue
             called_objs[alias] = {'__origin_name':module, '__called':set()}
-        if 'IMPORT_FROM' in content:
+        elif 'IMPORT_FROM' in content:
             if shared_variables.from_list:
                 shared_variables.from_list.pop(0)
                 module, alias = bcode_instructions.import_from(i, shared_variables)
@@ -344,23 +380,30 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 called_objs[alias]['__func_alias'] = {}
 
             called_objs[alias]['__func_alias'][from_alias] = from_func
-
+        elif 'IMPORT_STAR' in content:
+            bcode_instructions.pop(shared_variables)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
-            bcode_instructions.make_function(i, shared_variables)
+            bcode_instructions.make_function(i, content, shared_variables)
         elif 'STORE_ATTR' in content:
             result = bcode_instructions.store_attr(i, shared_variables)
             if result != None:
                 obj_map[result] = shared_variables.LOAD[-1]
+
+            bcode_instructions.pop(shared_variables)
+            bcode_instructions.pop(shared_variables)                
         elif 'CALL_FUNCTION' in content:
             if 'CALL_FUNCTION_KW' in content:
-                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip())
+                # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
+                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
             else:
-                func_offset = int(content.split('CALL_FUNCTION')[1].strip())     
+                func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
-            func = bcode_instructions.call_function(content, shared_variables)
+            func = bcode_instructions.call_function(func_offset, shared_variables)
+
             # __build_class__
             if func == None:
+                bcode_instructions.call_function_stack(func_offset, shared_variables)
                 continue
             category = func_classification(func, called_objs, obj_sets, obj_map)
 
@@ -374,8 +417,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = func
 
+            bcode_instructions.call_function_stack(func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             cap_stack = shared_variables.LOAD.copy()
+            # FIXME: 여기서 스택을 조작해서 아래 코드에 문제가 생길듯.
             method = bcode_instructions.call_method(content, shared_variables)
             category = func_classification(method, called_objs, obj_sets, obj_map)
 
@@ -395,5 +440,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-    
+        
+        print(offset, shared_variables.LOAD)
+    input()
     return called_objs

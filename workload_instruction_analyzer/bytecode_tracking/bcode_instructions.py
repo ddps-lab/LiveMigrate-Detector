@@ -10,43 +10,52 @@ def import_name(idx, shared_variables):
     
     line = byte_code[keys_list[idx]]
 
-    if 'IMPORT_NAME' in line:
-        try:
-            module = pattern.search(line).group(1)
-        except AttributeError:
-            prev_line = byte_code[keys_list[idx - 1]]
+    try:
+        module = pattern.search(line).group(1)
 
-            # 상대경로에서 가져오는 모듈 추출
-            shared_variables.from_list.clear()
-            shared_variables.from_list.extend(re.findall(r"\'([^\']+)\'", prev_line))
-
-            return None, None
-
-        # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
-        next_line = byte_code[keys_list[idx + 1]]
-        if 'STORE_NAME' in next_line:
-            alias = (pattern.search(next_line).group(1))
-
-            if '.' in module:
-                return module, module
-
-            return module, alias
-
+        # 스택에서 임포트 레벨과 fromlist를 팝
+        shared_variables.LOAD.pop(0)
+        shared_variables.LOAD.pop(0)
+        shared_variables.LOAD.insert(0, module)
+    except AttributeError:
         prev_line = byte_code[keys_list[idx - 1]]
-        if 'LOAD_CONST' in prev_line:
-            args = pattern.search(prev_line).group(1)
-            if args == 'None':
-                i = 1
-                while True:
-                    next_line = byte_code[keys_list[idx + i]]
-                    if 'STORE_NAME' in next_line:
-                        alias = (pattern.search(next_line).group(1))
-                        shared_variables.from_pass = module.count('.')
-                        return module, alias
-                    i += 1
 
-        # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
-        return module, module
+        # 상대경로에서 가져오는 모듈 추출
+        module = re.findall(r"\'([^\']+)\'", prev_line)
+        shared_variables.from_list.clear()
+        shared_variables.from_list.extend(module)
+
+        shared_variables.LOAD.pop(0)
+        shared_variables.LOAD.pop(0)
+        shared_variables.LOAD.insert(0, module)        
+
+        return None, None
+
+    # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
+    next_line = byte_code[keys_list[idx + 1]]
+    if 'STORE_NAME' in next_line:
+        alias = (pattern.search(next_line).group(1))
+
+        if '.' in module:
+            return module, module
+
+        return module, alias
+
+    prev_line = byte_code[keys_list[idx - 1]]
+    if 'LOAD_CONST' in prev_line:
+        args = pattern.search(prev_line).group(1)
+        if args == 'None':
+            i = 1
+            while True:
+                next_line = byte_code[keys_list[idx + i]]
+                if 'STORE_NAME' in next_line:
+                    alias = (pattern.search(next_line).group(1))
+                    shared_variables.from_pass = module.count('.')
+                    return module, alias
+                i += 1
+
+    # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
+    return module, module
 
 def import_from(idx, shared_variables):
     byte_code = shared_variables.byte_code
@@ -54,6 +63,7 @@ def import_from(idx, shared_variables):
     line = byte_code[keys_list[idx]]
         
     func = (pattern.search(line).group(1))
+    shared_variables.LOAD.insert(0, func)
 
     # 다음 라인을 확인해 import된 모듈이 어떤 이름으로 사용되는지 파악
     next_line = byte_code[keys_list[idx + 1]]
@@ -70,6 +80,19 @@ def import_from(idx, shared_variables):
         return module, None    
     
     return func, None
+
+def raise_varargs(content, shared_variables):
+    LOAD = shared_variables.LOAD
+    operation_option = int(content.split('RAISE_VARARGS')[1].strip())
+
+    for _ in range(operation_option):
+        LOAD.pop(0)
+
+def reraise(shared_variables):
+    LOAD = shared_variables.LOAD
+
+    if LOAD and LOAD[0] == 'tryblock':
+        LOAD.pop(0)
 
 def load_build_class(shared_variables):
     shared_variables.LOAD.insert(0, '__build_class__')
@@ -106,15 +129,39 @@ def load(content, shared_variables):
     else:
         LOAD.insert(0, pattern.search(content).group(1))
 
-def make_function(idx, shared_variables):
+def make_function(idx, content, shared_variables):
+    def pop(options, LOAD):
+        # 시작 팝 횟수: 코드 객체 + 함수 이름 = 2
+        pop_count = 2
+
+        # 옵션 별 비트 마스크
+        # 기본값(defaults): 0x01, 클로저(closure): 0x02, 어노테이션(annotations): 0x04,
+        # 키워드 전용 인자의 기본값: 0x08, 정규 인자명(qualname): 0x10
+        # 각 옵션이 설정되어 있으면, pop_count에 1을 더합니다.
+
+        if options & 0x01:  # 기본값
+            pop_count += 1
+        if options & 0x02:  # 클로저
+            pop_count += 1
+        if options & 0x04:  # 어노테이션
+            pop_count += 1
+        if options & 0x08:  # 키워드 전용 인자의 기본값
+            pop_count += 1
+        if options & 0x10:  # 정규 인자명
+            pop_count += 1
+
+        value = 'function object for ' + LOAD.pop(0)
+        for _ in range(pop_count - 1):
+            LOAD.pop(0)
+        LOAD.insert(0, value)
+    
     byte_code = shared_variables.byte_code
     keys_list = shared_variables.keys_list
     LOAD = shared_variables.LOAD
     addr_map = shared_variables.addr_map
-
-    value = 'function object for ' + LOAD.pop(0)
-    LOAD.pop(0)
-    LOAD.insert(0, value)
+    
+    operation_option = int(content.split('MAKE_FUNCTION')[1].strip().split()[0])
+    pop(operation_option, LOAD)
 
     offset = 0
     prev_line = byte_code[keys_list[idx - 1]]
@@ -140,7 +187,7 @@ def build(content, shared_variables):
     if 'BUILD_STRING' in content:
         args_count = int(content.split('BUILD_STRING')[1].strip())
         merge_str = ''
-        for i in range(args_count):
+        for _ in range(args_count):
             merge_str += LOAD.pop(0)
         LOAD.insert(0, merge_str)
     elif 'BUILD_LIST' in content:
@@ -151,7 +198,25 @@ def build(content, shared_variables):
         else:    
             for _ in range(args_count):
                 merge_list += LOAD.pop(0)
-            LOAD.insert(0, merge_list)    
+            LOAD.insert(0, '[' + merge_list + ']')
+    elif 'BUILD_MAP' in content:
+        args_count = int(content.split('BUILD_MAP')[1].strip())
+        merge_list = ''
+        if args_count == 0:
+            LOAD.insert(0, '\{\}')
+        else:    
+            for _ in range(args_count * 2):
+                merge_list += LOAD.pop(0)
+            LOAD.insert(0, '{' + merge_list + '}')
+    elif 'BUILD_TUPLE' in content:
+        args_count = int(content.split('BUILD_TUPLE')[1].strip())
+        merge_list = ''
+        if args_count == 0:
+            LOAD.insert(0, '()')
+        else:    
+            for _ in range(args_count):
+                merge_list += LOAD.pop(0)
+            LOAD.insert(0, '(' + merge_list + ')')        
 
 def store_attr(idx, shared_variables):
     byte_code = shared_variables.byte_code
@@ -179,17 +244,11 @@ def store_attr(idx, shared_variables):
         return result
     return None
 
-def call_function(content, shared_variables):
+def call_function(func_offset, shared_variables):
     LOAD = shared_variables.LOAD
     parents_object = shared_variables.parents_object
     called_func = None
 
-    if 'CALL_FUNCTION_KW' in content:
-        # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
-        func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
-    else:
-        func_offset = int(content.split('CALL_FUNCTION')[1].strip())
-    
     if LOAD[func_offset] == '__build_class__':
         pass
     else:
@@ -200,6 +259,12 @@ def call_function(content, shared_variables):
         else:
             called_func = parents_object.pop(0) + '.' + LOAD[func_offset]
     
+    return called_func
+
+def call_function_stack(func_offset, shared_variables):
+    LOAD = shared_variables.LOAD
+    parents_object = shared_variables.parents_object
+
     call_result = ''
     # 호출되는 함수와 인자들을 pop
     for _ in range(func_offset + 1):
@@ -209,8 +274,6 @@ def call_function(content, shared_variables):
     # 객체로부터 호출되는 경우 해당 객체도 pop
     if len(parents_object) != 0:
         LOAD.pop(0)
-
-    return called_func
 
 def call_method(content, shared_variables):
     LOAD = shared_variables.LOAD
