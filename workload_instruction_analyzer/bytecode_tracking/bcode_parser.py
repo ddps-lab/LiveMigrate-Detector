@@ -219,7 +219,13 @@ def parse_shared_instructions(content, shared_variables):
     # 두 값을 pop해 비교 후 true or flase를 푸시
     elif 'COMPARE_OP' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
-    
+    elif 'STORE_SUBSCR' in instruction:
+        bcode_instructions.pop(shared_variables)
+        bcode_instructions.pop(shared_variables)
+        bcode_instructions.pop(shared_variables)
+    elif 'DELETE_SUBSCR' in instruction:
+        bcode_instructions.pop(shared_variables)
+        bcode_instructions.pop(shared_variables)
     elif instruction in inplace_operations:
         bcode_instructions.pop2_push1(shared_variables)
     elif instruction in binary_operations:
