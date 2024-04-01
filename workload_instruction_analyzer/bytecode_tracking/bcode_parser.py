@@ -167,6 +167,11 @@ def parse_shared_instructions(content, shared_variables):
     binary_operations = {'BINARY_POWER', 'BINARY_MULTIPLY', 'BINARY_MATRIX_MULTIPLY', 'BINARY_FLOOR_DIVIDE', 
                      'BINARY_TRUE_DIVIDE', 'BINARY_MODULO', 'BINARY_ADD', 'BINARY_SUBTRACT', 'BINARY_SUBSCR', 
                      'BINARY_LSHIFT', 'BINARY_RSHIFT', 'BINARY_AND', 'BINARY_XOR', 'BINARY_OR'}
+    
+    inplace_operations = {'INPLACE_ADD', 'INPLACE_SUBTRACT', 'INPLACE_MULTIPLY',
+                        'INPLACE_DIVIDE', 'INPLACE_FLOOR_DIVIDE', 'INPLACE_TRUE_DIVIDE',
+                        'INPLACE_MODULO', 'INPLACE_POWER', 'INPLACE_LSHIFT',
+                        'INPLACE_RSHIFT', 'INPLACE_AND', 'INPLACE_XOR', 'INPLACE_OR'}
 
     instruction = content.split()[0]
     if 'LOAD' in instruction:
@@ -215,28 +220,8 @@ def parse_shared_instructions(content, shared_variables):
     elif 'COMPARE_OP' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
     
-    # -=
-    elif 'INPLACE_SUBTRACT' in instruction:
+    elif instruction in inplace_operations:
         bcode_instructions.pop2_push1(shared_variables)
-    # +=
-    elif 'INPLACE_ADD' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-    # *=
-    elif 'INPLACE_MULTIPLY' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-    # /=
-    elif 'INPLACE_TRUE_DIVIDE' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-    # %=    
-    elif 'INPLACE_MODULO' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-    # //=
-    elif 'INPLACE_FLOOR_DIVIDE' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-    # **=
-    elif 'INPLACE_POWER' in instruction:
-        bcode_instructions.pop2_push1(shared_variables)
-
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
 def parse_def(byte_code, addr_map, obj_map):
