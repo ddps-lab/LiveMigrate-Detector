@@ -217,7 +217,7 @@ def parse_shared_instructions(content, shared_variables):
     elif 'LIST_EXTEND' in instruction:
         bcode_instructions.list_extend(content, shared_variables)
     # 두 값을 pop해 비교 후 true or flase를 푸시
-    elif 'COMPARE_OP' in instruction:
+    elif 'COMPARE_OP' in instruction or 'IS_OP' in instruction:
         bcode_instructions.pop2_push1(shared_variables)
 
     elif instruction in inplace_operations:
@@ -232,6 +232,7 @@ def parse_shared_instructions(content, shared_variables):
 
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
+
 def parse_def(byte_code, addr_map, obj_map):
     called_objs = set()
 
@@ -298,6 +299,7 @@ def parse_def(byte_code, addr_map, obj_map):
             called_objs.add(func)
 
             next_content = byte_code[shared_variables.keys_list[i - 1]]
+
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = func
