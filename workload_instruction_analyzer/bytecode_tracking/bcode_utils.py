@@ -24,10 +24,14 @@ def preprocessing_bytecode(byte_code):
             return None, None, line_number
 
         # code line number 제외
+        # 141         176 LOAD_CONST               3 (1)
         if parts[1].isdigit():
-            line_number = parts[0]
+            # >>  142 LOAD_CONST               2 (None)
+            if parts[0] != '>>':
+                line_number = parts[0]
             offset = parts[1]
             content = parts[2:]
+        # 126     >>  150 RERAISE                  0
         elif parts[1] == '>>':
             line_number = parts[0]
             offset = parts[2]
@@ -36,7 +40,7 @@ def preprocessing_bytecode(byte_code):
             offset = parts[0]
             content = parts[1:]
 
-        return int(offset), ' '.join(content), line_number
+        return int(offset), ' '.join(content), int(line_number)
     
     '''
     바이트코드를 main과 def 파트로 구분해 각각 반환.
@@ -62,16 +66,20 @@ def preprocessing_bytecode(byte_code):
 
     for line in codes:
         offset, content, line_number = parse_bytecode_line(line)
+
+        if line_number != 0:
+            bcode_block_number = line_number
+
         if not isinstance(offset, int):
             continue
 
         # 유저가 작성하지 않은 코드를 트래킹에서 제외
         # With, Try 등의 클린업 코드
         if 'SETUP_WITH' in content:
-            cleanup.add(line_number)
-            line_number += 1
+            cleanup.add(bcode_block_number)
+            bcode_block_number += 1
         
-        if line_number in cleanup:
+        if bcode_block_number in cleanup:
             continue
 
         dis_bytecode[offset] = content
@@ -83,18 +91,20 @@ def preprocessing_bytecode(byte_code):
         dis_object['__name'] = first_line[0]
         dis_object['__addr'] = first_line[2].replace(',', '')
         obj.pop(0)
+
         for line in obj:
             offset, content, line_number = parse_bytecode_line(line)
+
             if not isinstance(offset, int):
                 continue
 
             if 'SETUP_WITH' in content:
-                cleanup.add(line_number)
-                line_number += 1
+                cleanup.add(bcode_block_number)
+                bcode_block_number += 1                
             
             if line_number in cleanup:
                 continue
-
+            
             dis_object[offset] = content
 
         dis_objects.append(dis_object)
