@@ -18,28 +18,33 @@ def preprocessing_bytecode(byte_code):
     # 라인 번호를 추출하기 위한 함수
     def parse_bytecode_line(bytecode_line):
         parts = bytecode_line.strip().split()
+        line_number = 0
 
         if not parts:
-            return None, None
+            return None, None, line_number
 
         # code line number 제외
         if parts[1].isdigit():
+            line_number = parts[0]
             offset = parts[1]
             content = parts[2:]
         elif parts[1] == '>>':
+            line_number = parts[0]
             offset = parts[2]
             content = parts[3:]
         else:
             offset = parts[0]
             content = parts[1:]
 
-        return int(offset), ' '.join(content)
+        return int(offset), ' '.join(content), line_number
     
     '''
     바이트코드를 main과 def 파트로 구분해 각각 반환.
     '''
     dis_bytecode = {}
     dis_objects = []
+
+    cleanup = set() # 바이트코드 상에 추가되는 클린업 코드(유저가 작성하지 않음)
 
     # StringIO 객체를 생성
     f = io.StringIO()
@@ -56,8 +61,17 @@ def preprocessing_bytecode(byte_code):
         objects[i] = obj.strip().split('\n')
 
     for line in codes:
-        offset, content = parse_bytecode_line(line)
+        offset, content, line_number = parse_bytecode_line(line)
         if not isinstance(offset, int):
+            continue
+
+        # 유저가 작성하지 않은 코드를 트래킹에서 제외
+        # With, Try 등의 클린업 코드
+        if 'SETUP_WITH' in content:
+            cleanup.add(line_number)
+            line_number += 1
+        
+        if line_number in cleanup:
             continue
 
         dis_bytecode[offset] = content
@@ -70,8 +84,15 @@ def preprocessing_bytecode(byte_code):
         dis_object['__addr'] = first_line[2].replace(',', '')
         obj.pop(0)
         for line in obj:
-            offset, content = parse_bytecode_line(line)
+            offset, content, line_number = parse_bytecode_line(line)
             if not isinstance(offset, int):
+                continue
+
+            if 'SETUP_WITH' in content:
+                cleanup.add(line_number)
+                line_number += 1
+            
+            if line_number in cleanup:
                 continue
 
             dis_object[offset] = content
