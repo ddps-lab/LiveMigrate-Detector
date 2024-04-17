@@ -48,6 +48,49 @@ def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called':set(), '__origin_name':module}    
 
+def parse_import_instructions(content, called_objs, shared_variables, i):
+    if 'IMPORT_NAME' in content:
+        module, shared_variables.alias = bcode_instructions.import_name(i, shared_variables)
+        
+        # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
+        if module == None:
+            return True
+        
+        called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set()}
+    elif 'IMPORT_FROM' in content:
+        # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
+        if shared_variables.from_list:
+            shared_variables.from_list.pop(0)
+            module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
+            called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set()}
+            return True
+        
+        '''
+        72 IMPORT_NAME             13 (collections.abc)
+        74 IMPORT_FROM             14 (abc)
+        76 STORE_NAME              15 (asdgsadg)
+        위와 같이 IMPORT_FROM으로 로드되는 모듈이 단순히 alias 처리를 위함이라면 스택 상태만 처리
+        '''
+        if shared_variables.from_pass:
+            _, _ = bcode_instructions.import_from(i, shared_variables)
+            shared_variables.from_pass -= 1
+            return True
+
+        # IMPORT_FROM 객체를 로드하는 경우(본래 역할) 처리
+        from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
+
+        if '__func_alias' not in called_objs[shared_variables.alias]:
+            called_objs[shared_variables.alias]['__func_alias'] = {}
+
+        called_objs[shared_variables.alias]['__func_alias'][from_alias] = from_func
+
+        return True
+    elif 'IMPORT_STAR' in content:
+        bcode_instructions.pop(shared_variables)
+        return True
+
+    return False
+
 def parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
     '''
     [분기 처리 기본 동작]
@@ -252,6 +295,7 @@ def parse_def(byte_code, addr_map, obj_map):
 
             self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+            self.alias = 0 # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
 
     # FIXME: 검증용 스택, 추후 제거
     verification = []
@@ -336,6 +380,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
 
             self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+            self.alias = 0 # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
 
     # FIXME: 검증용 스택, 추후 제거
     verification = []
@@ -349,34 +394,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
 
         if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
             continue
+        
+        if parse_import_instructions(content, called_objs, shared_variables, i):
+            continue
 
-        if 'IMPORT_NAME' in content:
-            module, alias = bcode_instructions.import_name(i, shared_variables)
-            
-            # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
-            if module == None:
-                continue
-            called_objs[alias] = {'__origin_name':module, '__called':set()}
-        elif 'IMPORT_FROM' in content:
-            if shared_variables.from_list:
-                shared_variables.from_list.pop(0)
-                module, alias = bcode_instructions.import_from(i, shared_variables)
-                called_objs[alias] = {'__origin_name':module, '__called':set()}
-                continue
-            
-            if shared_variables.from_pass:
-                _, _ = bcode_instructions.import_from(i, shared_variables)
-                shared_variables.from_pass -= 1
-                continue
-
-            from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
-
-            if '__func_alias' not in called_objs[alias]:
-                called_objs[alias]['__func_alias'] = {}
-
-            called_objs[alias]['__func_alias'][from_alias] = from_func
-        elif 'IMPORT_STAR' in content:
-            bcode_instructions.pop(shared_variables)
         # 스택의 상위 두 항목을 사용하여 함수 객체를 만듦.
         elif 'MAKE_FUNCTION' in content:
             bcode_instructions.make_function(i, content, shared_variables)
