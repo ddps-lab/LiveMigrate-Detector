@@ -266,12 +266,10 @@ def parse_shared_instructions(content, shared_variables):
     elif instruction in inplace_operations:
         bcode_instructions.pop2_push1(shared_variables)
     elif 'STORE_SUBSCR' in instruction:
-        bcode_instructions.pop(shared_variables)
-        bcode_instructions.pop(shared_variables)
-        bcode_instructions.pop(shared_variables)
+        [bcode_instructions.pop(shared_variables) for _ in range(3)]
     elif 'DELETE_SUBSCR' in instruction:
-        bcode_instructions.pop(shared_variables)
-        bcode_instructions.pop(shared_variables)
+        [bcode_instructions.pop(shared_variables) for _ in range(2)]
+        
 
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
@@ -309,6 +307,9 @@ def parse_def(byte_code, addr_map, obj_map):
 
         if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
             continue
+
+        # if parse_import_instructions(content, called_objs, shared_variables, i):
+        #     continue
 
         if 'IMPORT_NAME' in content:
             # ctypes, libimport만 확인
@@ -358,7 +359,7 @@ def parse_def(byte_code, addr_map, obj_map):
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-
+        print(offset, shared_variables.LOAD)
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map):
