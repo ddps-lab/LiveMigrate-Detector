@@ -216,7 +216,17 @@ def build(content, shared_variables):
         else:    
             for _ in range(args_count):
                 merge_list += LOAD.pop(0)
-            LOAD.insert(0, '(' + merge_list + ')')        
+            LOAD.insert(0, '(' + merge_list + ')')
+    elif 'BUILD_CONST_KEY_MAP' in content:
+        args_count = int(content.split('BUILD_CONST_KEY_MAP')[1].strip())
+        merge_list = ''
+        if args_count == 0:
+            LOAD.insert(0, '()')
+        else:
+            # 키 튜플을 포함해 pop
+            for _ in range(args_count + 1):
+                merge_list += LOAD.pop(0)
+            LOAD.insert(0, 'KEY_MAP')
 
 def store_attr(idx, shared_variables):
     byte_code = shared_variables.byte_code

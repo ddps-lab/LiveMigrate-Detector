@@ -338,6 +338,9 @@ def parse_def(byte_code, addr_map, obj_map):
             if 'CALL_FUNCTION_KW' in content:
                 # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
                 func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
+            elif 'CALL_FUNCTION_EX' in content:
+                # args 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
+                func_offset = int(content.split('CALL_FUNCTION_EX')[1].strip()) + 1
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
@@ -421,6 +424,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             if 'CALL_FUNCTION_KW' in content:
                 # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
                 func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
+            elif 'CALL_FUNCTION_EX' in content:
+                # args 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
+                func_offset = int(content.split('CALL_FUNCTION_EX')[1].strip()) + 1
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
