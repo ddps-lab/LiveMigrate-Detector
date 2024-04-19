@@ -221,8 +221,7 @@ def parse_shared_instructions(content, shared_variables):
         pobject = bcode_instructions.load(content, shared_variables)
         if pobject != None:
             shared_variables.parents_object.insert(0, pobject)
-    elif 'STORE_NAME' in instruction:    
-        # print(content)
+    elif 'STORE_NAME' in instruction or 'STORE_FAST' in instruction:
         bcode_instructions.pop(shared_variables)
     # 객체의 특정 인덱스나 키에 값을 할당 ex) sys.modules['importlib._bootstrap'] = _bootstrap
     elif 'STORE_SUBSCR' in instruction:
@@ -237,8 +236,9 @@ def parse_shared_instructions(content, shared_variables):
         bcode_instructions.pop(shared_variables)
 
     # try-except
-    # elif 'SETUP_FINALLY' in instruction:
-        # bcode_instructions.setup_finally(shared_variables)
+    # 예외가 발생하면 자동으로 스택에 푸쉬됨. 트래킹에서는 예외가 발생하던 안하던 모두 트래킹하기 때문에 이미 tryblock이라는 더미값을 스택에 푸시함
+    elif 'SETUP_FINALLY' in instruction:
+        bcode_instructions.setup_finally(shared_variables)
     # elif 'END_FINALLY' in instruction:
     #     bcode_instructions.pop(shared_variables)
     # 예외를 발생시키는 명령어
