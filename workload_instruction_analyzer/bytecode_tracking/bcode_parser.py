@@ -237,8 +237,8 @@ def parse_shared_instructions(content, shared_variables):
         bcode_instructions.pop(shared_variables)
 
     # try-except
-    elif 'SETUP_FINALLY' in instruction:
-        bcode_instructions.setup_finally(shared_variables)
+    # elif 'SETUP_FINALLY' in instruction:
+        # bcode_instructions.setup_finally(shared_variables)
     # elif 'END_FINALLY' in instruction:
     #     bcode_instructions.pop(shared_variables)
     # 예외를 발생시키는 명령어
@@ -276,6 +276,7 @@ def parse_shared_instructions(content, shared_variables):
 
 def parse_def(byte_code, addr_map, obj_map):
     called_objs = set()
+    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
     class BRANCH_SHARED_VARIABLES:
         def __init__(self):
@@ -341,6 +342,12 @@ def parse_def(byte_code, addr_map, obj_map):
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
             func = bcode_instructions.call_function(func_offset, shared_variables)
+
+            # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
+            if func in comprehensions:
+                bcode_instructions.call_function_stack(func_offset, shared_variables)
+                continue
+
             called_objs.add(func)
 
             next_content = byte_code[shared_variables.keys_list[i - 1]]
@@ -364,6 +371,7 @@ def parse_def(byte_code, addr_map, obj_map):
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map):
     called_objs = {'__builtin':set(), '__user_def':set()}
+    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
     class BRANCH_SHARED_VARIABLES:
         def __init__(self):
@@ -417,6 +425,11 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
             func = bcode_instructions.call_function(func_offset, shared_variables)
+            
+            # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
+            if func in comprehensions:
+                bcode_instructions.call_function_stack(func_offset, shared_variables)
+                continue
 
             # __build_class__
             if func == None:

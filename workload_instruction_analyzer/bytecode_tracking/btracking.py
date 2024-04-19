@@ -112,6 +112,7 @@ def module_tracking(pycaches, base_map):
         called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, module)
 
         module = check_module_origin_name(module)
+        # 모듈에서 트래킹할 함수
         called_func = base_map[module]['__called']
         
         print(f'\033[33mcalled func : {called_func}\033[0m')
@@ -167,7 +168,8 @@ if __name__ == '__main__':
 
     # script_path += '/branch.py'
     # script_path += '/import_test.py'
-    script_path += '/main.py'
+    script_path += '/comprehension.py'
+    # script_path += '/main.py'
     # script_path = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/test.py'
     with open(script_path, 'r') as f:
         source_code = f.read()
