@@ -76,15 +76,15 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
 def create_call_map(byte_code, module):
     print(f'\033[33m======================================== {module} ========================================\033[0m')
     def_map, obj_map, addr_map = {}, {}, {}
-    codes, definitions = bcode_utils.preprocessing_bytecode(byte_code)
+    codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(byte_code)
 
     # 현재 파싱중인 스크립트에 정의된 객체(함수, 클래스, 메서드)
     obj_sets, user_def_list = bcode_utils.scan_definition(definitions)
     for i in range(len(definitions)):
         key, value = next(iter(user_def_list[i].items()))
-        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map)
+        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i])
 
-    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map)
+    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
     print('================ def map ================')
     pprint(def_map)
@@ -168,8 +168,8 @@ if __name__ == '__main__':
 
     # script_path += '/branch.py'
     # script_path += '/import_test.py'
-    script_path += '/comprehension.py'
-    # script_path += '/main.py'
+    # script_path += '/comprehension.py'
+    script_path += '/main.py'
     # script_path = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/test.py'
     with open(script_path, 'r') as f:
         source_code = f.read()

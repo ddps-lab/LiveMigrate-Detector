@@ -231,14 +231,17 @@ def parse_shared_instructions(content, shared_variables):
     elif 'POP_TOP' in instruction:
         bcode_instructions.pop(shared_variables)
     elif 'DUP_TOP' in instruction:
-        bcode_instructions.dup(shared_variables)
+        try:
+            bcode_instructions.dup(shared_variables)
+        except:
+            return 'except'
     elif 'RETURN_VALUE' in instruction:
         bcode_instructions.pop(shared_variables)
 
     # try-except
     # 예외가 발생하면 자동으로 스택에 푸쉬됨. 트래킹에서는 예외가 발생하던 안하던 모두 트래킹하기 때문에 이미 tryblock이라는 더미값을 스택에 푸시함
-    elif 'SETUP_FINALLY' in instruction:
-        bcode_instructions.setup_finally(shared_variables)
+    # elif 'SETUP_FINALLY' in instruction:
+        # bcode_instructions.setup_finally(shared_variables)
     # elif 'END_FINALLY' in instruction:
     #     bcode_instructions.pop(shared_variables)
     # 예외를 발생시키는 명령어
@@ -270,11 +273,10 @@ def parse_shared_instructions(content, shared_variables):
     elif 'DELETE_SUBSCR' in instruction:
         [bcode_instructions.pop(shared_variables) for _ in range(2)]
         
-
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
 
-def parse_def(byte_code, addr_map, obj_map):
+def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets):
     called_objs = set()
     comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
@@ -290,7 +292,10 @@ def parse_def(byte_code, addr_map, obj_map):
             self.keys_list = list(byte_code.keys())[2:]
             self.LOAD = []
             self.addr_map = addr_map
+            self.def_bcode_block_start_offsets = def_bcode_block_start_offsets
             self.parents_object = []
+
+            self.pass_offset = 0
 
             self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
@@ -307,6 +312,10 @@ def parse_def(byte_code, addr_map, obj_map):
             continue
 
         if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
+            continue
+
+        # 해석하지 않을 바이트코드 명령 (사용자 코드가 아닌 내부 처리 코드)
+        if offset < shared_variables.pass_offset:
             continue
 
         # if parse_import_instructions(content, called_objs, shared_variables, i):
@@ -368,11 +377,33 @@ def parse_def(byte_code, addr_map, obj_map):
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = method
         else:
-            parse_shared_instructions(content, shared_variables)
+            flag = parse_shared_instructions(content, shared_variables)
+
+            if flag == 'except':
+                # 예외를 처리하는 내부 코드는 DUP_TOP으로 시작함.
+                if not offset in shared_variables.def_bcode_block_start_offsets:
+                    raise IndexError
+
+                while(True):
+                    next_offset = shared_variables.keys_list[i - 1]
+                    next_line = byte_code[next_offset]
+
+                    if next_offset in shared_variables.def_bcode_block_start_offsets:
+                        break
+
+                    # JUMP_IF_NOT_EXC_MATCH는 예외처리에서만 사용되는 명령
+                    # 해당 명령이 있으면 내부 코드로 판단해 해당 블록을 건너뛰도록 설정
+                    if 'JUMP_IF_NOT_EXC_MATCH' in next_line:
+                        pass_idx = shared_variables.def_bcode_block_start_offsets.index(offset) + 1
+                        shared_variables.pass_offset = shared_variables.def_bcode_block_start_offsets[pass_idx]
+                        break
+                    
+                    i += 1
+            
         print(offset, shared_variables.LOAD)
     return called_objs
 
-def parse_main(byte_code, addr_map, obj_sets, obj_map):
+def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets):
     called_objs = {'__builtin':set(), '__user_def':set()}
     comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
@@ -388,7 +419,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
             self.keys_list = list(byte_code.keys())
             self.LOAD = []
             self.addr_map = addr_map
+            self.main_bcode_block_start_offsets = main_bcode_block_start_offsets
             self.parents_object = []
+
+            self.pass_offset = 0
 
             self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
@@ -402,6 +436,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
 
     for i, (offset, content) in enumerate(byte_code.items()):
         if offset == '__name' or offset == '__addr':
+            continue
+
+        if offset < shared_variables.pass_offset:
             continue
 
         if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
@@ -475,7 +512,29 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map):
                 result = (pattern.search(next_line).group(1))
                 obj_map[result] = method
         else:
-            parse_shared_instructions(content, shared_variables)
+            flag = parse_shared_instructions(content, shared_variables)
+
+            if flag == 'except':
+                # 예외를 처리하는 내부 코드는 DUP_TOP으로 시작함.
+                if not offset in shared_variables.main_bcode_block_start_offsets:
+                    raise IndexError
+
+                while(True):
+                    next_offset = shared_variables.keys_list[i - 1]
+                    next_line = byte_code[next_offset]
+
+                    if next_offset in shared_variables.main_bcode_block_start_offsets:
+                        break
+
+                    # JUMP_IF_NOT_EXC_MATCH는 예외처리에서만 사용되는 명령
+                    # 해당 명령이 있으면 내부 코드로 판단해 해당 블록을 건너뛰도록 설정
+                    if 'JUMP_IF_NOT_EXC_MATCH' in next_line:
+                        pass_idx = shared_variables.main_bcode_block_start_offsets.index(offset) + 1
+                        shared_variables.pass_offset = shared_variables.main_bcode_block_start_offsets[pass_idx]
+                        break
+                    
+                    i += 1
+
         
         print(offset, shared_variables.LOAD)
     input()

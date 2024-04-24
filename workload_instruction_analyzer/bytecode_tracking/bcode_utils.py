@@ -47,6 +47,7 @@ def preprocessing_bytecode(byte_code):
     '''
     dis_bytecode = {}
     dis_objects = []
+    list_def_bcode_block_start_offsets = []
 
     cleanup = set() # 바이트코드 상에 추가되는 클린업 코드(유저가 작성하지 않음)
 
@@ -64,11 +65,13 @@ def preprocessing_bytecode(byte_code):
     for i, obj in enumerate(objects):
         objects[i] = obj.strip().split('\n')
 
+    main_bcode_block_start_offsets = []
     for line in codes:
         offset, content, line_number = parse_bytecode_line(line)
 
         if line_number != 0:
             bcode_block_number = line_number
+            main_bcode_block_start_offsets.append(offset)
 
         if not isinstance(offset, int):
             continue
@@ -92,8 +95,13 @@ def preprocessing_bytecode(byte_code):
         dis_object['__addr'] = first_line[2].replace(',', '')
         obj.pop(0)
 
+        def_bcode_block_start_offsets = []
         for line in obj:
             offset, content, line_number = parse_bytecode_line(line)
+
+            if line_number != 0:
+                bcode_block_number = line_number
+                def_bcode_block_start_offsets.append(offset)
 
             if not isinstance(offset, int):
                 continue
@@ -108,8 +116,9 @@ def preprocessing_bytecode(byte_code):
             dis_object[offset] = content
 
         dis_objects.append(dis_object)
+        list_def_bcode_block_start_offsets.append(def_bcode_block_start_offsets)
 
-    return dis_bytecode, dis_objects
+    return dis_bytecode, dis_objects, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets
 
 def postprocessing_defmap(DEF_MAP, addr_map):
     '''
