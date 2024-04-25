@@ -178,13 +178,13 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
             f15()
     '''
     
-    if offset in branch_shared_variables.branch_targets:
-        shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
-        # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
+    # if offset in branch_shared_variables.branch_targets:
+    #     shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
+    #     # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
 
-        branch_shared_variables.stack_cap.pop(-1)
-        # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
-        return False
+    #     branch_shared_variables.stack_cap.pop(-1)
+    #     # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
+    #     return False
 
     # FIXME: JUMP_IF_NOT_EXC_MATCH - except 에서 지정한 예외가 아니면 점프(스택변화는 없음)
 
@@ -236,7 +236,10 @@ def parse_shared_instructions(content, shared_variables):
         except:
             return 'except'
     elif 'RETURN_VALUE' in instruction:
-        bcode_instructions.pop(shared_variables)
+        try:
+            bcode_instructions.pop(shared_variables)
+        except IndexError:
+            return
 
     # try-except
     # 예외가 발생하면 자동으로 스택에 푸쉬됨. 트래킹에서는 예외가 발생하던 안하던 모두 트래킹하기 때문에 이미 tryblock이라는 더미값을 스택에 푸시함
