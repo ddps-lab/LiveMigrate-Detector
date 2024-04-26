@@ -175,7 +175,27 @@ def merge_dictionaries(dictA, dictB):
                         dictA[key] = {}
                     dictA[key]['__called'] = value['__called'].copy()
 
+            try:
+                dictA[key]['__origin_name'] = (value['__origin_name'])
+            except:
+                pass
+
     return dictA
+
+def find_unique_keys_values(A, B):
+    """
+    B에만 존재하는 키와 값을 찾아 새 딕셔너리로 반환하며,
+    A와 B에 동일한 키가 있지만 값이 다른 경우도 포함한다.
+
+    :param A: 비교 대상이 되는 첫 번째 딕셔너리
+    :param B: 비교 대상이 되는 두 번째 딕셔너리
+    :return: B에만 존재하는 키와 값 또는 값이 다른 키와 값이 포함된 새 딕셔너리
+    """
+    unique_to_B = {key: value for key, value in B.items()
+                   if key not in A or A[key] != value}
+    del unique_to_B['__builtin']
+
+    return unique_to_B
 
 def dict_empty_check(input_dict):
     for key, value in input_dict.items():
