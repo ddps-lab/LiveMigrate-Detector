@@ -98,9 +98,13 @@ def create_call_map(byte_code, module):
     return called_map, obj_sets, def_map, obj_map
 
 def module_tracking(pycaches, base_map):
+    # 모듈의 origin name을 확인해 alias를 찾는 함수
     def check_module_origin_name(module):
         for key, value in base_map.items():
             if '__origin_name' in value and value['__origin_name'] == module:
+                return key
+            # 패키지가 아닌 내부 모듈로 파악된 경우 ex) numpy.core
+            elif '__from' in value and value['__from'] + '.' + value['__origin_name'] == module:
                 return key
 
     new_called_map = {'__builtin':set(), '__user_def':set()}
@@ -113,7 +117,7 @@ def module_tracking(pycaches, base_map):
         called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, module)
 
         module = check_module_origin_name(module)
-        # 모듈에서 트래킹할 함수
+        # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func = base_map[module]['__called']
         
         print(f'\033[33mcalled func : {called_func}\033[0m')
@@ -231,7 +235,7 @@ if __name__ == '__main__':
         
         pycaches = {}
         search_module_path(next_tracking, pycaches)
-        new_called_map = module_tracking(pycaches, next_tracking)
+        new_called_map = module_tracking(pycaches, new_called_map)
 
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
