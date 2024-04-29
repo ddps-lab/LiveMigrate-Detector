@@ -179,6 +179,10 @@ def merge_dictionaries(dictA, dictB):
                 dictA[key]['__origin_name'] = (value['__origin_name'])
             except:
                 pass
+            try:
+                dictA[key]['__from'] = (value['__from'])
+            except:
+                pass            
 
     return dictA
 
@@ -194,6 +198,7 @@ def find_unique_keys_values(A, B):
     unique_to_B = {key: value for key, value in B.items()
                    if key not in A or A[key] != value}
     del unique_to_B['__builtin']
+    del unique_to_B['__user_def']
 
     return unique_to_B
 

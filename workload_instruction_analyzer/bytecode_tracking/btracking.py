@@ -82,17 +82,18 @@ def create_call_map(byte_code, module):
     obj_sets, user_def_list = bcode_utils.scan_definition(definitions)
     for i in range(len(definitions)):
         key, value = next(iter(user_def_list[i].items()))
-        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i])
+        def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
 
-    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets)
-    bcode_utils.postprocessing_defmap(def_map, addr_map)
-    print('================ def map ================')
-    pprint(def_map)
-    print('================ called map ================')
+    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
     pprint(called_map)
-    print('================ obj map ================')
-    pprint(obj_map)
-    print('------------------------------------------------------------------------------------------------------------')
+    bcode_utils.postprocessing_defmap(def_map, addr_map)
+    # print('================ def map ================')
+    # pprint(def_map)
+    # print('================ called map ================')
+    # pprint(called_map)
+    # print('================ obj map ================')
+    # pprint(obj_map)
+    # print('------------------------------------------------------------------------------------------------------------')
 
     return called_map, obj_sets, def_map, obj_map
 
@@ -138,21 +139,49 @@ def module_tracking(pycaches, base_map):
         print(f'\033[35m==== new called map ====\033[0m')
         pprint(new_called_map)
 
-def search_module_path(called_map, pycaches):
-    modules = [module_info['__origin_name'] for _, module_info in called_map.items() if '__origin_name' in module_info]
+    return new_called_map
 
-    for module in modules:
+def search_module_path(called_map, pycaches):
+    modules = {
+        module_info['__origin_name']: module_info.get('__from', None)
+        for _, module_info in called_map.items()
+        if '__origin_name' in module_info
+    }
+
+    for __origin_name, __from in modules.items():
         try:
-            loaded_module = importlib.import_module(module)
-            pycaches[module] = loaded_module.__cached__
+            if is_builtin_module(__origin_name):
+                pycaches[__origin_name] = '__builtin'
+                continue
+            loaded_module = importlib.import_module(__origin_name)
+            module_path = loaded_module.__cached__
+            pycaches[__origin_name] = module_path
+
         except AttributeError:
-            if is_builtin_module(module):
-                pycaches[module] = '__builtin'
-            else:
-                pycaches[module] = '__not_pymodule'
+            # if is_builtin_module(module):
+            #     pycaches[module] = '__builtin'
+            # else:
+            #     pycaches[module] = '__not_pymodule'
+            pycaches[__origin_name] = '__not_pymodule'
         except ModuleNotFoundError:
-            # FIXME: C모듈이라 못찾는건지 경로때문에 못찾는건지?
-            pycaches[module] = '__not_pymodule'
+            try:
+                # __from이 None이면 단순 import된 모듈
+                # builtin 모듈이 아니면서 ModuleNotFoundError가 발생했다는건 C 모듈
+                if __from == None:
+                    pycaches[__origin_name] = '__not_pymodule'
+                    continue
+
+                module = __from + '.' + __origin_name
+                loaded_module = importlib.import_module(module)
+                module_path = loaded_module.__cached__
+                pycaches[module] = module_path
+            except ModuleNotFoundError:
+                pycaches[module] = '__not_pymodule'
+            except AttributeError:
+                if is_builtin_module(module):
+                    pycaches[module] = '__builtin'
+                else:
+                    pycaches[module] = '__not_pymodule'
     
     print(f'\033[31m==== pycaches ====\033[0m')
     pprint(pycaches)
@@ -184,5 +213,25 @@ if __name__ == '__main__':
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+    print(f'\033[31m==== main tracking ====\033[0m')
+    pprint(called_map)
     
-    module_tracking(pycaches, called_map)
+
+    new_called_map = module_tracking(pycaches, called_map)
+    # exit()
+    while(True):
+        next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
+        called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
+
+        if next_tracking:
+            print(f'\033[31m==== next tracking ====\033[0m')
+            pprint(next_tracking)
+        else:
+            break
+        
+        pycaches = {}
+        search_module_path(next_tracking, pycaches)
+        new_called_map = module_tracking(pycaches, next_tracking)
+
+    print(f'\033[31m==== end ====\033[0m')
+    pprint(called_map)

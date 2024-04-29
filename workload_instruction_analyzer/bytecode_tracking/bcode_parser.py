@@ -56,13 +56,16 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         if module == None:
             return True
         
-        called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set()}
+        # print(module, shared_variables.alias)
+        called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
         if shared_variables.from_list:
             shared_variables.from_list.pop(0)
             module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
-            called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set()}
+            
+            # FIXME: 어느 모듈에서 import하는지만 잘 추출해보자
+            called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
             return True
         
         '''
@@ -198,12 +201,12 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
         else:
             verification.append(max(verification) + 1)
         # print(f'push!\t\toffset:{offset}, verification:{verification}, push:{max(verification)}')
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
         return True
     
     if 'JUMP_FORWARD' in content:
         branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
         return True
 
 def parse_shared_instructions(content, shared_variables):
@@ -279,7 +282,7 @@ def parse_shared_instructions(content, shared_variables):
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
 
-def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets):
+def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, module):
     called_objs = set()
     comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
@@ -297,6 +300,8 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets):
             self.addr_map = addr_map
             self.def_bcode_block_start_offsets = def_bcode_block_start_offsets
             self.parents_object = []
+
+            self.current_module = module
 
             self.pass_offset = 0
 
@@ -403,10 +408,10 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets):
                     
                     i += 1
             
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
     return called_objs
 
-def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets):
+def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
     called_objs = {'__builtin':set(), '__user_def':set()}
     comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
@@ -424,6 +429,8 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
             self.addr_map = addr_map
             self.main_bcode_block_start_offsets = main_bcode_block_start_offsets
             self.parents_object = []
+
+            self.current_module = module
 
             self.pass_offset = 0
 
@@ -521,9 +528,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 # 예외를 처리하는 내부 코드는 DUP_TOP으로 시작함.
                 if not offset in shared_variables.main_bcode_block_start_offsets:
                     raise IndexError
-
+                
                 while(True):
-                    next_offset = shared_variables.keys_list[i - 1]
+                    next_offset = shared_variables.keys_list[i + 1]
                     next_line = byte_code[next_offset]
 
                     if next_offset in shared_variables.main_bcode_block_start_offsets:
@@ -539,6 +546,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     i += 1
 
         
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
     input()
     return called_objs

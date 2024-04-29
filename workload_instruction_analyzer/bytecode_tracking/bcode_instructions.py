@@ -319,7 +319,10 @@ def setup_finally(shared_variables):
     shared_variables.LOAD.insert(0, 'tryblock')
 
 def pop(shared_variables):
-    shared_variables.LOAD.pop(0)
+    try:
+        shared_variables.LOAD.pop(0)
+    except IndexError:
+        return
 
 def dup(shared_variables):
     shared_variables.LOAD.insert(0, shared_variables.LOAD[0])
