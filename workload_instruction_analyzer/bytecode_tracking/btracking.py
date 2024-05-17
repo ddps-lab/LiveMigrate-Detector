@@ -3,6 +3,7 @@ import importlib
 
 import bcode_parser
 import bcode_utils
+import func_mapping
 
 # get python builtin modules
 from stdlib_list import stdlib_list
@@ -194,6 +195,7 @@ def search_module_path(called_map, pycaches):
 
 def extract_c_func(modules_info, called_map):
     not_pymodule_keys = []
+    not_pymodules = {}
 
     for key, value in modules_info.items():
         if value == '__not_pymodule':
@@ -210,8 +212,9 @@ def extract_c_func(modules_info, called_map):
             key = module.split('.')[-2]
             key = re.sub(r'[^A-Za-z]', '', key)
 
-        print(f'\033[31m==== c modules - {key} ====\033[0m')
-        pprint(called_map[key])
+        not_pymodules[key] = called_map[key]['__called']
+    
+    return not_pymodules
 
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
@@ -268,4 +271,9 @@ if __name__ == '__main__':
     print(f'\033[31m==== modules ====\033[0m')
     pprint(modules_info)
 
-    extract_c_func(modules_info, called_map)
+    not_pymodules = extract_c_func(modules_info, called_map)
+
+    print(f'\033[31m==== c modules ====\033[0m')
+    pprint(not_pymodules)
+
+    func_mapping.check_PyDefMethods(not_pymodules)
