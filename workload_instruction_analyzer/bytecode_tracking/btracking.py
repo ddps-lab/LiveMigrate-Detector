@@ -7,6 +7,8 @@ import bcode_utils
 # get python builtin modules
 from stdlib_list import stdlib_list
 
+import re
+
 # temp
 from pprint import pprint
 
@@ -190,10 +192,32 @@ def search_module_path(called_map, pycaches):
     print(f'\033[31m==== pycaches ====\033[0m')
     pprint(pycaches)
 
+def extract_c_func(modules_info, called_map):
+    not_pymodule_keys = []
+
+    for key, value in modules_info.items():
+        if value == '__not_pymodule':
+            not_pymodule_keys.append(key)
+
+    # 경로 등을 제거해 모듈 이름만 파싱
+    for module in not_pymodule_keys:
+        if '.' in module:
+            key = module.split('.')[-1]
+        else:
+            key = module
+
+        if key == 'so':
+            key = module.split('.')[-2]
+            key = re.sub(r'[^A-Za-z]', '', key)
+
+        print(f'\033[31m==== c modules - {key} ====\033[0m')
+        pprint(called_map[key])
+
 if __name__ == '__main__':
     LIBRARIES = stdlib_list("3.10")
 
     pycaches = {}
+    modules_info = {}
 
     script_path = '/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/example_scripts'
     if script_path not in sys.path:
@@ -211,6 +235,7 @@ if __name__ == '__main__':
 
     called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, 'main')
     search_module_path(called_map, pycaches)
+    modules_info = pycaches | modules_info
 
     while(True):
         new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
@@ -235,7 +260,12 @@ if __name__ == '__main__':
         
         pycaches = {}
         search_module_path(next_tracking, pycaches)
+        modules_info = pycaches | modules_info
         new_called_map = module_tracking(pycaches, new_called_map)
 
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
+    print(f'\033[31m==== modules ====\033[0m')
+    pprint(modules_info)
+
+    extract_c_func(modules_info, called_map)
