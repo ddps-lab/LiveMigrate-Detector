@@ -3,6 +3,8 @@ import subprocess
 import re
 from pprint import pprint
 
+from infer_variable_type import infer_global_variable_type
+
 def get_sharedlibrary():
     result = gdb.execute("info sharedlibrary", to_string=True)
 
@@ -10,11 +12,23 @@ def get_sharedlibrary():
     library_paths = re.findall(r'/[^\s]+', result)
     for path in library_paths:
         shared_libraries.append(path)
-        # shared_libraries.append(path.split('/')[-1])
     
     return shared_libraries
 
-def get_variable(module):
+def is_debug_symbols_available(lib):
+    command = (
+        "readelf -S "
+        f"{lib} "
+        "| grep .debug"
+    )
+
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if len(result.stdout) == 0:
+        return False
+
+    return True
+
+def get_PyMethodDef(module, func, func_mapping):
     def sizeof(var):
         result = gdb.execute(f"p sizeof({var}) / sizeof(PyMethodDef)", to_string=True)
         size = result.split('=')[-1].strip()
@@ -23,7 +37,6 @@ def get_variable(module):
     
     def search_mapping(var):
         size = int(sizeof(var))
-        func_mapping = {}
 
         start_addr = gdb.execute(f"info addr {var}", to_string=True)
         start_addr = re.search(r'0x[0-9a-fA-F]+', start_addr).group(0)
@@ -35,42 +48,44 @@ def get_variable(module):
             ml_meth = gdb.execute(f"x/a {hex(start_addr + 8)}", to_string=True).split(':')[1].split('<')[0].strip()
 
             ml_name = re.search(r'\"([^\"]*)\"', ml_name).group(1)
-            # print(ml_name)
-            # print(ml_meth)
 
             func_mapping[ml_name] = ml_meth
             start_addr += 32
-
-        return func_mapping
 
     shared_libraries = get_sharedlibrary()
 
     for lib in shared_libraries:
         if module in lib.split('/')[-1]:
-            path = lib
-            
-    command = (
-        "gdb -batch -ex 'info variables' "
-        f"{path}"
-        "| grep PyMethodDef"
-    )
-    print(path)
+            if 'cpython' not in lib.split('/')[-1]:
+                func_mapping['ctypes'].update(func)
+                continue
+        else:
+            continue
+        
+        # 디버깅 심볼이 있는지 체크해야겠네
+        if not is_debug_symbols_available(lib):
+            print(lib.split('/')[-1])
+            # FIXME: 디버깅 심볼이 없으면 타입 추론해야함
+            infer_global_variable_type(lib)
+            continue
 
-    # func_mapping = search_mapping('PyCPointerType_methods')
-    # func_mapping = search_mapping('csv_methods')
-    # pprint(func_mapping)
-    # exit()
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    pprint(result.stdout)
-    for line in result.stdout.splitlines():
-        var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
-        func_mapping = search_mapping(var)
-        pprint(func_mapping)
+        command = (
+            "gdb -batch -ex 'info variables' "
+            f"{lib}"
+            "| grep PyMethodDef"
+        )
+
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
+            search_mapping(var)
 
 def check_PyDefMethods(not_pymodules):
+    func_mapping = {'ctypes':set()}
     for module, func in not_pymodules.items():
-        print(module)
-        get_variable(module)
+        get_PyMethodDef(module, func, func_mapping)
 
+    print(f'\033[31m==== c funcs ====\033[0m')
+    pprint(func_mapping)
 if __name__ == '__main__':
     gdb.execute("set pagination off")
