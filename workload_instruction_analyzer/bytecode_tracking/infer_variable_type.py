@@ -106,7 +106,6 @@ def infer_global_variable_type(binary_file):
     pointer_format = '<Q'  # 64비트 포인터 (리틀 엔디안)
 
     variables = {name: (addr, pointer_size) for name, addr in zip(variables_name, variables_addr)}
-    # pprint(variables)
 
     infer_results = {}
     func_addrs = get_func_list(binary_file)
@@ -114,41 +113,35 @@ def infer_global_variable_type(binary_file):
         elffile = ELFFile(f)
         
         for var_name, (struct_address, pointer_size) in variables.items():
-            # print(f"\nReading {var_name} at address 0x{struct_address:x} (pointer size: {pointer_size} bytes)")
+            # 메모리 주소를 파일 오프셋으로 변환
+            struct_offset = get_file_offset(elffile, struct_address)
             
             # 구조체의 첫 번째 필드를 읽음 (포인터)
-            struct_offset = get_file_offset(elffile, struct_address)
-            if struct_offset is None:
-                # print(f"Error: Could not find file offset for address 0x{struct_address:x}")
+            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            (string_address,) = struct.unpack(pointer_format, pointer_data)
+            # 첫 번째 필드가 유효하지 않은 경우 (특정 주소를 가리키고 있다고 보기 어려움)
+            if string_address < 0xfffff:
                 continue
             
-            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
-            
-            (string_address,) = struct.unpack(pointer_format, pointer_data)
-            # print(f"Pointer in {var_name} points to address 0x{string_address:x}")
-
-            if string_address < 0xffff:
+            # 첫 번째 필드의 값(문자열이 담긴 주소)를 파일 오프셋으로 변환
+            string_offset = get_file_offset(elffile, string_address)
+            # 포인터가 가리키는 값이 주소가 아닌 경우
+            if string_offset is None:
                 continue
             
             # 포인터가 가리키는 주소에서 문자열 읽기
-            string_offset = get_file_offset(elffile, string_address)
-            if string_offset is None:
-                # print(f"Error: Could not find file offset for address 0x{string_address:x}")
-                continue
-            
             string_data = read_binary_data(binary_file, string_offset, 256)  # 최대 256 바이트 읽기 (필요에 따라 조정)
-            
             # 문자열 추출
             string_value = extract_string(string_data)
-            # print(f"String Value: {string_value}")
-
             if string_value == None:
                 continue
             
+            # 구조체의 두 번째 필드
             struct_offset = get_file_offset(elffile, struct_address + 8)
             pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
             (string_address,) = struct.unpack(pointer_format, pointer_data)
             
+            # 구조체의 두 번째 필드의 값(C 함수의 주소)이 바이너리에 정의된 함수를 가리키지 않는 경우
             if hex(string_address) not in func_addrs:
                 continue
 
