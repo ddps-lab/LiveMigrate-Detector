@@ -101,6 +101,8 @@ struct PyMethodDef {
 typedef struct PyMethodDef PyMethodDef;
 '''
 def infer_global_variable_type(binary_file):
+    ml_flags = (0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40)
+
     variables_addr, variables_name = get_filtered_variables(binary_file)
     pointer_size = 8
     pointer_format = '<Q'  # 64비트 포인터 (리틀 엔디안)
@@ -109,6 +111,7 @@ def infer_global_variable_type(binary_file):
 
     infer_results = {}
     func_addrs = get_func_list(binary_file)
+
     with open(binary_file, 'rb') as f:
         elffile = ELFFile(f)
         
@@ -143,6 +146,14 @@ def infer_global_variable_type(binary_file):
             
             # 구조체의 두 번째 필드의 값(C 함수의 주소)이 바이너리에 정의된 함수를 가리키지 않는 경우
             if hex(string_address) not in func_addrs:
+                continue
+
+            # 구조체의 세 번째 필드
+            struct_offset = get_file_offset(elffile, struct_address + 16)
+            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            (string_address,) = struct.unpack(pointer_format, pointer_data)
+
+            if string_address not in ml_flags:
                 continue
 
             infer_results[var_name] = string_value
