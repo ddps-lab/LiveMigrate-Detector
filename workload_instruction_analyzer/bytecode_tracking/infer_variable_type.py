@@ -1,9 +1,23 @@
 import subprocess
 import struct
-# from capstone import *
 from elftools.elf.elffile import ELFFile
 
 from pprint import pprint
+
+def get_func_list(binary_file):
+    command = (
+        "readelf -Ws -s "
+        f"{binary_file} "
+        " | awk '$4 == \"FUNC\" && ($6 == \"DEFAULT\" || $6 == \"HIDDEN\" || $6 == \"PROTECTED\") && $7 != \"UND\" {print $2}'"
+    )
+
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    func_addrs = set()
+    for addr in result.stdout.splitlines():
+        func_addrs.add(hex(int(addr,16)))
+
+    return func_addrs
 
 def get_file_offset(elffile, address):
     # 프로그램 헤더를 통해 가상 주소를 파일 오프셋으로 변환
@@ -21,14 +35,6 @@ def read_binary_data(binary_file, offset, size):
     with open(binary_file, 'rb') as f:
         f.seek(offset)
         return f.read(size)
-
-# def disassemble_memory(data, address):
-#     # Capstone 엔진 초기화
-#     md = Cs(CS_ARCH_X86, CS_MODE_64)
-    
-#     # 디스어셈블링
-#     for insn in md.disasm(data, address):
-#         print("0x%x:\t%s\t%s" % (insn.address, insn.mnemonic, insn.op_str))
 
 def extract_string(data):
     # 문자열 추출 (예시로 첫 번째 null-terminated 문자열만 추출)
@@ -100,25 +106,26 @@ def infer_global_variable_type(binary_file):
     pointer_format = '<Q'  # 64비트 포인터 (리틀 엔디안)
 
     variables = {name: (addr, pointer_size) for name, addr in zip(variables_name, variables_addr)}
-    pprint(variables)
+    # pprint(variables)
 
     infer_results = {}
+    func_addrs = get_func_list(binary_file)
     with open(binary_file, 'rb') as f:
         elffile = ELFFile(f)
         
         for var_name, (struct_address, pointer_size) in variables.items():
-            print(f"\nReading {var_name} at address 0x{struct_address:x} (pointer size: {pointer_size} bytes)")
+            # print(f"\nReading {var_name} at address 0x{struct_address:x} (pointer size: {pointer_size} bytes)")
             
             # 구조체의 첫 번째 필드를 읽음 (포인터)
             struct_offset = get_file_offset(elffile, struct_address)
             if struct_offset is None:
-                print(f"Error: Could not find file offset for address 0x{struct_address:x}")
+                # print(f"Error: Could not find file offset for address 0x{struct_address:x}")
                 continue
             
             pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
             
             (string_address,) = struct.unpack(pointer_format, pointer_data)
-            print(f"Pointer in {var_name} points to address 0x{string_address:x}")
+            # print(f"Pointer in {var_name} points to address 0x{string_address:x}")
 
             if string_address < 0xffff:
                 continue
@@ -126,21 +133,25 @@ def infer_global_variable_type(binary_file):
             # 포인터가 가리키는 주소에서 문자열 읽기
             string_offset = get_file_offset(elffile, string_address)
             if string_offset is None:
-                print(f"Error: Could not find file offset for address 0x{string_address:x}")
+                # print(f"Error: Could not find file offset for address 0x{string_address:x}")
                 continue
             
             string_data = read_binary_data(binary_file, string_offset, 256)  # 최대 256 바이트 읽기 (필요에 따라 조정)
             
             # 문자열 추출
             string_value = extract_string(string_data)
-            print(f"String Value: {string_value}")
+            # print(f"String Value: {string_value}")
 
             if string_value == None:
                 continue
             
-            infer_results[var_name] = string_value
+            struct_offset = get_file_offset(elffile, struct_address + 8)
+            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            (string_address,) = struct.unpack(pointer_format, pointer_data)
+            
+            if hex(string_address) not in func_addrs:
+                continue
 
-        pprint(infer_results)
-            # # 디스어셈블링
-            # print(f"\nDisassembly of data at pointer address (0x{string_address:x}):")
-            # disassemble_memory(string_data, string_address)
+            infer_results[var_name] = string_value
+    
+    pprint(infer_results)

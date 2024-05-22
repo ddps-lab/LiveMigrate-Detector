@@ -65,7 +65,6 @@ def get_PyMethodDef(module, func, func_mapping):
         # 디버깅 심볼이 있는지 체크해야겠네
         if not is_debug_symbols_available(lib):
             print(lib.split('/')[-1])
-            # FIXME: 디버깅 심볼이 없으면 타입 추론해야함
             infer_global_variable_type(lib)
             continue
 
@@ -87,5 +86,6 @@ def check_PyDefMethods(not_pymodules):
 
     print(f'\033[31m==== c funcs ====\033[0m')
     pprint(func_mapping)
+
 if __name__ == '__main__':
     gdb.execute("set pagination off")
