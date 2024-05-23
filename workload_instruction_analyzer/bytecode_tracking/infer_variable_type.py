@@ -172,26 +172,6 @@ def infer_global_variable_type(binary_file):
             if string_address not in ml_flags:
                 continue
 
-            # # 구조체의 네 번째 필드
-            # struct_offset = get_file_offset(elffile, struct_address + 24)
-
-            # pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
-            # (string_address,) = struct.unpack(pointer_format, pointer_data)
-            # if string_address < 0xfffff:
-            #     continue
-
-            # string_offset = get_file_offset(elffile, string_address)
-            # if string_offset is None:
-            #     continue
-
-            # string_data = read_binary_data(binary_file, string_offset, 256)  # 최대 256 바이트 읽기 (필요에 따라 조정)
-            # # 문자열 추출
-            # string_value = extract_string(string_data)
-            # # if string_value == None:
-            #     # continue
-
-            # print(string_value)
-
             infer_results[var_name] = c_func_name
     
-    pprint(infer_results)
+    return infer_results

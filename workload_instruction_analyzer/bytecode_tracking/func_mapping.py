@@ -29,24 +29,20 @@ def is_debug_symbols_available(lib):
     return True
 
 def get_PyMethodDef(module, func, func_mapping):
-    def sizeof(var):
-        result = gdb.execute(f"p sizeof({var}) / sizeof(PyMethodDef)", to_string=True)
-        size = result.split('=')[-1].strip()
-
-        return size
-    
     def search_mapping(var):
-        size = int(sizeof(var))
+        print(var)
 
         start_addr = gdb.execute(f"info addr {var}", to_string=True)
         start_addr = re.search(r'0x[0-9a-fA-F]+', start_addr).group(0)
         start_addr = int(start_addr, 16)
-        for _ in range(size - 1):
-            
+        while True:
             ml_name_ptr = gdb.execute(f"x/a {hex(start_addr)}", to_string=True).split(':')[1].strip()
             ml_name = gdb.execute(f"x/s {ml_name_ptr}", to_string=True)
             ml_meth = gdb.execute(f"x/a {hex(start_addr + 8)}", to_string=True).split(':')[1].split('<')[0].strip()
 
+            if ml_name_ptr == '0x0' and ml_meth == '0x0':
+                break
+            
             ml_name = re.search(r'\"([^\"]*)\"', ml_name).group(1)
 
             func_mapping[ml_name] = ml_meth
@@ -62,10 +58,11 @@ def get_PyMethodDef(module, func, func_mapping):
         else:
             continue
         
-        # 디버깅 심볼이 있는지 체크해야겠네
+        # 디버깅 심볼이 있는지 확인
         if not is_debug_symbols_available(lib):
-            print(lib.split('/')[-1])
-            infer_global_variable_type(lib)
+            infer_results = infer_global_variable_type(lib)
+            for var, _ in infer_results.items():
+                search_mapping(var)
             continue
 
         command = (
@@ -82,7 +79,10 @@ def get_PyMethodDef(module, func, func_mapping):
 def check_PyDefMethods(not_pymodules):
     func_mapping = {'ctypes':set()}
     for module, func in not_pymodules.items():
+        print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
         get_PyMethodDef(module, func, func_mapping)
+
+        # FIXME: PyMethodDef를 잘 수집해서 매핑 알아냈으니 호출된 함수만 추려내야함
 
     print(f'\033[31m==== c funcs ====\033[0m')
     pprint(func_mapping)
