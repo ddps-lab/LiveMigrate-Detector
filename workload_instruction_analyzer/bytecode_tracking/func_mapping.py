@@ -28,7 +28,7 @@ def is_debug_symbols_available(lib):
 
     return True
 
-def get_PyMethodDef(module, func, func_mapping):
+def get_PyMethodDef(module, functions, func_mapping):
     def search_mapping(var):
         print(var)
 
@@ -53,7 +53,11 @@ def get_PyMethodDef(module, func, func_mapping):
     for lib in shared_libraries:
         if module in lib.split('/')[-1]:
             if 'cpython' not in lib.split('/')[-1]:
-                func_mapping['ctypes'].update(func)
+                for func in functions:
+                    start_addr = gdb.execute(f"info addr {func}", to_string=True)
+                    start_addr = int(re.search(r'0x[0-9a-fA-F]+', start_addr).group(0), 16)
+
+                    func_mapping[func] = hex(start_addr)
                 continue
         else:
             continue
@@ -78,14 +82,27 @@ def get_PyMethodDef(module, func, func_mapping):
 
 def check_PyDefMethods(not_pymodules):
     func_mapping = {'ctypes':set()}
-    for module, func in not_pymodules.items():
+    C_functions = {}
+    for module, functions in not_pymodules.items():
         print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
-        get_PyMethodDef(module, func, func_mapping)
+        get_PyMethodDef(module, functions, func_mapping)
 
-        # FIXME: PyMethodDef를 잘 수집해서 매핑 알아냈으니 호출된 함수만 추려내야함
+        # FIXME: 임시코드 데코레이터 버그 고치면 삭제
+        if module == '_multiarray_umath':
+            for func in functions:
+                func = func.split('.')[1].split('array_function_from_c_func_and_dispatcher')[0]
+                if func in func_mapping:
+                    C_functions[func] = func_mapping[func]
+            continue
+
+        for func in functions:
+            if func in func_mapping:
+                C_functions[func] = func_mapping[func]
+
 
     print(f'\033[31m==== c funcs ====\033[0m')
-    pprint(func_mapping)
+    pprint(C_functions)
+    # pprint(func_mapping)
 
 if __name__ == '__main__':
     gdb.execute("set pagination off")
