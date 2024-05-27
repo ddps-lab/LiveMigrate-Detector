@@ -244,7 +244,8 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
         if LD_BIND_NOW:
             plt_addr = gdb.execute(f'disas {address}', to_string=True).split('#')[-1].strip()
             plt_addr = plt_addr.split(' ')[0].strip()
-            address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip()
+            # address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip()
+            address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
         else:
             # 트래킹 불가
             if '*ABS*' in gdb_comment:
@@ -279,8 +280,6 @@ def tracking(LANGUAGE_TYPE):
     tracking_functions.add(start_addr)
     list_tracking_functions.append(start_addr)
 
-
-
     for function_address in list_tracking_functions:
         func = dis_func(function_address, tracked_instructions)
 
@@ -309,7 +308,7 @@ def tracking(LANGUAGE_TYPE):
                     tracking_functions.add(dst_addr)
                     list_tracking_functions.append(dst_addr)
             
-    print(f'tracked function count: {len(list_tracking_functions)}')
+    print(f'tracked function count: {len(tracking_functions)}')
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
 
 if __name__ == '__main__':
