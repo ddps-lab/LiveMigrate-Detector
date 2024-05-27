@@ -30,8 +30,6 @@ def is_debug_symbols_available(lib):
 
 def get_PyMethodDef(module, functions, func_mapping):
     def search_mapping(var):
-        print(var)
-
         start_addr = gdb.execute(f"info addr {var}", to_string=True)
         start_addr = re.search(r'0x[0-9a-fA-F]+', start_addr).group(0)
         start_addr = int(start_addr, 16)
@@ -84,7 +82,7 @@ def check_PyDefMethods(not_pymodules):
     func_mapping = {'ctypes':set()}
     C_functions = {}
     for module, functions in not_pymodules.items():
-        print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
+        # print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
         get_PyMethodDef(module, functions, func_mapping)
 
         # FIXME: 임시코드 데코레이터 버그 고치면 삭제
@@ -100,9 +98,5 @@ def check_PyDefMethods(not_pymodules):
                 C_functions[func] = func_mapping[func]
 
 
-    print(f'\033[31m==== c funcs ====\033[0m')
-    pprint(C_functions)
-    # pprint(func_mapping)
-
-if __name__ == '__main__':
-    gdb.execute("set pagination off")
+    # print(f'\033[31m==== c funcs ====\033[0m')
+    return C_functions

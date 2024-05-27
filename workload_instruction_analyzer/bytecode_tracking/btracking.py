@@ -13,6 +13,8 @@ import re
 # temp
 from pprint import pprint
 
+LIBRARIES = stdlib_list("3.10")
+
 def is_builtin_module(module_name):
     global LIBRARIES
 
@@ -71,13 +73,13 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
                 if func not in called_map[category]['__called']:
                     new_tracked[category]['__called'].add(func)
     
-    print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
-    pprint(new_tracked)
+    # print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
+    # pprint(new_tracked)
     return new_tracked
 
 # FIXME: module이름은 출력용이므로 추후 제거
 def create_call_map(byte_code, module):
-    print(f'\033[33m======================================== {module} ========================================\033[0m')
+    # print(f'\033[33m======================================== {module} ========================================\033[0m')
     def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(byte_code)
 
@@ -88,7 +90,7 @@ def create_call_map(byte_code, module):
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
 
     called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
-    pprint(called_map)
+    # pprint(called_map)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
     # print('================ def map ================')
     # pprint(def_map)
@@ -123,8 +125,8 @@ def module_tracking(pycaches, base_map):
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func = base_map[module]['__called']
         
-        print(f'\033[33mcalled func : {called_func}\033[0m')
-        print(f'\033[33muser def : {obj_sets}\033[0m')
+        # print(f'\033[33mcalled func : {called_func}\033[0m')
+        # print(f'\033[33muser def : {obj_sets}\033[0m')
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         # FIXME: 해당 모듈A 에서 트래킹할 함수는 모듈 A가 모듈 B로부터 import 한 것이라면?
@@ -134,7 +136,7 @@ def module_tracking(pycaches, base_map):
                 origin_name = base_map[module]['__func_alias'][func]
             if origin_name in obj_sets:
                 called_map['__user_def'].add(origin_name)
-        pprint(called_map)
+        # pprint(called_map)
 
         while(True):
             new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
@@ -143,8 +145,8 @@ def module_tracking(pycaches, base_map):
             called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
 
         new_called_map = bcode_utils.merge_dictionaries(new_called_map, called_map)
-        print(f'\033[35m==== new called map ====\033[0m')
-        pprint(new_called_map)
+        # print(f'\033[35m==== new called map ====\033[0m')
+        # pprint(new_called_map)
 
     return new_called_map
 
@@ -190,8 +192,8 @@ def search_module_path(called_map, pycaches):
                 else:
                     pycaches[module] = '__not_pymodule'
     
-    print(f'\033[31m==== pycaches ====\033[0m')
-    pprint(pycaches)
+    # print(f'\033[31m==== pycaches ====\033[0m')
+    # pprint(pycaches)
 
 def extract_c_func(modules_info, called_map):
     not_pymodule_keys = []
@@ -216,8 +218,9 @@ def extract_c_func(modules_info, called_map):
     
     return not_pymodules
 
-if __name__ == '__main__':
-    LIBRARIES = stdlib_list("3.10")
+# if __name__ == '__main__':
+def main():
+    # LIBRARIES = stdlib_list("3.10")
 
     pycaches = {}
     modules_info = {}
@@ -245,9 +248,8 @@ if __name__ == '__main__':
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-    print(f'\033[31m==== main tracking ====\033[0m')
-    pprint(called_map)
-    
+    # print(f'\033[31m==== main tracking ====\033[0m')
+    # pprint(called_map)
 
     new_called_map = module_tracking(pycaches, called_map)
     # exit()
@@ -256,8 +258,9 @@ if __name__ == '__main__':
         called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
 
         if next_tracking:
-            print(f'\033[31m==== next tracking ====\033[0m')
-            pprint(next_tracking)
+            # print(f'\033[31m==== next tracking ====\033[0m')
+            # pprint(next_tracking)
+            pass
         else:
             break
         
@@ -266,14 +269,20 @@ if __name__ == '__main__':
         modules_info = pycaches | modules_info
         new_called_map = module_tracking(pycaches, new_called_map)
 
-    print(f'\033[31m==== end ====\033[0m')
-    pprint(called_map)
-    print(f'\033[31m==== modules ====\033[0m')
-    pprint(modules_info)
+    # print(f'\033[31m==== end ====\033[0m')
+    # pprint(called_map)
+    # print(f'\033[31m==== modules ====\033[0m')
+    # pprint(modules_info)
 
     not_pymodules = extract_c_func(modules_info, called_map)
 
-    print(f'\033[31m==== c modules ====\033[0m')
-    pprint(not_pymodules)
+    # print(f'\033[31m==== c modules ====\033[0m')
+    # pprint(not_pymodules)
 
-    func_mapping.check_PyDefMethods(not_pymodules)
+    C_functions = func_mapping.check_PyDefMethods(not_pymodules)
+    set_c_functions = set()
+
+    for _, addr in C_functions.items():
+        set_c_functions.add(addr)
+
+    return set_c_functions

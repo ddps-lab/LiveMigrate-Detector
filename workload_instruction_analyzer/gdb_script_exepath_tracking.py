@@ -11,6 +11,8 @@ sys.path.append(rootdir)
 
 import utils
 
+import bytecode_tracking.btracking
+
 glibc_rtm_enable = False
 LD_BIND_NOW = False
 xtest_enable = False
@@ -221,13 +223,22 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
         address = instruction_data["SHORT"].split(' ')
         address = list(filter(None, address))
 
-        # QWORD PTR [rip+0x2f53] 처럼 call 하는 주소를 계산할 수 없는 경우
         if is_func_call != 'lea':
-            address = int(instruction_data["SHORT"].split(' ')[-1], 16)
-            address = address + instruction_addr
-            address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
+            try:
+                print(is_func_call, hex(instruction_addr), instruction_data["SHORT"], gdb_comment)
+                address = int(instruction_data["SHORT"].split(' ')[-1], 16)
+                address = address + instruction_addr
+                address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
+                address = "0x{:016x}".format(int(address, 16))
+            # QWORD PTR [rip+0x2f53] 처럼 call 하는 주소를 계산할 수 없는 경우
+            except:
+                symbol = gdb_comment.replace('<', '')
+                symbol = symbol.replace('>', '')
+                address = gdb.execute(f'info address {symbol}', to_string=True).split(' ')[-1].split('.')[0]
+        elif is_func_call == 'lea':
+            address = gdb_comment.split(' ')[0].strip()
             address = "0x{:016x}".format(int(address, 16))
-    
+
     # if address is not function start address 
     if is_func_call == 'plt':
         if LD_BIND_NOW:
@@ -244,25 +255,25 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
             address = [part for part in address if part.startswith('0x')]
             address = ''.join(address)
 
-    if is_func_call == 'lea':
-        address = gdb_comment.split(' ')[0].strip()
-        address = "0x{:016x}".format(int(address, 16))
-
     if address not in tracking_functions:
         return address
     else:
         return None
 
-def tracking():
+def tracking(LANGUAGE_TYPE):
     executable_instructions = []
     tracking_functions = set()
     list_tracking_functions = []
 
     tracked_instructions = set()
 
+    if LANGUAGE_TYPE == 'python':
+        tracking_functions = bytecode_tracking.btracking.main()
+        list_tracking_functions = list(tracking_functions)
+
     # search the starting point of tracking
-    start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
-    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
+    # start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
+    start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
     start_addr = "0x{:016x}".format(int(start_addr, 16))
 
     tracking_functions.add(start_addr)
@@ -299,6 +310,17 @@ def tracking():
     print(f'tracked function count: {len(list_tracking_functions)}')
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
 
+# bcode tracking에서 가져온 c 함수만 트래킹
+def test():
+    PID = int(os.getenv('WORKLOAD_PID', '0'))
+    
+    glibc_tunables_check()
+    binding_check(PID)
+    
+    got_addr = get_got_sections()
+    sections = get_text_sections()
+
+    tracking()
 
 if __name__ == '__main__':
     logging_functions = []
@@ -306,6 +328,7 @@ if __name__ == '__main__':
     
     # 쉘 스크립트에서 전달된 workload PID 가져오기
     PID = int(os.getenv('WORKLOAD_PID', '0'))
+    LANGUAGE_TYPE = os.getenv('LANGUAGE_TYPE', '0')
 
     glibc_tunables_check()
     binding_check(PID)
@@ -317,8 +340,7 @@ if __name__ == '__main__':
     runtime_indirect = []
     call_regi = []
 
-    tracking()
-
+    tracking(LANGUAGE_TYPE)
 
     with open('tracked_functions.txt', 'w') as f:
         f.write('\n'.join(logging_functions))   
@@ -328,4 +350,3 @@ if __name__ == '__main__':
         f.write('\n'.join(runtime_indirect))   
     with open('call_regi.txt', 'w') as f:
         f.write('\n'.join(call_regi))           
-    # exit()
