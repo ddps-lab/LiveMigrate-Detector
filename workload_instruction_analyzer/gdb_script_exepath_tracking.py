@@ -225,7 +225,7 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
 
         if is_func_call != 'lea':
             try:
-                print(is_func_call, hex(instruction_addr), instruction_data["SHORT"], gdb_comment)
+                # print(is_func_call, hex(instruction_addr), instruction_data["SHORT"], gdb_comment)
                 address = int(instruction_data["SHORT"].split(' ')[-1], 16)
                 address = address + instruction_addr
                 address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
@@ -279,6 +279,8 @@ def tracking(LANGUAGE_TYPE):
     tracking_functions.add(start_addr)
     list_tracking_functions.append(start_addr)
 
+
+
     for function_address in list_tracking_functions:
         func = dis_func(function_address, tracked_instructions)
 
@@ -309,18 +311,6 @@ def tracking(LANGUAGE_TYPE):
             
     print(f'tracked function count: {len(list_tracking_functions)}')
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
-
-# bcode tracking에서 가져온 c 함수만 트래킹
-def test():
-    PID = int(os.getenv('WORKLOAD_PID', '0'))
-    
-    glibc_tunables_check()
-    binding_check(PID)
-    
-    got_addr = get_got_sections()
-    sections = get_text_sections()
-
-    tracking()
 
 if __name__ == '__main__':
     logging_functions = []
