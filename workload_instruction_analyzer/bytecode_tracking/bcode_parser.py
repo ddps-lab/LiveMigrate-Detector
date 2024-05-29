@@ -181,13 +181,13 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
             f15()
     '''
     
-    # if offset in branch_shared_variables.branch_targets:
-    #     shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
-    #     # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
+    if offset in branch_shared_variables.branch_targets:
+        shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
+        # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
 
-    #     branch_shared_variables.stack_cap.pop(-1)
-    #     # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
-    #     return False
+        branch_shared_variables.stack_cap.pop(-1)
+        # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
+        return False
 
     # FIXME: JUMP_IF_NOT_EXC_MATCH - except 에서 지정한 예외가 아니면 점프(스택변화는 없음)
 
@@ -343,7 +343,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 parents_obj = list(addr_map[obj_addr].keys())[0]
                 result = bcode_instructions.store_attr(i - 2, shared_variables)
                 if result != None:
-                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1]    
+                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1].replace('(', '').replace(')', '')
             else:
                 # FIXME:
                 # 상위 객체 정보가 없는 경우
@@ -438,6 +438,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
             self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
             self.alias = 0 # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
 
+            self.decorator_map = dict()
+            self.decorators = set()
+
     # FIXME: 검증용 스택, 추후 제거
     verification = []
 
@@ -478,6 +481,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
             func = bcode_instructions.call_function(func_offset, shared_variables)
+
+            if func in shared_variables.decorators:
+                continue
             
             # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
             if func in comprehensions:
@@ -547,5 +553,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
         
         # print(offset, shared_variables.LOAD)
-    input()
+    pprint(shared_variables.decorator_map)
+    # input()
     return called_objs

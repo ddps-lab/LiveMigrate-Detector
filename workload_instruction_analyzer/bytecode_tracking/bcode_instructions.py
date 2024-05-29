@@ -161,6 +161,7 @@ def make_function(idx, content, shared_variables):
     addr_map = shared_variables.addr_map
     
     operation_option = int(content.split('MAKE_FUNCTION')[1].strip().split()[0])
+    maked_func = LOAD[0].strip("'")
     pop(operation_option, LOAD)
 
     offset = 0
@@ -181,6 +182,13 @@ def make_function(idx, content, shared_variables):
                     break
                 prev_line = byte_code[keys_list[idx + offset]]
     
+    if hasattr(shared_variables, 'decorator_map'):
+        next_line = byte_code[keys_list[idx + 1]]
+        if 'CALL_FUNCTION' in next_line:
+            func_offset = int(next_line.split('CALL_FUNCTION')[1].strip())   
+            shared_variables.decorator_map[maked_func] = LOAD[func_offset]
+            shared_variables.decorators.add(LOAD[func_offset])
+
 def build(content, shared_variables):
     LOAD = shared_variables.LOAD
 
@@ -259,15 +267,18 @@ def call_function(func_offset, shared_variables):
     parents_object = shared_variables.parents_object
     called_func = None
 
-    if LOAD[func_offset] == '__build_class__':
-        pass
-    else:
-        # func() 형태의 호출
-        if len(parents_object) == 0:
-            called_func = LOAD[func_offset]
-        # obj.func 형태의 호출
+    try:
+        if LOAD[func_offset] == '__build_class__':
+            pass
         else:
-            called_func = parents_object.pop(0) + '.' + LOAD[func_offset]
+            # func() 형태의 호출
+            if len(parents_object) == 0:
+                called_func = LOAD[func_offset]
+            # obj.func 형태의 호출
+            else:
+                called_func = parents_object.pop(0) + '.' + LOAD[func_offset]
+    except:
+        return '__bug__'
     
     return called_func
 
@@ -276,14 +287,21 @@ def call_function_stack(func_offset, shared_variables):
     parents_object = shared_variables.parents_object
 
     call_result = ''
-    # 호출되는 함수와 인자들을 pop
-    for _ in range(func_offset + 1):
-        call_result += LOAD.pop(0)
-    LOAD.insert(0, call_result)
 
-    # 객체로부터 호출되는 경우 해당 객체도 pop
-    if len(parents_object) != 0:
-        LOAD.pop(0)
+    # 호출되는 함수와 인자들을 pop
+    try:
+        call_result += LOAD.pop(func_offset)
+        call_result += '('
+        for _ in range(func_offset):
+            call_result += LOAD.pop(0)
+        call_result += ')'
+        LOAD.insert(0, call_result)
+
+        # 객체로부터 호출되는 경우 해당 객체도 pop
+        if len(parents_object) != 0:
+            LOAD.pop(0)
+    except:
+        pass
 
 def call_method(content, shared_variables):
     LOAD = shared_variables.LOAD
