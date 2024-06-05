@@ -85,14 +85,6 @@ def check_PyDefMethods(not_pymodules):
         # print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
         get_PyMethodDef(module, functions, func_mapping)
 
-        # FIXME: 임시코드 데코레이터 버그 고치면 삭제
-        if module == '_multiarray_umath':
-            for func in functions:
-                func = func.split('.')[1].split('array_function_from_c_func_and_dispatcher')[0]
-                if func in func_mapping:
-                    C_functions[func] = func_mapping[func]
-            continue
-
         for func in functions:
             if func in func_mapping:
                 C_functions[func] = func_mapping[func]
