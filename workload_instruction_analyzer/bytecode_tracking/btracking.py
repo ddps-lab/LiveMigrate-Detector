@@ -101,7 +101,7 @@ def create_call_map(byte_code, module):
 
     return called_map, obj_sets, def_map, obj_map, decorator_map
 
-def module_tracking(pycaches, base_map, C_functions_from_decorators):
+def module_tracking(pycaches, base_map, C_functions_with_decorators):
     # 모듈의 origin name을 확인해 alias를 찾는 함수
     def check_module_origin_name(module):
         for key, value in base_map.items():
@@ -127,13 +127,12 @@ def module_tracking(pycaches, base_map, C_functions_from_decorators):
         print(f'\033[33mcalled func : {called_func}\033[0m')
         print(f'\033[33muser def : {obj_sets}\033[0m')
 
-        decorator_map['set_typeDict'] = 'test'
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func:
             origin_name = func
 
             if func in decorator_map:
-                C_functions_from_decorators[module] = func
+                C_functions_with_decorators[module] = decorator_map[func].split('.')[-1].replace(')', '')
 
             if '__func_alias' in base_map[module]:
                 origin_name = base_map[module]['__func_alias'][func]
@@ -279,6 +278,7 @@ def main():
 
     print(f'\033[31m==== c modules ====\033[0m')
     pprint(not_pymodules)
+    pprint(C_functions_with_decorators)
 
     C_functions1 = func_mapping.check_PyDefMethods(not_pymodules)
     C_functions2 = func_mapping.check_PyDefMethods(C_functions_with_decorators)
