@@ -89,7 +89,7 @@ def create_call_map(byte_code, module):
         key, value = next(iter(user_def_list[i].items()))
         def_map[value + '.' + key] = bcode_parser.parse_def(definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
 
-    called_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
+    called_map, decorator_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
     # print('================ def map ================')
     # pprint(def_map)
@@ -99,9 +99,9 @@ def create_call_map(byte_code, module):
     # pprint(obj_map)
     # print('------------------------------------------------------------------------------------------------------------')
 
-    return called_map, obj_sets, def_map, obj_map
+    return called_map, obj_sets, def_map, obj_map, decorator_map
 
-def module_tracking(pycaches, base_map):
+def module_tracking(pycaches, base_map, C_functions_from_decorators):
     # 모듈의 origin name을 확인해 alias를 찾는 함수
     def check_module_origin_name(module):
         for key, value in base_map.items():
@@ -118,7 +118,7 @@ def module_tracking(pycaches, base_map):
             continue
 
         byte_code = bcode_utils.read_pyc(path)
-        called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, module)
+        called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
 
         module = check_module_origin_name(module)
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
@@ -127,9 +127,14 @@ def module_tracking(pycaches, base_map):
         print(f'\033[33mcalled func : {called_func}\033[0m')
         print(f'\033[33muser def : {obj_sets}\033[0m')
 
+        decorator_map['set_typeDict'] = 'test'
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func:
             origin_name = func
+
+            if func in decorator_map:
+                C_functions_from_decorators[module] = func
+
             if '__func_alias' in base_map[module]:
                 origin_name = base_map[module]['__func_alias'][func]
             if origin_name in obj_sets:
@@ -225,7 +230,7 @@ def entry_tracking(pycaches, modules_info):
 
     byte_code = compile(source_code, '<string>', 'exec')
 
-    called_map, obj_sets, def_map, obj_map = create_call_map(byte_code, 'main')
+    called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, 'main')
     search_module_path(called_map, pycaches)
     modules_info = pycaches | modules_info
 
@@ -242,10 +247,11 @@ def entry_tracking(pycaches, modules_info):
 def main():
     pycaches = {}
     modules_info = {}
+    C_functions_with_decorators = {}
 
     called_map, pycaches, modules_info = entry_tracking(pycaches, modules_info)
 
-    new_called_map = module_tracking(pycaches, called_map)
+    new_called_map = module_tracking(pycaches, called_map, C_functions_with_decorators)
     while(True):
         next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
         called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
@@ -260,7 +266,7 @@ def main():
         pycaches = {}
         search_module_path(next_tracking, pycaches)
         modules_info = pycaches | modules_info
-        new_called_map = module_tracking(pycaches, new_called_map)
+        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators)
 
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
@@ -274,7 +280,10 @@ def main():
     print(f'\033[31m==== c modules ====\033[0m')
     pprint(not_pymodules)
 
-    C_functions = func_mapping.check_PyDefMethods(not_pymodules)
+    C_functions1 = func_mapping.check_PyDefMethods(not_pymodules)
+    C_functions2 = func_mapping.check_PyDefMethods(C_functions_with_decorators)
+    C_functions = C_functions1 | C_functions2
+
     set_c_functions = set()
 
     for _, addr in C_functions.items():
