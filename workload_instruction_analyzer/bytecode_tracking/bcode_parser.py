@@ -554,5 +554,5 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
         
         # print(offset, shared_variables.LOAD)
     pprint(shared_variables.decorator_map)
-    # input()
-    return called_objs
+    input()
+    return called_objs, shared_variables.decorator_map

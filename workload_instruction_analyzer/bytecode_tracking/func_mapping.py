@@ -82,13 +82,9 @@ def check_PyDefMethods(not_pymodules):
     func_mapping = {'ctypes':set()}
     C_functions = {}
     for module, functions in not_pymodules.items():
-        # print(f'\033[31m==== PyMethodDef in {module} ====\033[0m')
         get_PyMethodDef(module, functions, func_mapping)
-
         for func in functions:
             if func in func_mapping:
                 C_functions[func] = func_mapping[func]
 
-
-    # print(f'\033[31m==== c funcs ====\033[0m')
     return C_functions
