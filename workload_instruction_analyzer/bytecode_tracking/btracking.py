@@ -141,8 +141,12 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                 C_functions_with_decorators.setdefault(c_module, set())
                 C_functions_with_decorators[c_module].add(c_func)
 
-            if '__func_alias' in base_map[module]:
-                origin_name = base_map[module]['__func_alias'][func]
+            module_base = module.split('.')[0]
+            for key in base_map.keys():
+                if module_base in key:
+                    if '__func_alias' in base_map[key] and func in base_map[key]['__func_alias']:
+                        origin_name = base_map[key]['__func_alias'][func]
+
             if origin_name in obj_sets:
                 called_map['__user_def'].add(origin_name)
         
