@@ -126,6 +126,8 @@ def load(content, shared_variables):
         parents_object = LOAD[0]
         LOAD.insert(0, pattern.search(content).group(1))
         return parents_object
+    elif 'LOAD_ASSERTION_ERROR' in content:
+        LOAD.insert(0, 'AssertionError')
     else:
         LOAD.insert(0, pattern.search(content).group(1))
 
