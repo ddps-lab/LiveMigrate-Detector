@@ -12,7 +12,6 @@ def func_classification(func, called_objs, obj_sets, obj_map):
       2. 외부 모듈의 객체
       3. 파이썬 내장 객체
     '''
-
     if '.' in func:
         root_obj = func.split('.')[0]
 
@@ -494,27 +493,64 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
             if func == None:
                 bcode_instructions.call_function_stack(func_offset, shared_variables)
                 continue
+
             category = func_classification(func, called_objs, obj_sets, obj_map)
+            # 함수 또는 메서드의 호출 반환이 객체인 경우 정보를 저장
+            next_line = byte_code[shared_variables.keys_list[i + 1]]
+            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
+                result = (pattern.search(next_line).group(1))
+                if category not in func and not category.startswith('__'):
+                    func = category + '.' + func
+                obj_map[result] = func
+
+            # 외부 모듈의 객체에서 호출하는 메서드
+            if func.split('.')[0] in obj_map:
+                assign = obj_map[func.split('.')[0]].split('.')
+                for i in range(len(assign), 0, -1):
+                    if '.'.join(assign[:i]) in called_objs.keys():
+                        module = '.'.join(assign[:i])
+                        obj = '.'.join(assign[i:])
+                called_objs[module]['__called'].add(obj + '.' + '.'.join(func.split('.')[1:]))
+                continue
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(func)
             else:
-                called_objs[category]['__called'].add(shared_variables.LOAD[func_offset])
+                called_func = shared_variables.LOAD[func_offset]
+                # module.func 형태의 호출의 경우 func만 추출해 저장 ex) xgb.XGBClassifier -> XGBClassifier
+                if '.' in called_func and called_func.split('.')[0] in called_objs:
+                    called_func = ''.join(called_func.split('.')[1:])
 
-            next_line = byte_code[shared_variables.keys_list[i + 1]]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
-                obj_map[result] = func
+                called_objs[category]['__called'].add(called_func)
 
             bcode_instructions.call_function_stack(func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             cap_stack = shared_variables.LOAD.copy()
-            # FIXME: 여기서 스택을 조작해서 아래 코드에 문제가 생길듯.
             method = bcode_instructions.call_method(content, shared_variables)
-            category = func_classification(method, called_objs, obj_sets, obj_map)
 
             if method == 'importlib.import_module' or method == 'ctypes.CDLL':
                 lazy_loading(byte_code, i, shared_variables.keys_list, called_objs, cap_stack)
+
+            # 함수 또는 메서드의 호출 반환이 객체인 경우 정보를 저장
+            next_line = byte_code[shared_variables.keys_list[i + 1]]
+            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
+                result = (pattern.search(next_line).group(1))
+                obj_map[result] = method
+
+            # 외부 모듈의 객체에서 호출하는 메서드
+            # 'scaler': 'sklearn.preprocessing.StandardScaler',
+            # scaler.fit_transform
+            if method.split('.')[0] in obj_map:
+                assign = obj_map[method.split('.')[0]].split('.')
+                for i in range(len(assign), 0, -1):
+                    if '.'.join(assign[:i]) in called_objs.keys():
+                        module = '.'.join(assign[:i])
+                        obj = '.'.join(assign[i:])
+
+                called_objs[module]['__called'].add(obj + '.' + '.'.join(method.split('.')[1:]))
+                continue
+
+            category = func_classification(method, called_objs, obj_sets, obj_map)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(method)
@@ -522,11 +558,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 if category not in called_objs.keys():
                     called_objs[category] = {'__called':set()}
                 called_objs[category]['__called'].add(method.split('.')[-1])
-
-            next_line = byte_code[shared_variables.keys_list[i + 1]]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
-                obj_map[result] = method
         else:
             flag = parse_shared_instructions(content, shared_variables)
 
@@ -553,6 +584,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
         
         # print(offset, shared_variables.LOAD)
-    pprint(shared_variables.decorator_map)
+    # pprint(shared_variables.decorator_map)
     input()
     return called_objs, shared_variables.decorator_map

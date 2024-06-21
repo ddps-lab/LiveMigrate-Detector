@@ -261,7 +261,7 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
     else:
         return None
 
-def tracking(LANGUAGE_TYPE):
+def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     executable_instructions = []
     tracking_functions = set()
     list_tracking_functions = []
@@ -269,7 +269,7 @@ def tracking(LANGUAGE_TYPE):
     tracked_instructions = set()
 
     if LANGUAGE_TYPE == 'python':
-        tracking_functions = bytecode_tracking.btracking.main()
+        tracking_functions = bytecode_tracking.btracking.main(SCRIPT_PATH)
         list_tracking_functions = list(tracking_functions)
 
     # search the starting point of tracking
@@ -318,6 +318,7 @@ if __name__ == '__main__':
     # 쉘 스크립트에서 전달된 workload PID 가져오기
     PID = int(os.getenv('WORKLOAD_PID', '0'))
     LANGUAGE_TYPE = os.getenv('LANGUAGE_TYPE', '0')
+    SCRIPT_PATH = os.getenv('SCRIPT_PATH', '0')
 
     glibc_tunables_check()
     binding_check(PID)
@@ -329,7 +330,7 @@ if __name__ == '__main__':
     runtime_indirect = []
     call_regi = []
 
-    tracking(LANGUAGE_TYPE)
+    tracking(LANGUAGE_TYPE, SCRIPT_PATH)
 
     with open('tracked_functions.txt', 'w') as f:
         f.write('\n'.join(logging_functions))   

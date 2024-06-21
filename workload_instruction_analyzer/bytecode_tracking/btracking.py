@@ -27,45 +27,50 @@ def is_builtin_module(module_name):
         return False
 
 def final_call(obj_map, def_map, obj):
-    level = obj.count('.') + 1
+    objs = obj.split('.')
+
     # 객체를 참조하는 호출
-    if level > 0:
-        objs = obj.split('.')
-        
+    if len(objs) > 1:
         key = objs[0]
-        for i in range(level):
+        for i in range(len(objs)):
             try:
                 value = obj_map[key]
                 key = value + '.' + objs[i + 1]
             except KeyError:
+                break
+            except IndexError:
                 break
         
         # 최종 호출 함수가 사용자 정의 함수인 경우
         if key in def_map.keys():
             return def_map[key]
     else:
-        return obj
+        if obj in def_map:
+            return def_map[obj]
+        
+        return objs
 
 # 너비탐색으로 진행.
 def user_def_tracking(called_map, obj_map, def_map, obj_sets):
     '''
     현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
     '''
+    if called_map['__user_def'] == None:
+        return
+    
     # 새로 추적된 함수들을 저장할 곳.
     new_tracked = {'__builtin':set(), '__user_def':set()}
     for key in called_map.keys():
         if key == '__builtin' or key == '__user_def':
             continue
         new_tracked[key] = {'__called':set()}
-
-    if called_map['__user_def'] == None:
-        return
     
     for obj in called_map['__user_def']:
         chain = final_call(obj_map, def_map, obj)
 
         for func in chain:
             category = bcode_parser.func_classification(func, called_map, obj_sets, obj_map)
+            
             if category == '__builtin' or category == '__user_def':
                 if func not in called_map[category]:
                     new_tracked[category].add(func)
@@ -91,12 +96,12 @@ def create_call_map(byte_code, module):
 
     called_map, decorator_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
-    # print('================ def map ================')
-    # pprint(def_map)
-    # print('================ called map ================')
+    print(f'\033[31m================ def map ================\033[0m')
+    pprint(def_map)
+    print(f'\033[31m================ called map ================\033[0m')
     pprint(called_map)
-    # print('================ obj map ================')
-    # pprint(obj_map)
+    print(f'\033[31m================ obj map ================\033[0m')
+    pprint(obj_map)
     # print('------------------------------------------------------------------------------------------------------------')
 
     return called_map, obj_sets, def_map, obj_map, decorator_map
@@ -238,7 +243,7 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
 
     byte_code = compile(source_code, '<string>', 'exec')
 
-    called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, 'main')
+    called_map, obj_sets, def_map, obj_map, _ = create_call_map(byte_code, 'main')
     search_module_path(called_map, pycaches)
     modules_info = pycaches | modules_info
 
