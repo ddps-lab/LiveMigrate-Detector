@@ -139,9 +139,8 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             origin_name = func
 
             if func in decorator_map:
-                match = re.search(r'\((.*?)\)', decorator_map[func])
-                c_module = match.group(1).split('.')[0]
-                c_func = match.group(1).split('.')[1]
+                c_module = decorator_map[func].split('.')[0]
+                c_func = decorator_map[func].split('.')[1]
                 
                 C_functions_with_decorators.setdefault(c_module, set())
                 C_functions_with_decorators[c_module].add(c_func)
