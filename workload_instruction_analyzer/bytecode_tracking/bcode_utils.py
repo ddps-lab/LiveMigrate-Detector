@@ -158,15 +158,13 @@ def scan_definition(definitions):
 def merge_dictionaries(dictA, dictB):
     for key, value in dictB.items():
         if isinstance(value, set):
-            # dictB.key의 값이 비어있는 세트가 아닌 경우에만 업데이트
-            if value:
-                if key in dictA and isinstance(dictA[key], set):
-                    dictA[key].update(value)
-                else:
-                    dictA[key] = value.copy()
+            if key in dictA and isinstance(dictA[key], set):
+                dictA[key].update(value)
+            else:
+                dictA[key] = value.copy()
         elif isinstance(value, dict):
             # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
-            if '__called' in value and value['__called']:
+            if '__called' in value:
                 if key in dictA and '__called' in dictA[key] and isinstance(dictA[key]['__called'], set):
                     dictA[key]['__called'].update(value['__called'])
                 else:
@@ -176,12 +174,12 @@ def merge_dictionaries(dictA, dictB):
                     dictA[key]['__called'] = value['__called'].copy()
 
             try:
-                dictA[key]['__origin_name'] = (value['__origin_name'])
-            except:
+                dictA[key]['__origin_name'] = value['__origin_name']
+            except KeyError:
                 pass
             try:
-                dictA[key]['__from'] = (value['__from'])
-            except:
+                dictA[key]['__from'] = value['__from']
+            except KeyError:
                 pass            
 
     return dictA
