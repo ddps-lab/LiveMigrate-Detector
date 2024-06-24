@@ -27,6 +27,10 @@ def is_builtin_module(module_name):
         return False
 
 def final_call(obj_map, def_map, obj):
+    '''
+    트래킹하려는 함수가 현재 파일에 정의된 경우 해당 함수가 호출하는 다른 함수들을 추출
+    ex) numpy.matmul의 정의가 현재 파싱중인 파일에 있다면 matmul 함수에서 호출하는 함수들을 추출
+    '''
     objs = obj.split('.')
 
     # 객체를 참조하는 호출
@@ -36,10 +40,12 @@ def final_call(obj_map, def_map, obj):
             try:
                 value = obj_map[key]
                 key = value + '.' + objs[i + 1]
+            # 객체가 함수 또는 메서드가 아님
+            # ex) data_description.pop 에서 data_description이 json인 경우
             except KeyError:
-                break
+                return None
             except IndexError:
-                break
+                return None
         
         # 최종 호출 함수가 사용자 정의 함수인 경우
         if key in def_map.keys():
@@ -68,6 +74,9 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
     for obj in called_map['__user_def']:
         chain = final_call(obj_map, def_map, obj)
 
+        if chain == None:
+            continue
+        
         for func in chain:
             category = bcode_parser.func_classification(func, called_map, obj_sets, obj_map)
             
