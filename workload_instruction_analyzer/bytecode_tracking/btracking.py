@@ -121,7 +121,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
     for module, path in pycaches.items():
         if path == '__builtin' or path == '__not_pymodule':
             continue
-
+        
         byte_code = bcode_utils.read_pyc(path)
         called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
         key = module.split('.')[0]
@@ -266,6 +266,13 @@ def main(SCRIPT_PATH):
 
     new_called_map = module_tracking(pycaches, called_map, C_functions_with_decorators, called_func)
     while(True):
+        next_tracking = new_called_map.copy()
+
+        pycaches = {}
+        search_module_path(next_tracking, pycaches)
+        modules_info = pycaches | modules_info
+        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators, called_func)
+
         next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
         called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
 
@@ -276,11 +283,6 @@ def main(SCRIPT_PATH):
         else:
             break
         
-        pycaches = {}
-        search_module_path(next_tracking, pycaches)
-        modules_info = pycaches | modules_info
-        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators, called_func)
-
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
     print(f'\033[31m==== modules ====\033[0m')

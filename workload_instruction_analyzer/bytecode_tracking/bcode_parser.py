@@ -503,15 +503,19 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     func = category + '.' + func
                 obj_map[result] = func
 
-            # 외부 모듈의 객체에서 호출하는 메서드
             if func.split('.')[0] in obj_map:
+                external_module, obj_func = '', ''
+
                 assign = obj_map[func.split('.')[0]].split('.')
                 for i in range(len(assign), 0, -1):
                     if '.'.join(assign[:i]) in called_objs.keys():
-                        module = '.'.join(assign[:i])
-                        obj = '.'.join(assign[i:])
-                called_objs[module]['__called'].add(obj + '.' + '.'.join(func.split('.')[1:]))
-                continue
+                        external_module = '.'.join(assign[:i])
+                        obj_func = '.'.join(assign[i:])
+                
+                if external_module and obj_func:
+                    called_objs[external_module]['__called'].add(obj_func + '.' + '.'.join(func.split('.')[1:]))
+                    continue
+
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(func)
@@ -541,14 +545,17 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
             # 'scaler': 'sklearn.preprocessing.StandardScaler',
             # scaler.fit_transform
             if method.split('.')[0] in obj_map:
+                external_module, obj_method = '', ''
+
                 assign = obj_map[method.split('.')[0]].split('.')
                 for i in range(len(assign), 0, -1):
                     if '.'.join(assign[:i]) in called_objs.keys():
-                        module = '.'.join(assign[:i])
-                        obj = '.'.join(assign[i:])
-
-                called_objs[module]['__called'].add(obj + '.' + '.'.join(method.split('.')[1:]))
-                continue
+                        external_module = '.'.join(assign[:i])
+                        obj_method = '.'.join(assign[i:])
+                
+                if external_module and obj_method:
+                    called_objs[external_module]['__called'].add(obj_method + '.' + '.'.join(method.split('.')[1:]))
+                    continue
 
             category = func_classification(method, called_objs, obj_sets, obj_map)
 
@@ -581,8 +588,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                         break
                     
                     i += 1
-
-        
         # print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
     input()
