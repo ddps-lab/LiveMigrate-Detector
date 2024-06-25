@@ -23,7 +23,6 @@ def preprocessing_bytecode(byte_code):
         if not parts:
             return None, None, line_number
 
-        # code line number 제외
         # 141         176 LOAD_CONST               3 (1)
         if parts[1].isdigit():
             # >>  142 LOAD_CONST               2 (None)
@@ -65,14 +64,18 @@ def preprocessing_bytecode(byte_code):
     for i, obj in enumerate(objects):
         objects[i] = obj.strip().split('\n')
 
+    # 바이트코드의 main 부분
     main_bcode_block_start_offsets = []
     for line in codes:
         offset, content, line_number = parse_bytecode_line(line)
 
         if line_number != 0:
             bcode_block_number = line_number
-            main_bcode_block_start_offsets.append(offset)
-
+            main_bcode_block_start_offsets.append(offset)            
+        # line_number가 0이면 새로운 라인이 아니라는 뜻
+        elif line_number == 0:
+            line_number = bcode_block_number
+            
         if not isinstance(offset, int):
             continue
 
@@ -102,6 +105,9 @@ def preprocessing_bytecode(byte_code):
             if line_number != 0:
                 bcode_block_number = line_number
                 def_bcode_block_start_offsets.append(offset)
+            # line_number가 0이면 새로운 라인이 아니라는 뜻
+            elif line_number == 0:
+                line_number = bcode_block_number
 
             if not isinstance(offset, int):
                 continue
