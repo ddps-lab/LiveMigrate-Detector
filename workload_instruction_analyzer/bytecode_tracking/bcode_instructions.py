@@ -101,11 +101,6 @@ def load_attr(content, shared_variables):
     value = shared_variables.LOAD.pop(0) + '.' + pattern.search(content).group(1)
     shared_variables.LOAD.insert(0, value)
 
-# def load_method(content, shared_variables):
-#     parents_object = shared_variables.LOAD[0]
-#     shared_variables.LOAD.insert(0, pattern.search(content).group(1))
-#     return parents_object
-
 def load_etc(content, shared_variables):
     shared_variables.LOAD.insert(0, pattern.search(content).group(1))
     
