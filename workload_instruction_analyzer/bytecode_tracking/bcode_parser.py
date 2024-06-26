@@ -92,6 +92,9 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
     return False
 
 def parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
+    # 아래와 같은 경우 조건이 else라면 분기 전 스택을 기준으로 동작함.
+    # 즉, 조건이 참인 경우에 변화할 스택 상태로 else를 처리하면 에러가 발생하므로 분기문에 대한 처리가 필요함.
+    # print("NumPy CPU features: ", (info if info else 'nothing enabled'))
     '''
     [분기 처리 기본 동작]
     1. POP_JUMP_IF_FALSE 마다 stack을 capture하여 stack_cap에 push.
@@ -315,9 +318,11 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
         # 해석하지 않을 바이트코드 명령 (사용자 코드가 아닌 내부 처리 코드)
         if offset < shared_variables.pass_offset:
             continue
-
+        
+        # FIXME: 파라미터로 전달하는 called_objs는 set이 아니고 dict여야함.
+        # 해결하지 않으면 함수 내에서 모듈을 import 하는 것을 처리할 수 없음
         # if parse_import_instructions(content, called_objs, shared_variables, i):
-        #     continue
+            # continue
 
         if 'IMPORT_NAME' in content:
             # ctypes, libimport만 확인
