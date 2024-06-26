@@ -230,7 +230,8 @@ def parse_shared_instructions(content, shared_variables):
         try:
             bcode_instructions.dup(shared_variables)
         except:
-            return 'except'
+            pass
+            # raise
     elif 'RETURN_VALUE' in instruction:
         try:
             bcode_instructions.pop(shared_variables)
@@ -368,29 +369,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = method
         else:
-            flag = parse_shared_instructions(content, shared_variables)
-
-            # if flag == 'except':
-            #     # 예외를 처리하는 내부 코드는 DUP_TOP으로 시작함.
-            #     if not offset in shared_variables.def_bcode_block_start_offsets:
-            #         raise IndexError
-
-            #     while(True):
-            #         next_offset = shared_variables.keys_list[i - 1]
-            #         next_line = byte_code[next_offset]
-
-            #         if next_offset in shared_variables.def_bcode_block_start_offsets:
-            #             break
-
-            #         # JUMP_IF_NOT_EXC_MATCH는 예외처리에서만 사용되는 명령
-            #         # 해당 명령이 있으면 내부 코드로 판단해 해당 블록을 건너뛰도록 설정
-            #         if 'JUMP_IF_NOT_EXC_MATCH' in next_line:
-            #             pass_idx = shared_variables.def_bcode_block_start_offsets.index(offset) + 1
-            #             shared_variables.pass_offset = shared_variables.def_bcode_block_start_offsets[pass_idx]
-            #             break
-                    
-            #         i += 1
-            
+            parse_shared_instructions(content, shared_variables)
         # print(offset, shared_variables.LOAD)
     return called_objs
 
@@ -549,28 +528,8 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     called_objs[category] = {'__called':set()}
                 called_objs[category]['__called'].add(method.split('.')[-1])
         else:
-            flag = parse_shared_instructions(content, shared_variables)
+            parse_shared_instructions(content, shared_variables)
 
-            # if flag == 'except':
-            #     # 예외를 처리하는 내부 코드는 DUP_TOP으로 시작함.
-            #     if not offset in shared_variables.main_bcode_block_start_offsets:
-            #         raise IndexError
-                
-            #     while(True):
-            #         next_offset = shared_variables.keys_list[i + 1]
-            #         next_line = byte_code[next_offset]
-
-            #         if next_offset in shared_variables.main_bcode_block_start_offsets:
-            #             break
-
-            #         # JUMP_IF_NOT_EXC_MATCH는 예외처리에서만 사용되는 명령
-            #         # 해당 명령이 있으면 내부 코드로 판단해 해당 블록을 건너뛰도록 설정
-            #         if 'JUMP_IF_NOT_EXC_MATCH' in next_line:
-            #             pass_idx = shared_variables.main_bcode_block_start_offsets.index(offset) + 1
-            #             shared_variables.pass_offset = shared_variables.main_bcode_block_start_offsets[pass_idx]
-            #             break
-                    
-            #         i += 1
         # print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
     input()
