@@ -134,7 +134,6 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         byte_code = bcode_utils.read_pyc(path)
         called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
         key = module.split('.')[0]
-
         module = check_module_origin_name(module)
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func.setdefault(key, set())
@@ -148,11 +147,13 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             origin_name = func
 
             if func in decorator_map:
-                c_module = decorator_map[func].split('.')[0]
-                c_func = decorator_map[func].split('.')[1]
-                
-                C_functions_with_decorators.setdefault(c_module, set())
-                C_functions_with_decorators[c_module].add(c_func)
+                # FIXME: 데코레이터 사용에서 .이 없을 수도 있을듯?
+                if '.' in decorator_map[func]:
+                    c_module = decorator_map[func].split('.')[0]
+                    c_func = decorator_map[func].split('.')[1]
+                    
+                    C_functions_with_decorators.setdefault(c_module, set())
+                    C_functions_with_decorators[c_module].add(c_func)
 
             module_base = module.split('.')[0]
             for key in base_map.keys():
@@ -280,7 +281,6 @@ def main(SCRIPT_PATH):
         pycaches = {}
         search_module_path(next_tracking, pycaches)
         modules_info = pycaches | modules_info
-        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators, called_func)
 
         next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
         called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
@@ -291,6 +291,8 @@ def main(SCRIPT_PATH):
             pass
         else:
             break
+
+        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators, called_func)
         
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
