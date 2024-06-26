@@ -101,17 +101,16 @@ def load_attr(content, shared_variables):
     value = shared_variables.LOAD.pop(0) + '.' + pattern.search(content).group(1)
     shared_variables.LOAD.insert(0, value)
 
-def load_method(content, shared_variables):
-    parents_object = shared_variables.LOAD[0]
-    shared_variables.LOAD.insert(0, pattern.search(content).group(1))
-    return parents_object
+# def load_method(content, shared_variables):
+#     parents_object = shared_variables.LOAD[0]
+#     shared_variables.LOAD.insert(0, pattern.search(content).group(1))
+#     return parents_object
 
 def load_etc(content, shared_variables):
     shared_variables.LOAD.insert(0, pattern.search(content).group(1))
     
 def load(content, shared_variables):
     LOAD = shared_variables.LOAD
-    parents_object = None
 
     # 클래스 정의
     if 'LOAD_BUILD_CLASS' in content:
@@ -123,9 +122,8 @@ def load(content, shared_variables):
         LOAD.insert(0, value)
     # LOAD_METHOD는 스택의 최상단에 있는 객체에서 메서드를 찾음
     elif 'LOAD_METHOD' in content:
-        parents_object = LOAD[0]
-        LOAD.insert(0, pattern.search(content).group(1))
-        return parents_object
+        value = LOAD.pop(0) + '.' + pattern.search(content).group(1)
+        LOAD.insert(0, value)
     elif 'LOAD_ASSERTION_ERROR' in content:
         LOAD.insert(0, 'AssertionError')
     else:
@@ -266,59 +264,46 @@ def store_attr(idx, shared_variables):
 
 def call_function(func_offset, shared_variables):
     LOAD = shared_variables.LOAD
-    parents_object = shared_variables.parents_object
     called_func = None
 
     try:
         if LOAD[func_offset] == '__build_class__':
             pass
         else:
-            # func() 형태의 호출
-            if len(parents_object) == 0:
-                called_func = LOAD[func_offset]
-            # obj.func 형태의 호출
-            else:
-                called_func = parents_object.pop(0) + '.' + LOAD[func_offset]
+            called_func = LOAD[func_offset]
     except:
         return '__bug__'
     
     return called_func
 
 def call_function_stack(func_offset, shared_variables):
+    # FIXME: 함수 결과를 np.ediff1d(('to_begin', 'to_end'to_endto_beginunique_pcts) 이렇게 모호하게 하지 말고 result of np.ediff1d 처럼 저장하는게 좋을듯
     LOAD = shared_variables.LOAD
-    parents_object = shared_variables.parents_object
 
     call_result = ''
 
     # 호출되는 함수와 인자들을 pop
-    try:
-        call_result += LOAD.pop(func_offset)
-        call_result += '('
-        for _ in range(func_offset):
-            call_result += LOAD.pop(0)
-        call_result += ')'
-        LOAD.insert(0, call_result)
+    call_result += LOAD.pop(func_offset)
+    call_result += '('
+    for _ in range(func_offset):
+        call_result += LOAD.pop(0)
+    call_result += ')'
+    LOAD.insert(0, call_result)
 
-        # 객체로부터 호출되는 경우 해당 객체도 pop
-        if len(parents_object) != 0:
-            LOAD.pop(0)
-    except:
-        pass
 
 def call_method(content, shared_variables):
     LOAD = shared_variables.LOAD
-    parents_object = shared_variables.parents_object
 
     method_offset = int(content.split('CALL_METHOD')[1].strip())
-    if len(parents_object) == 0:
-        called_method = LOAD[method_offset]
-    else:
-        called_method = parents_object.pop(0) + '.' + LOAD[method_offset]
+    called_method = LOAD[method_offset]
     
     call_result = ''
     # 호출되는 메서드와 상위 객체, 인자들을 pop
-    for _ in range(method_offset + 2):
-        call_result += LOAD.pop(0)
+    for _ in range(method_offset + 1):
+        try:
+            call_result += LOAD.pop(0)
+        except:
+            raise
 
     LOAD.insert(0, call_result)
 
