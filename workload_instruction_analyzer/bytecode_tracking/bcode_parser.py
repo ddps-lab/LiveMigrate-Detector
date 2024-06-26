@@ -55,7 +55,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         if module == None:
             return True
         
-        # print(module, shared_variables.alias)
         called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
@@ -63,7 +62,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             shared_variables.from_list.pop(0)
             module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
             
-            # FIXME: 어느 모듈에서 import하는지만 잘 추출해보자
             called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
             return True
         
@@ -187,8 +185,6 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
         branch_shared_variables.stack_cap.pop(-1)
         # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
         return False
-
-    # FIXME: JUMP_IF_NOT_EXC_MATCH - except 에서 지정한 예외가 아니면 점프(스택변화는 없음)
 
     if 'POP_JUMP_IF_FALSE' in content:
         bcode_instructions.pop(shared_variables)
@@ -328,11 +324,6 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 result = bcode_instructions.store_attr(i - 2, shared_variables)
                 if result != None:
                     obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1].replace('(', '').replace(')', '')
-            else:
-                # FIXME:
-                # 상위 객체 정보가 없는 경우
-                # 객체에 속하지 않는 함수에서 obj.attr에 함수의 결과가 저장되는 경우
-                pass
             bcode_instructions.pop(shared_variables)
             bcode_instructions.pop(shared_variables)
         elif 'CALL_FUNCTION' in content:
@@ -362,9 +353,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
 
             called_objs.add(func)
 
-            # FIXME: '__name', '__addr' 를 패스하니 -2가 맞는거 같긴 한데 결과 봐야할듯
             next_content = byte_code[shared_variables.keys_list[i - 2]]
-            # next_content = byte_code[shared_variables.keys_list[i - 1]]
 
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
@@ -374,9 +363,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
         elif 'CALL_METHOD' in content:
             method = bcode_instructions.call_method(content, shared_variables)
             called_objs.add(method)
-            # FIXME: '__name', '__addr' 를 패스하니 -2가 맞는거 같긴 한데 결과 봐야할듯
             next_content = byte_code[shared_variables.keys_list[i - 2]]
-            # next_content = byte_code[shared_variables.keys_list[i - 1]]
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = method
