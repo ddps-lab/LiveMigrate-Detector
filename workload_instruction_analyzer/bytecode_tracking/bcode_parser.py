@@ -229,9 +229,18 @@ def parse_shared_instructions(content, shared_variables):
     elif 'DUP_TOP' in instruction:
         try:
             bcode_instructions.dup(shared_variables)
-        except:
+        # except 문에서는 아래와 같이 DUP_TOP을 통해 스택 최상단의 예외 객체를 복사.
+        # 예외 객체는 런타임에 스택에 삽입되므로 정적 분석에서는 스택이 비어있는 상태.
+        # 따라서 비어있는 스택을 참조하려 하기 때문에 IndexError 가 발생함
+        # 371 except ValueError:
+        # 371     >>   58 DUP_TOP
+        #              60 LOAD_GLOBAL              4 (ValueError)
+        #              62 JUMP_IF_NOT_EXC_MATCH    38 (to 76)
+        #              64 POP_TOP
+        #              66 POP_TOP
+        #              68 POP_TOP
+        except IndexError:
             pass
-            # raise
     elif 'RETURN_VALUE' in instruction:
         try:
             bcode_instructions.pop(shared_variables)
