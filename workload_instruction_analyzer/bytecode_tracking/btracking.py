@@ -12,6 +12,7 @@ import re
 
 # temp
 from pprint import pprint
+from collections import Counter
 
 LIBRARIES = stdlib_list("3.10")
 
@@ -88,12 +89,26 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
                 if func not in called_map[category]['__called']:
                     new_tracked[category]['__called'].add(func)
 
-    print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
-    pprint(new_tracked)
+    # print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
+    # pprint(new_tracked)
     return new_tracked
 
+temp = set()
+temp2 = []
+
 def create_call_map(byte_code, module):
+    # if module not in temp:
+    #     temp.add(module)
+    # else:
+    #     temp2.append(module)
     print(f'\033[33m======================================== {module} ========================================\033[0m')
+    # # Counter를 사용하여 각 요소의 빈도 계산
+    # element_counts = Counter(temp2)
+
+    # # 결과 출력
+    # for element, count in element_counts.items():
+    #     print(f"{element} : {count}")    
+
     def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(byte_code)
 
@@ -105,12 +120,12 @@ def create_call_map(byte_code, module):
 
     called_map, decorator_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
-    print(f'\033[31m================ def map ================\033[0m')
-    pprint(def_map)
-    print(f'\033[31m================ called map ================\033[0m')
-    pprint(called_map)
-    print(f'\033[31m================ obj map ================\033[0m')
-    pprint(obj_map)
+    # print(f'\033[31m================ def map ================\033[0m')
+    # pprint(def_map)
+    # print(f'\033[31m================ called map ================\033[0m')
+    # pprint(called_map)
+    # print(f'\033[31m================ obj map ================\033[0m')
+    # pprint(obj_map)
     # print('------------------------------------------------------------------------------------------------------------')
 
     return called_map, obj_sets, def_map, obj_map, decorator_map
@@ -139,8 +154,8 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         called_func.setdefault(key, set())
         called_func[key].update(base_map[module]['__called'])
 
-        print(f'\033[33mcalled func : {called_func[key]}\033[0m')
-        print(f'\033[33muser def : {obj_sets}\033[0m')
+        # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
+        # print(f'\033[33muser def : {obj_sets}\033[0m')
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func[key]:
@@ -170,12 +185,12 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             if bcode_utils.dict_empty_check(new_tracked):
                 break
             called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-        print(f'\033[31m==== after user def tracking ====\033[0m')
-        pprint(called_map)
+        # print(f'\033[31m==== after user def tracking ====\033[0m')
+        # pprint(called_map)
 
         new_called_map = bcode_utils.merge_dictionaries(new_called_map, called_map)
-        print(f'\033[35m==== new called map ====\033[0m')
-        pprint(new_called_map)
+        # print(f'\033[35m==== new called map ====\033[0m')
+        # pprint(new_called_map)
 
     return new_called_map
 
@@ -262,8 +277,8 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-    print(f'\033[31m==== after user def tracking ====\033[0m')
-    pprint(called_map)
+    # print(f'\033[31m==== after user def tracking ====\033[0m')
+    # pprint(called_map)
     return called_map, pycaches, modules_info
 
 def main(SCRIPT_PATH):
@@ -273,27 +288,34 @@ def main(SCRIPT_PATH):
     called_func = {}
 
     called_map, pycaches, modules_info = entry_tracking(pycaches, modules_info, SCRIPT_PATH)
+    print(f'\033[31m==== main tracking ====\033[0m')
+    pprint(called_map)
 
     new_called_map = module_tracking(pycaches, called_map, C_functions_with_decorators, called_func)
     while(True):
-        next_tracking = new_called_map.copy()
+        next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
+
+        # next_tracking[key][__called] 값이 called_map의 __called 값에 포함되는 항목을 next_tracking에서 제거
+        keys_to_remove = [
+            key for key in next_tracking
+            if key in called_map and called_map[key]['__called'].issuperset(next_tracking[key]['__called'])
+        ]
+        for key in keys_to_remove:
+            del next_tracking[key]
 
         pycaches = {}
         search_module_path(next_tracking, pycaches)
         modules_info = pycaches | modules_info
 
-        next_tracking = bcode_utils.find_unique_keys_values(called_map, new_called_map)
-        called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
-
         if next_tracking:
             print(f'\033[31m==== next tracking ====\033[0m')
             pprint(next_tracking)
-            pass
+
+            called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
+            new_called_map = module_tracking(pycaches, next_tracking, C_functions_with_decorators, called_func)
         else:
             break
 
-        new_called_map = module_tracking(pycaches, new_called_map, C_functions_with_decorators, called_func)
-        
     print(f'\033[31m==== end ====\033[0m')
     pprint(called_map)
     print(f'\033[31m==== modules ====\033[0m')
