@@ -97,18 +97,7 @@ temp = set()
 temp2 = []
 
 def create_call_map(byte_code, module):
-    # if module not in temp:
-    #     temp.add(module)
-    # else:
-    #     temp2.append(module)
     print(f'\033[33m======================================== {module} ========================================\033[0m')
-    # # Counter를 사용하여 각 요소의 빈도 계산
-    # element_counts = Counter(temp2)
-
-    # # 결과 출력
-    # for element, count in element_counts.items():
-    #     print(f"{element} : {count}")    
-
     def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(byte_code)
 
@@ -195,46 +184,34 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
     return new_called_map
 
 def search_module_path(called_map, pycaches):
-    '''
-    트래킹된 모듈의 pycache 위치를 찾음.
-    '''
-    modules = {
-        module_info['__origin_name']: module_info.get('__from', None)
-        for _, module_info in called_map.items()
+    # __origin_name 값을 추출하여 리스트로 변환
+    origin_names = list({
+        module_info['__origin_name']
+        for module_info in called_map.values()
         if '__origin_name' in module_info
-    }
+    })
 
-    for __origin_name, __from in modules.items():
+    for __origin_name in origin_names:
+        if is_builtin_module(__origin_name):
+            pycaches[__origin_name] = '__builtin'
+            continue
+        
         try:
-            if is_builtin_module(__origin_name):
-                pycaches[__origin_name] = '__builtin'
-                continue
-            loaded_module = importlib.import_module(__origin_name)
+            if __origin_name in sys.modules:
+                loaded_module = sys.modules[__origin_name]
+            else:
+                loaded_module = importlib.import_module(__origin_name)
+
             module_path = loaded_module.__cached__
             pycaches[__origin_name] = module_path
-
         except AttributeError:
             pycaches[__origin_name] = '__not_pymodule'
         except ModuleNotFoundError:
-            try:
-                # __from이 None이면 단순 import된 모듈
-                # builtin 모듈이 아니면서 ModuleNotFoundError가 발생했다는건 C 모듈
-                if __from == None:
-                    pycaches[__origin_name] = '__not_pymodule'
-                    continue
+            pycaches[__origin_name] = '__not_pymodule'
 
-                module = __from + '.' + __origin_name
-                loaded_module = importlib.import_module(module)
-                module_path = loaded_module.__cached__
-                pycaches[module] = module_path
-            except ModuleNotFoundError:
-                pycaches[module] = '__not_pymodule'
-            except AttributeError:
-                if is_builtin_module(module):
-                    pycaches[module] = '__builtin'
-                else:
-                    pycaches[module] = '__not_pymodule'
-    
+# FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+# 이 함수를 수행하기 전, called_map을 수정하면 될듯
+# 모든 키를 __origin으로 업데이트하고 동일한거는 병합해버리는 식
 def extract_c_func(modules_info, called_map):
     not_pymodule_keys = []
     not_pymodules = {}

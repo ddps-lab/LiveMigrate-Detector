@@ -1,9 +1,40 @@
 import bcode_instructions
-from pprint import pprint
+import importlib
+import sys
 
+from pprint import pprint
+import os
 import re
 
 pattern = re.compile(r'\((.*?)\)')
+
+def module_classification(__module, __from):
+    '''
+    Python에서 모듈을 임포트할 때의 우선순위
+    1.  현재 디렉토리 (또는 스크립트의 디렉토리):
+	    •	Python 스크립트가 실행되는 디렉토리.
+	2.	PYTHONPATH 환경 변수:
+	    •	환경 변수 PYTHONPATH에 설정된 경로.
+	3.	표준 라이브러리 디렉토리:
+	    •	Python 설치 경로에 있는 표준 라이브러리 디렉토리. 예를 들어, Unix 시스템에서는 /usr/lib/python3.x와 같은 경로.
+	4.	외부 패키지 디렉토리:
+	    •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
+    '''
+
+    module = __from + '.' + __module
+
+    for _ in range(3):
+        # 모듈이 이미 로드된 경우를 처리
+        if module in sys.modules:
+            return module
+        
+        try:
+            importlib.import_module(module)
+            return module
+        except ModuleNotFoundError:
+            module = __module
+
+    return False
 
 def func_classification(func, called_objs, obj_sets, obj_map):
     '''
@@ -55,14 +86,24 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         if module == None:
             return True
         
-        called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
+        module_path = module_classification(module, shared_variables.current_module)
+        # module이 python이 아닌 경우
+        if not module_path:
+            module_path = module
+
+
+        called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
         if shared_variables.from_list:
             shared_variables.from_list.pop(0)
             module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
             
-            called_objs[shared_variables.alias] = {'__origin_name':module, '__called':set(), '__from':shared_variables.current_module}
+            module_path = module_classification(module, shared_variables.current_module)
+            if not module_path:
+                module_path = module
+
+            called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
             return True
         
         '''
@@ -78,7 +119,7 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
 
         # IMPORT_FROM 객체를 로드하는 경우(본래 역할) 처리
         from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
-
+        
         if '__func_alias' not in called_objs[shared_variables.alias]:
             called_objs[shared_variables.alias]['__func_alias'] = {}
 
@@ -492,7 +533,6 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     called_objs[external_module]['__called'].add(obj_func + '.' + '.'.join(func.split('.')[1:]))
                     continue
 
-
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(func)
             else:
@@ -546,5 +586,5 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
         # print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
-    input()
+    # input()
     return called_objs, shared_variables.decorator_map
