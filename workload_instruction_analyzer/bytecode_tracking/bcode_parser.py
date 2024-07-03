@@ -39,12 +39,18 @@ def module_classification(__module, __from):
             pkg = __from.split('.')[:-1]
             if pkg:
                 module = '.'.join(__from.split('.')[:-1]) + '.' + __module
-
+        # 특정 OS에 최적화된 모듈을 import 하려는 경우 발생
+        except ImportError as e:
+            print(f'ImportError when import {module}')
+            return e
+        except AttributeError:
+            print(module)
+            raise
     try:
         importlib.import_module(__module)
         return __module
-    except ModuleNotFoundError:
-        return False
+    except ModuleNotFoundError as e:
+        return e
 
 def func_classification(func, called_objs, obj_sets, obj_map):
     '''
@@ -97,9 +103,10 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             return True
         
         module_path = module_classification(module, shared_variables.current_module)
-        # module이 python이 아닌 경우
-        if not module_path:
+        if isinstance(module_path, ModuleNotFoundError):
             module_path = module
+        elif isinstance(module_path, ImportError):
+            return True
 
         called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
@@ -109,8 +116,10 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
             
             module_path = module_classification(module, shared_variables.current_module)
-            if not module_path:
+            if isinstance(module_path, ModuleNotFoundError):
                 module_path = module
+            elif isinstance(module_path, ImportError):
+                return True
 
             called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
             return True
@@ -126,9 +135,12 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             shared_variables.from_pass -= 1
             return True
 
-        # IMPORT_FROM 객체를 로드하는 경우(본래 역할) 처리
+        # IMPORT_FROM으로 함수 또는 메서드 객체를 로드하는 경우(본래 역할) 처리
         from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
         
+        # import할 수 없는 모듈이어서 생략하는 경우 ex) 특정 os 전용 모듈
+        if shared_variables.alias not in called_objs:
+            return True
         if '__func_alias' not in called_objs[shared_variables.alias]:
             called_objs[shared_variables.alias]['__func_alias'] = {}
 
@@ -439,7 +451,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
@@ -597,7 +609,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 called_objs[category]['__called'].add(method.split('.')[-1])
         else:
             parse_shared_instructions(content, shared_variables)
-        print(offset, shared_variables.LOAD)
+        # print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
     # input()
     return called_objs, shared_variables.decorator_map
