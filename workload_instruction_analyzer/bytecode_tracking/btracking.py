@@ -216,7 +216,7 @@ def extract_c_func(modules_info, called_map):
     
     for module, category in modules_info.items():
         if not category == '__not_pymodule':
-            del not_pymodules[module]
+            not_pymodules.pop(module, None)
 
     return not_pymodules
 
@@ -290,11 +290,15 @@ def main(SCRIPT_PATH):
     print(f'\033[31m==== c modules ====\033[0m')
     pprint(not_pymodules)
     pprint(C_functions_with_decorators)
+    
+    # FIXME: 임시코드
+    # not_pymodules['libxedwrapper.so'] = not_pymodules.pop('/libxedwrapper.so')
 
     C_functions1 = func_mapping.check_PyDefMethods(not_pymodules)
     C_functions2 = func_mapping.check_PyDefMethods(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
 
+    print(f'\033[31m==== c functions ====\033[0m')
     print(C_functions)
 
     set_c_functions = set()
