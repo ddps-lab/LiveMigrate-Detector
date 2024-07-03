@@ -3,7 +3,6 @@ import importlib
 import sys
 
 from pprint import pprint
-import os
 import re
 
 pattern = re.compile(r'\((.*?)\)')
@@ -21,9 +20,14 @@ def module_classification(__module, __from):
 	    •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
     '''
 
-    module = __from + '.' + __module
 
-    for _ in range(3):
+    # 아래 순서로 import를 시도하여 모듈을 구분함.
+    # ex) __from : numpy.ma.extras, __module : core
+    # 1. numpy.ma.extras.core - numpy.ma.extras가 numpy.ma의 서브 패키지인 경우
+    # 2. numpy.ma.core - numpy.ma.extras가 numpy.ma의 모듈인 경우
+    # 3. core - 외부 패키지
+    module = __from + '.' + __module
+    for _ in range(2):
         # 모듈이 이미 로드된 경우를 처리
         if module in sys.modules:
             return module
@@ -32,9 +36,15 @@ def module_classification(__module, __from):
             importlib.import_module(module)
             return module
         except ModuleNotFoundError:
-            module = __module
+            pkg = __from.split('.')[:-1]
+            if pkg:
+                module = '.'.join(__from.split('.')[:-1]) + '.' + __module
 
-    return False
+    try:
+        importlib.import_module(__module)
+        return __module
+    except ModuleNotFoundError:
+        return False
 
 def func_classification(func, called_objs, obj_sets, obj_map):
     '''

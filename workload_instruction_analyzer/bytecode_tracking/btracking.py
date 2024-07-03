@@ -209,30 +209,15 @@ def search_module_path(called_map, pycaches):
         except ModuleNotFoundError:
             pycaches[__origin_name] = '__not_pymodule'
 
-# FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-# 이 함수를 수행하기 전, called_map을 수정하면 될듯
-# 모든 키를 __origin으로 업데이트하고 동일한거는 병합해버리는 식
 def extract_c_func(modules_info, called_map):
-    not_pymodule_keys = []
-    not_pymodules = {}
-
-    for key, value in modules_info.items():
-        if value == '__not_pymodule':
-            not_pymodule_keys.append(key)
-
-    # 경로 등을 제거해 모듈 이름만 파싱
-    for module in not_pymodule_keys:
-        if '.' in module:
-            key = module.split('.')[-1]
-        else:
-            key = module
-
-        if key == 'so':
-            key = module.split('.')[-2]
-            key = re.sub(r'[^A-Za-z]', '', key)
-
-        not_pymodules[key] = called_map[key]['__called']
+    del called_map['__builtin']
+    del called_map['__user_def']
+    not_pymodules = {value['__origin_name']: value['__called'] for key, value in called_map.items()}
     
+    for module, category in modules_info.items():
+        if not category == '__not_pymodule':
+            del not_pymodules[module]
+
     return not_pymodules
 
 def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
