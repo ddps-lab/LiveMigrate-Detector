@@ -101,7 +101,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         if not module_path:
             module_path = module
 
-
         called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
@@ -245,14 +244,19 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
 
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
         branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
-        if len(verification) == 0:
-            verification.append(1)
-        else:
-            verification.append(max(verification) + 1)
+        # if len(verification) == 0:
+        #     verification.append(1)
+        # else:
+        #     verification.append(max(verification) + 1)
         # print(f'push!\t\toffset:{offset}, verification:{verification}, push:{max(verification)}')
         # print(offset, shared_variables.LOAD)
         return True
-    
+    elif 'JUMP_IF_FALSE_OR_POP' in content:
+        branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
+        branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
+
+        bcode_instructions.pop(shared_variables)
+
     if 'JUMP_FORWARD' in content:
         branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
         # print(offset, shared_variables.LOAD)
@@ -435,7 +439,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-        # print(offset, shared_variables.LOAD)
+        print(offset, shared_variables.LOAD)
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
@@ -593,8 +597,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 called_objs[category]['__called'].add(method.split('.')[-1])
         else:
             parse_shared_instructions(content, shared_variables)
-
-        # print(offset, shared_variables.LOAD)
+        print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
     # input()
     return called_objs, shared_variables.decorator_map
