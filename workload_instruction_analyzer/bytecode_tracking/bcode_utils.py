@@ -161,7 +161,38 @@ def scan_definition(definitions):
 
     return obj_sets, obj_lists
 
-def merge_dictionaries(dictA, dictB):
+# def merge_dictionaries(dictA, dictB):
+    for key, value in dictB.items():
+        if isinstance(value, set):
+            # dictB.key의 값이 비어있는 세트가 아닌 경우에만 업데이트
+            if value:
+                if key in dictA and isinstance(dictA[key], set):
+                    dictA[key].update(value)
+                else:
+                    dictA[key] = value.copy()
+        elif isinstance(value, dict):
+            # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
+            if '__called' in value and value['__called']:
+                if key in dictA and '__called' in dictA[key] and isinstance(dictA[key]['__called'], set):
+                    dictA[key]['__called'].update(value['__called'])
+                else:
+                    # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
+                    if key not in dictA:
+                        dictA[key] = {}
+                    dictA[key]['__called'] = value['__called'].copy()
+
+            try:
+                dictA[key]['__origin_name'] = (value['__origin_name'])
+            except:
+                pass
+            try:
+                dictA[key]['__from'] = (value['__from'])
+            except:
+                pass            
+
+    return dictA
+
+def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
     for key, value in dictB.items():
         if isinstance(value, set):
             if key in dictA and isinstance(dictA[key], set):
@@ -201,8 +232,9 @@ def find_unique_keys_values(A, B):
     """
     unique_to_B = {key: value for key, value in B.items()
                    if key not in A or A[key] != value}
-    del unique_to_B['__builtin']
-    del unique_to_B['__user_def']
+    
+    unique_to_B.pop('__builtin', None)
+    unique_to_B.pop('__user_def', None)
 
     return unique_to_B
 
