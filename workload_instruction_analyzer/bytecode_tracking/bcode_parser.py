@@ -43,9 +43,9 @@ def module_classification(__module, __from):
         except ImportError as e:
             print(f'ImportError when import {module}')
             return e
-        except AttributeError:
-            print(module)
-            raise
+        except AttributeError as e:
+            print(f'AttributeError when import {module}')
+            return e
     try:
         importlib.import_module(__module)
         return __module
@@ -105,6 +105,8 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         module_path = module_classification(module, shared_variables.current_module)
         if isinstance(module_path, ModuleNotFoundError):
             module_path = module
+        elif isinstance(module_path, AttributeError):
+            return True
         elif isinstance(module_path, ImportError):
             return True
 
@@ -118,6 +120,8 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             module_path = module_classification(module, shared_variables.current_module)
             if isinstance(module_path, ModuleNotFoundError):
                 module_path = module
+            elif isinstance(module_path, AttributeError):
+                return True
             elif isinstance(module_path, ImportError):
                 return True
 
