@@ -73,9 +73,6 @@ def preprocessing_bytecode(byte_code):
         if line_number != 0:
             bcode_block_number = line_number
             main_bcode_block_start_offsets.append(offset)            
-        # line_number가 0이면 새로운 라인이 아니라는 뜻
-        elif line_number == 0:
-            line_number = bcode_block_number
             
         if not isinstance(offset, int):
             continue
