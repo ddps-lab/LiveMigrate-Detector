@@ -69,6 +69,7 @@ def preprocessing_bytecode(byte_code):
     for line in codes:
         offset, content, line_number = parse_bytecode_line(line)
 
+        # 소스코드 기준 새로운 라인
         if line_number != 0:
             bcode_block_number = line_number
             main_bcode_block_start_offsets.append(offset)            
@@ -81,7 +82,7 @@ def preprocessing_bytecode(byte_code):
 
         # 유저가 작성하지 않은 코드를 트래킹에서 제외
         # With, Try 등의 클린업 코드
-        if 'SETUP_WITH' in content:
+        if 'SETUP_WITH' in content or 'SETUP_ASYNC_WITH' in content:
             cleanup.add(bcode_block_number)
             bcode_block_number += 1
         
@@ -112,7 +113,7 @@ def preprocessing_bytecode(byte_code):
             if not isinstance(offset, int):
                 continue
 
-            if 'SETUP_WITH' in content:
+            if 'SETUP_WITH' in content or 'SETUP_ASYNC_WITH' in content:
                 cleanup.add(bcode_block_number)
                 bcode_block_number += 1                
             
