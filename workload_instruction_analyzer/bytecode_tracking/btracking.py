@@ -132,7 +132,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
     new_called_map = {'__builtin':set(), '__user_def':set()}
 
     for module, path in pycaches.items():
-        if path == '__builtin' or path == '__not_pymodule':
+        if path == '__builtin' or path == '__not_pymodule' or path == '__ModuleNotFoundError':
             continue
         
         byte_code = bcode_utils.read_pyc(path)
@@ -207,7 +207,7 @@ def search_module_path(called_map, pycaches):
         except AttributeError:
             pycaches[__origin_name] = '__not_pymodule'
         except ModuleNotFoundError:
-            pycaches[__origin_name] = '__not_pymodule'
+            pycaches[__origin_name] = '__ModuleNotFoundError'
 
 def extract_c_func(modules_info, called_map):
     del called_map['__builtin']
@@ -216,6 +216,9 @@ def extract_c_func(modules_info, called_map):
     
     for module, category in modules_info.items():
         if not category == '__not_pymodule':
+            # FIXME: 서로 다른 모듈에 대해 같은 alias를 사용하면 문제가 생김
+            # 기존의 called_map이 덮어씌어져서 modules_info에는 특정 모듈에 대한 정보가 있지만 called_map에는 없음
+            # 그 때문에 del을 사용하면 에러가 발생하여 임시로 pop으로 처리함.
             not_pymodules.pop(module, None)
 
     return not_pymodules
