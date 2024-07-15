@@ -121,7 +121,7 @@ def create_call_map(byte_code, module):
 
 def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func):
     # 모듈의 origin name을 확인해 alias를 찾는 함수
-    def check_module_origin_name(module):
+    def check_module_alias(module):
         for key, value in base_map.items():
             if '__origin_name' in value and value['__origin_name'] == module:
                 return key
@@ -138,10 +138,14 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         byte_code = bcode_utils.read_pyc(path)
         called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
         key = module.split('.')[0]
-        module = check_module_origin_name(module)
+        alias = check_module_alias(module)
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func.setdefault(key, set())
-        called_func[key].update(base_map[module]['__called'])
+        called_func[key].update(base_map[alias]['__called'])
+
+        # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
+        # print(f'\033[33muser def : {obj_sets}\033[0m')
+
 
         # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
         # print(f'\033[33muser def : {obj_sets}\033[0m')
