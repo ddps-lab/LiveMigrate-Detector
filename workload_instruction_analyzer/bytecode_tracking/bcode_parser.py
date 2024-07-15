@@ -20,25 +20,35 @@ def module_classification(__module, __from):
 	    •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
     '''
 
-
     # 아래 순서로 import를 시도하여 모듈을 구분함.
     # ex) __from : numpy.ma.extras, __module : core
     # 1. numpy.ma.extras.core - numpy.ma.extras가 numpy.ma의 서브 패키지인 경우
     # 2. numpy.ma.core - numpy.ma.extras가 numpy.ma의 모듈인 경우
-    # 3. core - 외부 패키지
-    module = __from + '.' + __module
-    for _ in range(2):
+    # 3. numpy.core - 상위 경로의 모듈을 import 하는 경우
+    # 4. from ...module 와 같이 두 단계 이상 경로의 모듈을 import 하는 경우. 
+    #    이론 상 from .........module도 가능하나 3단계 이상은 잘 없으므로 3단계 까지 검사함.
+    # 5. core - 외부 패키지
+    case1 = __from + '.' + __module
+    case2 = '.'.join(__from.split('.')[:-1]) + '.' + __module
+    case3 = '.'.join(__from.split('.')[:-2]) + '.' + __module
+    case4 = '.'.join(__from.split('.')[:-3]) + '.' + __module
+    case5 = __module
+
+    modules = [case1, case2, case3, case4, case5]
+    for module in modules:
         # 모듈이 이미 로드된 경우를 처리
         if module in sys.modules:
-            return module
-        
+            return module        
+
+        # main, xgboost와 같은 최상위 패키지에서 import하는 경우 .numpy와 같이 잘못 생성된 import path를 건너뜀
+        if module.startswith('.'):
+            continue
+
         try:
             importlib.import_module(module)
             return module
         except ModuleNotFoundError:
-            pkg = __from.split('.')[:-1]
-            if pkg:
-                module = '.'.join(__from.split('.')[:-1]) + '.' + __module
+            pass
         # 특정 OS에 최적화된 모듈을 import 하려는 경우 발생
         except ImportError as e:
             print(f'ImportError when import {module}')
@@ -46,11 +56,9 @@ def module_classification(__module, __from):
         except AttributeError as e:
             print(f'AttributeError when import {module}')
             return e
-    try:
-        importlib.import_module(__module)
-        return __module
-    except ModuleNotFoundError as e:
-        return e
+        except AssertionError as e:
+            print(f'AssertionError when import {module}')
+            return e
 
 def func_classification(func, called_objs, obj_sets, obj_map):
     '''
@@ -103,11 +111,17 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             return True
         
         module_path = module_classification(module, shared_variables.current_module)
+        if module_path == None:
+            print(f'failed module classification {content}')
+            return False
+
         if isinstance(module_path, ModuleNotFoundError):
             module_path = module
         elif isinstance(module_path, AttributeError):
             return True
         elif isinstance(module_path, ImportError):
+            return True
+        elif isinstance(module_path, AssertionError):
             return True
 
         called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
@@ -118,11 +132,17 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
             
             module_path = module_classification(module, shared_variables.current_module)
+            if module_path == None:
+                print(f'failed module classification {content}')
+                return False      
+            
             if isinstance(module_path, ModuleNotFoundError):
                 module_path = module
             elif isinstance(module_path, AttributeError):
                 return True
             elif isinstance(module_path, ImportError):
+                return True
+            elif isinstance(module_path, AssertionError):
                 return True
 
             called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
@@ -455,7 +475,8 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-        # print(offset, shared_variables.LOAD)
+        # if shared_variables.current_module == 'distributed.shuffle._buffer':
+            # print(offset, shared_variables.LOAD)
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
@@ -613,7 +634,9 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 called_objs[category]['__called'].add(method.split('.')[-1])
         else:
             parse_shared_instructions(content, shared_variables)
-        # print(offset, shared_variables.LOAD)
+
+        # if shared_variables.current_module == 'distributed.shuffle._buffer':
+        #     print(offset, shared_variables.LOAD)
     # pprint(shared_variables.decorator_map)
     # input()
     return called_objs, shared_variables.decorator_map
