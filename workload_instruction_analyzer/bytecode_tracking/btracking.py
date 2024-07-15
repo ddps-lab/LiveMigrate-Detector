@@ -212,7 +212,7 @@ def search_module_path(called_map, pycaches):
 def extract_c_func(modules_info, called_map):
     del called_map['__builtin']
     del called_map['__user_def']
-    not_pymodules = {value['__origin_name']: value['__called'] for key, value in called_map.items()}
+    not_pymodules = {value['__origin_name']: value['__called'] for _, value in called_map.items() if value['__called']}
     
     for module, category in modules_info.items():
         if not category == '__not_pymodule':
