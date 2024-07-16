@@ -27,44 +27,16 @@ def is_builtin_module(module_name):
     else:
         return False
 
-def final_call(obj_map, def_map, obj):
-    '''
-    트래킹하려는 함수가 현재 파일에 정의된 경우 해당 함수가 호출하는 다른 함수들을 추출
-    ex) numpy.matmul의 정의가 현재 파싱중인 파일에 있다면 matmul 함수에서 호출하는 함수들을 추출
-    '''
-    objs = obj.split('.')
-
-    # 객체를 참조하는 호출
-    if len(objs) > 1:
-        key = objs[0]
-        for i in range(len(objs)):
-            try:
-                value = obj_map[key]
-                key = value + '.' + objs[i + 1]
-            # 객체가 함수 또는 메서드가 아님
-            # ex) data_description.pop 에서 data_description이 json인 경우
-            except KeyError:
-                return None
-            except IndexError:
-                return None
-        
-        # 최종 호출 함수가 사용자 정의 함수인 경우
-        if key in def_map.keys():
-            return def_map[key]
-    else:
-        if obj in def_map:
-            return def_map[obj]
-        
-        return objs
-
 # 너비탐색으로 진행.
-def user_def_tracking(called_map, obj_map, def_map, obj_sets):
+def user_def_tracking(called_map, obj_map, def_map):
     '''
     현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
     '''
     if called_map['__user_def'] == None:
         return
     
+    obj_sets = set(def_map.keys())
+
     # 새로 추적된 함수들을 저장할 곳.
     new_tracked = {'__builtin':set(), '__user_def':set()}
     for key in called_map.keys():
@@ -73,9 +45,9 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
         new_tracked[key] = {'__called':set()}
     
     for obj in called_map['__user_def']:
-        chain = final_call(obj_map, def_map, obj)
-
-        if chain == None:
+        if obj in def_map:
+            chain = def_map[obj]
+        else:
             continue
         
         for func in chain:
@@ -89,12 +61,9 @@ def user_def_tracking(called_map, obj_map, def_map, obj_sets):
                 if func not in called_map[category]['__called']:
                     new_tracked[category]['__called'].add(func)
 
-    # print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
-    # pprint(new_tracked)
+    print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
+    pprint(new_tracked)
     return new_tracked
-
-temp = set()
-temp2 = []
 
 def create_call_map(byte_code, module):
     print(f'\033[33m======================================== {module} ========================================\033[0m')
@@ -117,7 +86,7 @@ def create_call_map(byte_code, module):
     # pprint(obj_map)
     # print('------------------------------------------------------------------------------------------------------------')
 
-    return called_map, obj_sets, def_map, obj_map, decorator_map
+    return called_map, def_map, obj_map, decorator_map
 
 def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func):
     # 모듈의 origin name을 확인해 alias를 찾는 함수
@@ -136,7 +105,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             continue
         
         byte_code = bcode_utils.read_pyc(path)
-        called_map, obj_sets, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
+        called_map, def_map, obj_map, decorator_map = create_call_map(byte_code, module)
         key = module.split('.')[0]
         alias = check_module_alias(module)
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
@@ -144,11 +113,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         called_func[key].update(base_map[alias]['__called'])
 
         # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
-        # print(f'\033[33muser def : {obj_sets}\033[0m')
-
-
-        # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
-        # print(f'\033[33muser def : {obj_sets}\033[0m')
+        # print(f'\033[33muser def : {set(def_map.keys())}\033[0m')
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func[key]:
@@ -169,12 +134,12 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                     if '__func_alias' in base_map[key] and func in base_map[key]['__func_alias']:
                         origin_name = base_map[key]['__func_alias'][func]
 
-            if origin_name in obj_sets:
+            if origin_name in def_map:
                 called_map['__user_def'].add(origin_name)
         
         # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
         while(True):
-            new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+            new_tracked = user_def_tracking(called_map, obj_map, def_map)
             if bcode_utils.dict_empty_check(new_tracked):
                 break
             called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
@@ -236,13 +201,13 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
 
     byte_code = compile(source_code, '<string>', 'exec')
 
-    called_map, obj_sets, def_map, obj_map, _ = create_call_map(byte_code, 'main')
+    called_map, def_map, obj_map, _ = create_call_map(byte_code, 'main')
     search_module_path(called_map, pycaches)
     modules_info = pycaches | modules_info
 
     # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
     while(True):
-        new_tracked = user_def_tracking(called_map, obj_map, def_map, obj_sets)
+        new_tracked = user_def_tracking(called_map, obj_map, def_map)
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
