@@ -192,30 +192,28 @@ def scan_definition(definitions):
 
 def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
     for key, value in dictB.items():
+        # __builtin, __user_def 처리
         if isinstance(value, set):
             if key in dictA and isinstance(dictA[key], set):
                 dictA[key].update(value)
             else:
                 dictA[key] = value.copy()
+        # 모듈 처리
         elif isinstance(value, dict):
             # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
-            if '__called' in value:
-                if key in dictA and '__called' in dictA[key] and isinstance(dictA[key]['__called'], set):
-                    dictA[key]['__called'].update(value['__called'])
-                else:
-                    # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
-                    if key not in dictA:
-                        dictA[key] = {}
-                    dictA[key]['__called'] = value['__called'].copy()
+            if key in dictA and '__called' in dictA[key]:
+                dictA[key]['__called'].update(value['__called'])
+            else:
+                # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
+                if key not in dictA:
+                    dictA[key] = {}
+                dictA[key]['__called'] = value['__called'].copy()
 
             try:
                 dictA[key]['__origin_name'] = value['__origin_name']
-            except KeyError:
-                pass
-            try:
                 dictA[key]['__from'] = value['__from']
             except KeyError:
-                pass            
+                pass
 
     return dictA
 
