@@ -200,8 +200,17 @@ def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
                 dictA[key] = value.copy()
         # 모듈 처리
         elif isinstance(value, dict):
-            # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
+            # dictB.key(module)가 dictA에도 존재한다면 dictA,B의 __called를 병합
             if key in dictA and '__called' in dictA[key]:
+                try:
+                    # FIXME: alias 중복에 대한 처리 - 기존 모듈을 트래킹에서 누락시킴
+                    if dictA[key]['__origin_name'] != value['__origin_name']:
+                        # numpy.core, xgboost.core 등 꽤 많은 alias가 겹침
+                        # print(dictA[key]['__origin_name'], value['__origin_name'])
+                        dictA[key] = value
+                        continue
+                except KeyError:
+                    pass                
                 dictA[key]['__called'].update(value['__called'])
             else:
                 # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
