@@ -100,8 +100,9 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
     new_called_map = {'__builtin':set(), '__user_def':set()}
 
+    no_tracking = {'__builtin', '__not_pymodule', '__virtual_pymodule'}
     for module, path in pycaches.items():
-        if path == '__builtin' or path == '__not_pymodule' or path == '__ModuleNotFoundError':
+        if path in no_tracking:
             continue
         
         byte_code = bcode_utils.read_pyc(path)
@@ -174,7 +175,11 @@ def search_module_path(called_map, pycaches):
             module_path = loaded_module.__cached__
             pycaches[__origin_name] = module_path
         except AttributeError:
-            pycaches[__origin_name] = '__not_pymodule'
+            # 가상 모듈 구분
+            if not loaded_module.__spec__.origin:
+                pycaches[__origin_name] = '__virtual_pymodule'
+            else:
+                pycaches[__origin_name] = '__not_pymodule'
         except ModuleNotFoundError:
             pycaches[__origin_name] = '__ModuleNotFoundError'
 
@@ -266,9 +271,7 @@ def main(SCRIPT_PATH):
     # FIXME: 임시코드
     # not_pymodules['libxedwrapper.so'] = not_pymodules.pop('/libxedwrapper.so')
     # not_pymodules = {'numpy.core._multiarray_umath': {'add_docstring'},
-
     # 'psutil._psutil_posix': {'getpagesize'},
-    # 'six.moves': {'range'},
     # 'sklearn.utils._isfinite': {'cy_isfinite'}}
     # pprint(not_pymodules)
 
