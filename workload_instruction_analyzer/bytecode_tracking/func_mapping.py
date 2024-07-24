@@ -125,7 +125,7 @@ def get_PyMethodDef(module, functions, func_mapping):
             var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
             search_mapping(var, lib)
 
-def check_PyDefMethods(not_pymodules):
+def check_PyMethodDef(not_pymodules):
     func_mapping = {'ctypes':set()}
     C_functions = {}
     for module, functions in not_pymodules.items():

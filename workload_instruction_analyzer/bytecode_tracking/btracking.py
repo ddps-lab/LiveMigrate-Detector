@@ -275,8 +275,8 @@ def main(SCRIPT_PATH):
     # 'sklearn.utils._isfinite': {'cy_isfinite'}}
     # pprint(not_pymodules)
 
-    C_functions1 = func_mapping.check_PyDefMethods(not_pymodules)
-    C_functions2 = func_mapping.check_PyDefMethods(C_functions_with_decorators)
+    C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
+    C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
     # C_functions = C_functions1
     print(f'\033[31m==== c functions ====\033[0m')
