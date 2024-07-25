@@ -42,7 +42,7 @@ def is_debug_symbols_available(lib):
 
     return True
 
-def get_PyMethodDef(module, functions, func_mapping):
+def get_PyMethodDef(lib, functions, func_mapping):
     def search_mapping(var, lib):
         '''
         특정 PyMethodDef의 정확한 주소를 계산
@@ -89,39 +89,40 @@ def get_PyMethodDef(module, functions, func_mapping):
             func_mapping[ml_name] = ml_meth
             start_addr += 32
 
-    shared_libraries = get_sharedlibrary()
-
-    if '.' in module:
-        module = module.replace('.', '/')
-    for lib in shared_libraries:
-        if module not in lib:
-            continue
-        
-        # 디버깅 심볼이 있는지 확인
-        if not is_debug_symbols_available(lib):
-            infer_results = infer_global_variable_type(lib)
-            for var, _ in infer_results.items():
-                search_mapping(var, lib)
-            continue
-
-        command = (
-            "gdb -batch -ex 'info variables' "
-            f"{lib}"
-            "| grep PyMethodDef"
-        )
-
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        for line in result.stdout.splitlines():
-            var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
+    # 디버깅 심볼이 있는지 확인
+    if not is_debug_symbols_available(lib):
+        infer_results = infer_global_variable_type(lib)
+        for var, _ in infer_results.items():
             search_mapping(var, lib)
+
+    command = (
+        "gdb -batch -ex 'info variables' "
+        f"{lib}"
+        "| grep PyMethodDef"
+    )
+
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    for line in result.stdout.splitlines():
+        var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
+        search_mapping(var, lib)
 
 # FIXME: PyMethodDef 없이 함수를 호출하는 경우도 처리해야함. ctypes가 아니라 cpython에서도 PyMethodDef 없이 호출 가능
 # 그 예시가 cython으로 작성된 cpython 모듈.
 def check_PyMethodDef(not_pymodules):
+    shared_libraries = get_sharedlibrary()
+
     func_mapping = {'ctypes':set()}
     C_functions = {}
     for module, functions in not_pymodules.items():
-        get_PyMethodDef(module, functions, func_mapping)
+        if '.' in module:
+            module = module.replace('.', '/')
+
+        for lib in shared_libraries:
+            if module in lib:
+                get_PyMethodDef(lib, functions, func_mapping)
+            else:
+                continue
+
         for func in functions:
             if func in func_mapping:
                 C_functions[func] = func_mapping[func]
