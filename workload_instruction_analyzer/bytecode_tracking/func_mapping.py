@@ -94,17 +94,7 @@ def get_PyMethodDef(module, functions, func_mapping):
     if '.' in module:
         module = module.replace('.', '/')
     for lib in shared_libraries:
-        if module in lib:
-            pass
-        # if module in lib.split('/')[-1]:
-            # if 'cpython' not in lib.split('/')[-1]:
-            #     for func in functions:
-            #         start_addr = gdb.execute(f"info addr {func}", to_string=True)
-            #         start_addr = int(re.search(r'0x[0-9a-fA-F]+', start_addr).group(0), 16)
-
-            #         func_mapping[func] = hex(start_addr)
-            #     continue
-        else:
+        if module not in lib:
             continue
         
         # 디버깅 심볼이 있는지 확인
@@ -125,6 +115,8 @@ def get_PyMethodDef(module, functions, func_mapping):
             var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
             search_mapping(var, lib)
 
+# FIXME: PyMethodDef 없이 함수를 호출하는 경우도 처리해야함. ctypes가 아니라 cpython에서도 PyMethodDef 없이 호출 가능
+# 그 예시가 cython으로 작성된 cpython 모듈.
 def check_PyMethodDef(not_pymodules):
     func_mapping = {'ctypes':set()}
     C_functions = {}
