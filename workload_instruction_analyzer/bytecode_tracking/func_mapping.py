@@ -42,6 +42,19 @@ def is_debug_symbols_available(lib):
 
     return True
 
+def is_cython(lib):
+    command = (
+        "strings "
+        f"{lib} "
+        "| grep -w -o __Pyx_Import"
+    )
+
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if len(result.stdout) == 0:
+        return False
+
+    return True
+
 def get_PyMethodDef(lib, functions, func_mapping):
     def search_mapping(var, lib):
         '''
@@ -119,7 +132,10 @@ def check_PyMethodDef(not_pymodules):
 
         for lib in shared_libraries:
             if module in lib:
-                get_PyMethodDef(lib, functions, func_mapping)
+                if is_cython(lib):
+                    print(f'{lib} is cython')
+                else:
+                    get_PyMethodDef(lib, functions, func_mapping)
             else:
                 continue
 
