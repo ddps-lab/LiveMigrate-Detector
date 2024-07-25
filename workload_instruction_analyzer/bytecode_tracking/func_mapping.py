@@ -55,7 +55,30 @@ def is_cython(lib):
 
     return True
 
-def get_PyMethodDef(lib, functions, func_mapping):
+def get_func_addr_from_cython(module, functions, C_functions):
+    for func in functions:
+        mangling = '__pyx_pw'
+        
+        path = module.split('/')
+        print(path)
+        for directory in path:
+            mangling = mangling + '_' + str(len(directory)) + directory
+
+        i = 1
+        while(True):
+            sym = mangling + f'_{i}{func}'
+
+            try:
+                result = gdb.execute(f'info addr {sym}', to_string=True)
+                match = re.search(r'0x[0-9a-fA-F]+', result)
+                addr = match.group()
+                C_functions[sym] = addr
+            except gdb.error:
+                break
+
+            i += 1
+
+def get_PyMethodDef(lib, func_mapping):
     def search_mapping(var, lib):
         '''
         특정 PyMethodDef의 정확한 주소를 계산
@@ -119,8 +142,6 @@ def get_PyMethodDef(lib, functions, func_mapping):
         var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
         search_mapping(var, lib)
 
-# FIXME: PyMethodDef 없이 함수를 호출하는 경우도 처리해야함. ctypes가 아니라 cpython에서도 PyMethodDef 없이 호출 가능
-# 그 예시가 cython으로 작성된 cpython 모듈.
 def check_PyMethodDef(not_pymodules):
     shared_libraries = get_sharedlibrary()
 
@@ -134,8 +155,9 @@ def check_PyMethodDef(not_pymodules):
             if module in lib:
                 if is_cython(lib):
                     print(f'{lib} is cython')
+                    get_func_addr_from_cython(module, functions, C_functions)
                 else:
-                    get_PyMethodDef(lib, functions, func_mapping)
+                    get_PyMethodDef(lib, func_mapping)
             else:
                 continue
 
