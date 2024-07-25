@@ -56,8 +56,14 @@ def get_filtered_variables(lib):
 
         # .data, .data.rel.ro -> 프로그램 시작 시 초기화된 후, 읽기 전용으로 변환되는 데이터를 포함. 예를 들어, const 로 선언된 변수들.
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+        indexes = result.stdout.splitlines()
         idx1 = result.stdout.splitlines()[0]
-        idx2 = result.stdout.splitlines()[1]
+
+        if len(indexes) > 1:
+            idx2 = result.stdout.splitlines()[1]
+        else:
+            idx2 = None
 
         return idx1, idx2
     
