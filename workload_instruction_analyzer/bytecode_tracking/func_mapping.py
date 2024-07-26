@@ -55,12 +55,16 @@ def is_cython(lib):
 
     return True
 
+def is_c(lib):
+    if 'cpython-310-x86_64-linux-gnu' not in lib:
+        return True
+    return False
+
 def get_func_addr_from_cython(module, functions, C_functions):
     for func in functions:
         mangling = '__pyx_pw'
         
         path = module.split('/')
-        print(path)
         for directory in path:
             mangling = mangling + '_' + str(len(directory)) + directory
 
@@ -77,6 +81,13 @@ def get_func_addr_from_cython(module, functions, C_functions):
                 break
 
             i += 1
+
+def get_func_addr_from_c(functions, C_functions):
+    for func in functions:
+        result = gdb.execute(f'info addr {func}', to_string=True)
+        match = re.search(r'0x[0-9a-fA-F]+', result)
+        addr = match.group()
+        C_functions[func] = addr
 
 def get_PyMethodDef(lib, func_mapping):
     def search_mapping(var, lib):
@@ -145,24 +156,30 @@ def get_PyMethodDef(lib, func_mapping):
 def check_PyMethodDef(not_pymodules):
     shared_libraries = get_sharedlibrary()
 
-    func_mapping = {'ctypes':set()}
+    func_mapping = dict()
     C_functions = {}
     for module, functions in not_pymodules.items():
         if '.' in module:
             module = module.replace('.', '/')
+        if '/so' in module:
+            module = module.replace('/so', '.so')
 
         for lib in shared_libraries:
             if module in lib:
                 if is_cython(lib):
                     print(f'{lib} is cython')
                     get_func_addr_from_cython(module, functions, C_functions)
+                elif is_c(lib):
+                    print(f'{lib} is c')
+                    get_func_addr_from_c(functions, C_functions)
                 else:
+                    print(f'{lib} is cpython with C API')
                     get_PyMethodDef(lib, func_mapping)
+                    
+                    for func in functions:
+                        if func in func_mapping:
+                            C_functions[func] = func_mapping[func]
             else:
                 continue
-
-        for func in functions:
-            if func in func_mapping:
-                C_functions[func] = func_mapping[func]
 
     return C_functions

@@ -100,7 +100,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
     new_called_map = {'__builtin':set(), '__user_def':set()}
 
-    no_tracking = {'__builtin', '__not_pymodule', '__virtual_pymodule'}
+    no_tracking = {'__builtin', '__not_pymodule', '__virtual_pymodule', '__ModuleNotFoundError'}
     for module, path in pycaches.items():
         if path in no_tracking:
             continue
@@ -180,8 +180,13 @@ def search_module_path(called_map, pycaches):
                 pycaches[__origin_name] = '__virtual_pymodule'
             else:
                 pycaches[__origin_name] = '__not_pymodule'
+        # 런타임에 import되지 않는 모듈이 존재하며 해당 모듈은 시스템에 설치되지 않았을 수 있음.
         except ModuleNotFoundError:
-            pycaches[__origin_name] = '__ModuleNotFoundError'
+            # ctypes로 로드되는 모듈의 경우 importlib로 import할 수 없음.
+            if __origin_name.endswith('.so'):
+                pycaches[__origin_name] = '__not_pymodule'
+            else:
+                pycaches[__origin_name] = '__ModuleNotFoundError'
 
 def extract_c_func(modules_info, called_map):
     del called_map['__builtin']
