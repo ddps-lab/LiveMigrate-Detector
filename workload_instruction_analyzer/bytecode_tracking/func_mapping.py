@@ -46,7 +46,7 @@ def is_cython(lib):
     command = (
         "strings "
         f"{lib} "
-        "| grep -w -o __Pyx_Import"
+        "| grep -w -o __pyx_cython_runtime"
     )
 
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
