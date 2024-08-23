@@ -116,7 +116,6 @@ if __name__ == '__main__':
 
     sections = get_text_sections()
     
-    temp_time = time.time()
     seen = set()
     buffered_output = []
     for start_addr, end_addr, name in sections:
