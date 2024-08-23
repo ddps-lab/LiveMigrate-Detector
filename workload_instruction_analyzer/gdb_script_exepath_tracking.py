@@ -332,11 +332,13 @@ if __name__ == '__main__':
 
     tracking(LANGUAGE_TYPE, SCRIPT_PATH)
 
-    with open('tracked_functions.txt', 'w') as f:
-        f.write('\n'.join(logging_functions))   
-    with open('compile_indirect.txt', 'w') as f:
-        f.write('\n'.join(compile_indirect))   
-    with open('runtime_indirect.txt', 'w') as f:
-        f.write('\n'.join(runtime_indirect))   
-    with open('call_regi.txt', 'w') as f:
-        f.write('\n'.join(call_regi))           
+    exit()
+
+    # with open('tracked_functions.txt', 'w') as f:
+    #     f.write('\n'.join(logging_functions))   
+    # with open('compile_indirect.txt', 'w') as f:
+    #     f.write('\n'.join(compile_indirect))   
+    # with open('runtime_indirect.txt', 'w') as f:
+    #     f.write('\n'.join(runtime_indirect))   
+    # with open('call_regi.txt', 'w') as f:
+    #     f.write('\n'.join(call_regi))           
