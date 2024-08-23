@@ -1,8 +1,6 @@
 import pandas as pd
 
 from pathlib import Path
-import sys
-import os
 
 rootdir = str(Path(__file__).resolve().parent)
 
