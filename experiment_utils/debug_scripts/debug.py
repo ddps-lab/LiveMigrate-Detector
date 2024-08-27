@@ -38,7 +38,7 @@ def MigrationFailureCheck(path):
 def Debug(PID, src):
     subprocess.run(f'nohup sudo criu restore -j -s -D "/home/ubuntu/migration_test/dump/{ src }" &', shell=True)
     time.sleep(5)
-    subprocess.run(f'nohup sudo gdb python -ex "attach { PID }" -ex "source /home/ubuntu/migration_test/debug_scripts/gdb_script.py" &', shell=True)
+    subprocess.run(f'nohup sudo gdb python -ex "attach { PID }" -ex "source /home/ubuntu/LiveMigrate-Detector/experiment_utils/debug_scripts/gdb_script.py" &', shell=True)
 
 if __name__ == '__main__':
     PID = sys.argv[1]
