@@ -212,6 +212,12 @@ def dis_func(addr, tracked_instructions):
     return func
 
 def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions):
+    def check_address_in_range(address):
+        for start, end, _ in sections:
+            if start <= int(address, 16) <= end:
+                return True
+        return False
+    
     global LD_BIND_NOW
 
     instruction_addr = ctypes.c_int64(int(instruction_addr, 16)).value
@@ -225,7 +231,6 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
 
         if is_func_call != 'lea':
             try:
-                # print(is_func_call, hex(instruction_addr), instruction_data["SHORT"], gdb_comment)
                 address = int(instruction_data["SHORT"].split(' ')[-1], 16)
                 address = address + instruction_addr
                 address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
@@ -238,13 +243,15 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
         elif is_func_call == 'lea':
             address = gdb_comment.split(' ')[0].strip()
             address = "0x{:016x}".format(int(address, 16))
+            # lea로 할당된 주소가 .text 섹션이 아닌 경우
+            if not check_address_in_range(address):
+                return None
 
     # if address is not function start address 
     if is_func_call == 'plt':
         if LD_BIND_NOW:
             plt_addr = gdb.execute(f'disas {address}', to_string=True).split('#')[-1].strip()
             plt_addr = plt_addr.split(' ')[0].strip()
-            # address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip()
             address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
         else:
             # 트래킹 불가

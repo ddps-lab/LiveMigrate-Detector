@@ -13,7 +13,7 @@ def create_csv(workload_data_list, is_tsx_run=None, xtest_enable=None):
 
     if is_tsx_run != None and xtest_enable != None:
         if not is_tsx_run:
-            workload_df = workload_df[workload_df['ISA_SET'] != '   RTM']
+            workload_df = workload_df[~workload_df['ISA_SET'].str.contains('RTM')]
 
         workload_df = workload_df[['ISA_SET', 'SHORT']]
         if xtest_enable:
