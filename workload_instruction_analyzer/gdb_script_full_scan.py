@@ -57,6 +57,10 @@ def disas(start_addr, end_addr, seen, buffered_output, name):
 
         instructions = list(disassembler.disasm(bytes(memory_bytes), current_addr))
         if len(instructions) == 0:
+            if bytes(memory_bytes).startswith(b'\x0f\x01\xee'):
+                buffered_output.append(f"{hex(current_addr)}: {'rdpku'} {'0f01ee'}\n")
+                current_addr += 3
+                continue
             current_addr += 1
             continue
 
