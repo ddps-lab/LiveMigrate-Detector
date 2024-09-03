@@ -194,14 +194,14 @@ def dis_func(addr, tracked_instructions):
             else:
                 call_regi.append(line)
         
-        if instruction == 'lea':
-            if gdb_comment.startswith('<'):
-                if '+' in gdb_comment:
-                    pass
-                else:
-                    is_func_call = 'lea'
-                    # 코멘트의 주소를 활용해 주소를 찾는 중복 작업을 제거
-                    gdb_comment = instruction_part.split('#')[1].strip()
+        # if instruction == 'lea':
+        #     if gdb_comment.startswith('<'):
+        #         if '+' in gdb_comment:
+        #             pass
+        #         else:
+        #             is_func_call = 'lea'
+        #             # 코멘트의 주소를 활용해 주소를 찾는 중복 작업을 제거
+        #             gdb_comment = instruction_part.split('#')[1].strip()
 
         if instruction == 'xtest':
             xtest_enable = True
