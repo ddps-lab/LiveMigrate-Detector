@@ -144,9 +144,6 @@ def infer_global_variable_type(binary_file):
             # 구조체의 첫 번째 필드를 읽음 (포인터)
             pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
             (string_address,) = struct.unpack(pointer_format, pointer_data)
-            # 첫 번째 필드가 유효하지 않은 경우 (특정 주소를 가리키고 있다고 보기 어려움)
-            if string_address < 0xfffff:
-                continue
             
             # 첫 번째 필드의 값(문자열이 담긴 주소)를 파일 오프셋으로 변환
             string_offset = get_file_offset(elffile, string_address)
