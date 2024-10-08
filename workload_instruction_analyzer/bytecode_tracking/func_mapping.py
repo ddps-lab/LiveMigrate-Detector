@@ -141,6 +141,7 @@ def get_PyMethodDef(lib, func_mapping):
         infer_results = infer_global_variable_type(lib)
         for var, _ in infer_results.items():
             search_mapping(var, lib)
+        return
 
     command = (
         "gdb -batch -ex 'info variables' "
