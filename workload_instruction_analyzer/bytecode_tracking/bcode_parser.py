@@ -51,13 +51,13 @@ def module_classification(__module, __from):
             pass
         # 특정 OS에 최적화된 모듈을 import 하려는 경우 발생
         except ImportError as e:
-            print(f'ImportError when import {module}')
+            # print(f'ImportError when import {module}')
             return e
         except AttributeError as e:
-            print(f'AttributeError when import {module}')
+            # print(f'AttributeError when import {module}')
             return e
         except AssertionError as e:
-            print(f'AssertionError when import {module}')
+            # print(f'AssertionError when import {module}')
             return e
 
 def func_classification(func, called_objs, obj_sets, obj_map):
@@ -112,7 +112,7 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         
         module_path = module_classification(module, shared_variables.current_module)
         if module_path == None:
-            print(f'failed module classification {content}')
+            # print(f'failed module classification {content}')
             return False
 
         if isinstance(module_path, ModuleNotFoundError):
@@ -133,7 +133,7 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             
             module_path = module_classification(module, shared_variables.current_module)
             if module_path == None:
-                print(f'failed module classification {content}')
+                # print(f'failed module classification {content}')
                 return False      
             
             if isinstance(module_path, ModuleNotFoundError):

@@ -12,7 +12,7 @@ import re
 
 # temp
 from pprint import pprint
-from collections import Counter
+import time
 
 LIBRARIES = stdlib_list("3.10")
 
@@ -65,8 +65,14 @@ def user_def_tracking(called_map, obj_map, def_map):
     # pprint(new_tracked)
     return new_tracked
 
+debug_modules = {}
 def create_call_map(byte_code, module):
-    print(f'\033[33m======================================== {module} ========================================\033[0m')
+    # print(f'\033[33m======================================== {module} ========================================\033[0m')
+    if module in debug_modules:
+        debug_modules[module] += 0
+    else:
+        debug_modules[module] = 1
+        
     def_map, obj_map, addr_map = {}, {}, {}
     codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(byte_code)
 
@@ -232,8 +238,8 @@ def main(SCRIPT_PATH):
     called_func = {}
 
     called_map, pycaches, modules_info = entry_tracking(pycaches, modules_info, SCRIPT_PATH)
-    print(f'\033[31m==== main tracking ====\033[0m')
-    pprint(called_map)
+    # print(f'\033[31m==== main tracking ====\033[0m')
+    # pprint(called_map)
 
     new_called_map = module_tracking(pycaches, called_map, C_functions_with_decorators, called_func)
     while(True):
@@ -260,18 +266,21 @@ def main(SCRIPT_PATH):
         else:
             break
 
-    print(f'\033[31m==== end ====\033[0m')
-    pprint(called_map)
-    print(f'\033[31m==== modules ====\033[0m')
-    pprint(modules_info)
+    # print(f'\033[31m==== end ====\033[0m')
+    # pprint(called_map)
+    # print(f'\033[31m==== modules ====\033[0m')
+    # pprint(modules_info)
+
+    keys = [key for key, value in debug_modules.items() if value >= 2]
+    print(f'두 번 이상 탐색한 모듈 : {keys}')
+    # print(f'탐색한 모듈 수 : {len(debug_modules.keys())}')
 
     ########################################################################################################################
-
     not_pymodules = extract_c_func(modules_info, called_map)
-
-    print(f'\033[31m==== c modules ====\033[0m')
-    pprint(not_pymodules)
-    pprint(C_functions_with_decorators)
+    
+    # print(f'\033[31m==== c modules ====\033[0m')
+    # pprint(not_pymodules)
+    # pprint(C_functions_with_decorators)
     
     # FIXME: 임시코드
     # not_pymodules['libxedwrapper.so'] = not_pymodules.pop('/libxedwrapper.so')
@@ -280,16 +289,21 @@ def main(SCRIPT_PATH):
     # 'sklearn.utils._isfinite': {'cy_isfinite'}}
     # pprint(not_pymodules)
 
+    start_time = time.time()
     C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
     C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
+    end_time = time.time()
+    addr_collect_time = end_time - start_time
+
     # C_functions = C_functions1
-    print(f'\033[31m==== c functions ====\033[0m')
-    print(C_functions)
+    # print(f'\033[31m==== c functions ====\033[0m')
+    # print(C_functions)
 
     set_c_functions = set()
 
     for _, addr in C_functions.items():
         set_c_functions.add(addr)
 
-    return set_c_functions
+    return set_c_functions, addr_collect_time, len(debug_modules.keys())
+    # return set_c_functions

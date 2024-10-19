@@ -5,6 +5,7 @@ import sys
 import os
 
 import ctypes
+import time
 
 rootdir = str(Path(__file__).resolve().parent)
 sys.path.append(rootdir)
@@ -29,6 +30,17 @@ class XedResult(ctypes.Structure):
 # 함수 프로토타입 정의
 libxedwrapper.print_isa_set.argtypes = [ctypes.c_char_p]
 libxedwrapper.print_isa_set.restype = XedResult
+
+tracked_func_count = 0
+dis_time = 0
+tracking_time = 0
+btracking_time = 0
+addr_collect_time = 0
+module_count = 0
+
+start_memory = 0
+max_memory = 0
+monitoring = False
 
 def get_got_sections():
     files = gdb.execute("info files", to_string=True)
@@ -108,7 +120,11 @@ def dis_func(addr, tracked_instructions):
     special_instruction.add('lea')
 
     try:
+        start_time = time.time()
         disas_result = gdb.execute(f"disas /r {addr}", to_string=True)
+        end_time = time.time()
+        global dis_time 
+        dis_time += end_time - start_time        
     except gdb.error as e:
         print(f'error: {addr}')
         return None
@@ -209,6 +225,7 @@ def dis_func(addr, tracked_instructions):
             is_tsx_run = True
 
         func[instruction_hex] = address, is_func_call, gdb_comment
+
     return func
 
 def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions):
@@ -268,20 +285,62 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
     else:
         return None
 
+import psutil
+import threading
+process = psutil.Process(os.getpid())
+
+def monitor_memory_usage():
+    global max_memory, monitoring
+    while monitoring:
+        current_memory = process.memory_info().rss
+        max_memory = max(max_memory, current_memory)
+        time.sleep(0.01)  # 10ms 간격으로 체크
+
+def record_memory_start():
+    global start_memory, monitoring
+    start_memory = process.memory_info().rss
+    monitoring = True
+    # 별도의 스레드로 메모리 모니터링 시작
+    thread = threading.Thread(target=monitor_memory_usage)
+    thread.start()
+
+def record_memory_end():
+    global monitoring
+    monitoring = False
+    memory_diff = max_memory - start_memory
+    return memory_diff / 1024 / 1024
+
+def calculate_list_memory_size(lst):
+    total_size = sys.getsizeof(lst)  # 리스트 객체 자체의 크기
+    for item in lst:
+        total_size += sys.getsizeof(item)  # 리스트 내부 각 요소의 크기 합산
+    return total_size
+
 def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
+    start_time = time.time()
+
     executable_instructions = []
     tracking_functions = set()
     list_tracking_functions = []
 
     tracked_instructions = set()
 
+    global addr_collect_time
+    global btracking_time
+    global module_count
     if LANGUAGE_TYPE == 'python':
-        tracking_functions = bytecode_tracking.btracking.main(SCRIPT_PATH)
+        record_memory_start()
+        btracking_start_time = time.time()
+        tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(SCRIPT_PATH)
         list_tracking_functions = list(tracking_functions)
-
+        btracking_end_time = time.time()
+        btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
+        print(f'Btracking 추가된 메모리 사용량: {record_memory_end()} MB')
+        
+    record_memory_start()
     # search the starting point of tracking
-    # start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
-    start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
+    start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
+    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
     start_addr = "0x{:016x}".format(int(start_addr, 16))
 
     tracking_functions.add(start_addr)
@@ -314,11 +373,39 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
                 if dst_addr: 
                     tracking_functions.add(dst_addr)
                     list_tracking_functions.append(dst_addr)
-            
-    print(f'tracked function count: {len(tracking_functions)}')
+
+    list_size_in_bytes = calculate_list_memory_size(executable_instructions)
+    list_size_in_mb = list_size_in_bytes / 1024 / 1024  # MB 단위로 변환
+    print(f'executable_instructions의 메모리 사용량: {list_size_in_mb:.2f} MB')
+    print(len(executable_instructions))
+
+    # print(f'tracked function count: {len(tracking_functions)}')
+    global tracked_func_count
+    tracked_func_count = len(tracking_functions)
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
+    
+    btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
+    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
+    
+    end_time = time.time()
+    global tracking_time
+    global dis_time
+
+    tracking_time = end_time - start_time - dis_time - btracking_time - addr_collect_time
+
+def measure_initial_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_usage = process.memory_info().rss / 1024 / 1024  # MB 단위로 변환
+    return mem_usage
 
 if __name__ == '__main__':
+    print(f"프로세스 시작 시점의 메모리 사용량: {measure_initial_memory_usage()} MB")
+    start_time = float(os.getenv('START_TIME', '0'))
+
+    gdb_time = time.time()
+
+    load_time = gdb_time - start_time
+
     logging_functions = []
     gdb.execute(f"set pagination off")
     
@@ -338,6 +425,20 @@ if __name__ == '__main__':
     call_regi = []
 
     tracking(LANGUAGE_TYPE, SCRIPT_PATH)
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f'tracked function count: {tracked_func_count}')
+    print(f"GDB load time: {load_time:.6f} sec")
+    print(f"btracking time: {btracking_time:.6f} sec")
+    print(f"addr collect time: {addr_collect_time:.6f} sec")
+    print(f"disassemble time: {dis_time:.6f} sec")
+    print(f"exe path tracking time: {tracking_time:.6f} sec")
+    print(f'additionally tracked: {tracked_func_count - 1764}')
+    print(f"total time: {total_time:.6f} sec")
+    print(f"Number of modules searched: {module_count}")
+
 
     exit()
 

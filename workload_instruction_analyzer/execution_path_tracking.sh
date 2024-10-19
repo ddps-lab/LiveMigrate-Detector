@@ -37,5 +37,7 @@ export PYTHONPATH=$PYTHONPATH:/home/ubuntu/.local/lib/python3.10/site-packages/
 # entry path
 export PYTHONPATH=$PYTHONPATH:$(dirname "$3")
 
+export START_TIME=$(date +%s.%N)
+
 # Run GDB
 gdb -p $1 -x /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/gdb_script_exepath_tracking.py
