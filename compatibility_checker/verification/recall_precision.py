@@ -11,7 +11,7 @@ from io import StringIO
 
 root_path = str(Path(__file__).resolve().parent.parent.parent)
 
-sys.path.append(str(Path(root_path).joinpath('data-processing')))
+sys.path.append(str(Path(root_path).joinpath('compatibility_checker')))
 import GspreadUtils
 import Transferable
 import GroupbyISA
@@ -23,7 +23,7 @@ s3_client = boto3.client('s3')
 bucket_name = 'migration-compatibility'
 
 def readCSV():
-    df = pd.read_csv(f'{root_path}/data-processing/verification/adox_adcx.csv')
+    df = pd.read_csv(f'{root_path}/compatibility_checker/verification/pyxgboost.csv')
     migration_success = df[df['migration_success'] == True]
     migration_failed = df[df['migration_success'] == False]
 
@@ -38,9 +38,9 @@ def criu_cpu_info_check():
     recall = 0
     precision = 0
 
-    instances =["m5a.large", "m5a.2xlarge", "m5a.8xlarge", "c5a.large", "c6a.large", "m4.large", "h1.2xlarge", "x1e.xlarge", "r4.large", "i3.large", "c5a.24xlarge", "c6a.24xlarge", "c4.8xlarge", "h1.8xlarge", "h1.16xlarge", "x1e.8xlarge", "m4.16xlarge", "r4.8xlarge", "r4.16xlarge", "c6i.large", "c5.large", "m5n.large", "m5.large", "c6i.16xlarge", "c5d.9xlarge", "m5zn.6xlarge", "c5.9xlarge"]
-
-    df = pd.read_csv(f'{root_path}/data-processing/verification/criu_cpuinfo_check.csv')
+    # instances =["m5a.large", "m5a.2xlarge", "m5a.8xlarge", "c5a.large", "c6a.large", "m4.large", "h1.2xlarge", "x1e.xlarge", "r4.large", "i3.large", "c5a.24xlarge", "c6a.24xlarge", "c4.8xlarge", "h1.8xlarge", "h1.16xlarge", "x1e.8xlarge", "m4.16xlarge", "r4.8xlarge", "r4.16xlarge", "c6i.large", "c5.large", "m5n.large", "m5.large", "c6i.16xlarge", "c5d.9xlarge", "m5zn.6xlarge", "c5.9xlarge"]
+    instances = ["m5a.xlarge", "m5a.2xlarge", "m5a.8xlarge", "c5a.xlarge", "c6a.xlarge", "m4.xlarge", "h1.2xlarge", "x1e.xlarge", "r4.xlarge", "i3.xlarge", "c5a.24xlarge", "c6a.24xlarge", "c4.8xlarge", "h1.8xlarge", "h1.16xlarge", "x1e.8xlarge", "m4.16xlarge", "r4.8xlarge", "r4.16xlarge", "c6i.xlarge", "c5.xlarge", "m5n.xlarge", "c5d.2xlarge", "c6i.16xlarge", "c5d.9xlarge", "m5zn.6xlarge", "c5.9xlarge"]
+    df = pd.read_csv(f'{root_path}/compatibility_checker/verification/criu_cpuinfo_check.csv')
     compatible = df[df['compatibility'] == True]
     incompatible = df[df['compatibility'] == False]
 
@@ -143,7 +143,7 @@ def validateSuccessPrediction(df, transferableGroups, migration_success):
             truePositive += 1
         else:
             falseNegative += 1
-            # print(f'[fail] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
+            # print(f'[FN] src : {src_index + 2}({row.source}), dst : {dst_index + 2}({row.destination})')
     
 
 def validateFailurePrediction(df, transferableGroups, migration_failed):
@@ -163,11 +163,13 @@ def validateFailurePrediction(df, transferableGroups, migration_failed):
         # transferable 그룹인데 실패
         if((dst_index + 2) in transferableGroups[src_index]):
             falsePositive += 1
+            # print(f'[FP] src : {src_index}({row.source}), dst : {dst_index + 2}({row.destination})')
         else:
             trueNegative += 1
+            # print(f'[TN] src : {src_index}({row.source}), dst : {dst_index + 2}({row.destination})')
 
 
-def validateForAllInstances():
+def validateForAllInstances(prefix):
     result = dict()
     recall = 0
     precision = 0
@@ -196,6 +198,9 @@ def validateForAllInstances():
         isa_from_workload = pd.read_csv(StringIO(file_content))
 
         group = GroupbyISA.groupby_isa(isa_lookup, isa_from_workload)
+        # if instanceType == 'm5a.large':
+            # GspreadUtils.write_gspread('result', group)
+
         
         transferableGroups = calTransferableMap(len(group), group)
 
@@ -243,16 +248,18 @@ if __name__ == "__main__":
     trueNegative = 0
     falseNegative = 0
 
-    criu_cpu_info_check()
+    # criu_cpu_info_check()
 
     print('Select evaluation option')
-    print('1. entire scanning\n2. function tracking')
+    print('1. entire scanning\n2. function tracking\n3. bytecode tracking')
     option = int(input()) - 1
 
     if option == 0:
-        prefix = 'entire-scanning/adox_adcx/'
+        prefix = 'entire-scanning/pyxgboost/'
     elif option == 1:
-        prefix = 'func_tracking/adox_adcx/'
+        prefix = 'func_tracking/pyxgboost/'
+    elif option == 2:
+        prefix = 'bytecode_tracking/pyxgboost/'
     else:
         print('invalid option')
         exit()

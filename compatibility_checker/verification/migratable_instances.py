@@ -110,11 +110,13 @@ def intersection():
     return intersection, flags_lookup, cpuid_lookup
 
 if __name__ == "__main__":
-    workloads = ['c_matrix_multiplication', 'redis', 'cpp_xgboost', 'adox_adcx', 'pku', 'rdseed', 'sha']
+    workloads = ['c_matrix_multiplication', 'redis', 'cpp_xgboost', 'adox_adcx', 'pku', 'rdseed', 'sha', 'pymatmul', 'pyxgboost', 'pyrsa', 'pypku','pyrdseed', 'pysha']
     instanceTypes = ['m5a.large', 'm5a.2xlarge', 'm5a.8xlarge', 'c5a.large', 'c6a.large', 'm4.large', 'h1.2xlarge', 'x1e.xlarge', 'r4.large', 'i3.large', 'c5a.24xlarge', 'c6a.24xlarge', 'c4.8xlarge', 'h1.8xlarge', 'h1.16xlarge', 'x1e.8xlarge', 'm4.16xlarge', 'r4.8xlarge', 'r4.16xlarge', 'c6i.large', 'c5.large', 'm5n.large', 'm5.large', 'c6i.16xlarge', 'c5d.9xlarge', 'm5zn.6xlarge', 'c5.9xlarge']
+    # instanceTypes = ["m5a.xlarge", "m5a.2xlarge", "m5a.8xlarge", "c5a.xlarge", "c6a.xlarge", "m4.xlarge", "h1.2xlarge", "x1e.xlarge", "r4.xlarge", "i3.xlarge", "c5a.24xlarge", "c6a.24xlarge", "c4.8xlarge", "h1.8xlarge", "h1.16xlarge", "x1e.8xlarge", "m4.16xlarge", "r4.8xlarge", "r4.16xlarge", "c6i.xlarge", "c5.xlarge", "m5n.xlarge", "c5d.2xlarge", "c6i.16xlarge", "c5d.9xlarge", "m5zn.6xlarge", "c5.9xlarge"]
 
     print('Select workloads to experiment with')
     print(f'1. {workloads[0]}\n2. {workloads[1]}\n3. {workloads[2]}\n4. {workloads[3]}\n5. {workloads[4]}\n6. {workloads[5]}\n7. {workloads[6]}')
+    print(f'8. pymatmul\n9. pyxgboost\n10. pyrsa\n11. pypku\n12. pyrdseed\n13. pysha')
     index = int(input()) - 1
     WORKLOAD = workloads[index]
 
@@ -122,7 +124,7 @@ if __name__ == "__main__":
 
     intersection = sorted(intersection)
 
-    transferableMap = {'CRIU' : {}, 'FuncTracking' : {}, 'FullScanning' : {}}
+    transferableMap = {'CRIU' : {}, 'FuncTracking' : {}, 'FullScanning' : {}, 'BytecodeTracking' : {}}
     for instance in instanceTypes:
         transferable_instances = criu_compatibility_check(flags_lookup, instance)
         transferableMap['CRIU'][instance] = transferable_instances
@@ -138,10 +140,15 @@ if __name__ == "__main__":
         transferableMap['FullScanning'][instance] = transferable_instances
         print(f'{instance}, FullScanning : {len(transferable_instances)}')
 
+        prefix = f'bytecode_tracking/{WORKLOAD}/'
+        transferable_instances = validate(cpuid_lookup, prefix, instance)
+        transferableMap['BytecodeTracking'][instance] = transferable_instances
+        print(f'{instance}, BytecodeTracking : {len(transferable_instances)}')
+
     # 딕셔너리를 .pkl 파일로 저장하기
-    with open('transferableMap.pkl', 'wb') as pkl_file:
+    with open(f'{WORKLOAD}.pkl', 'wb') as pkl_file:
         pickle.dump(transferableMap, pkl_file)
 
-    # 딕셔너리를 JSON 형식의 텍스트 파일로 저장하기
-    with open('transferableMap.txt', 'w') as txt_file:
-        json.dump(transferableMap, txt_file, indent=4)
+    # # 딕셔너리를 JSON 형식의 텍스트 파일로 저장하기
+    # with open('transferableMap.txt', 'w') as txt_file:
+    #     json.dump(transferableMap, txt_file, indent=4)
