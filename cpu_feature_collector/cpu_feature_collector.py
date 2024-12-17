@@ -6,7 +6,7 @@ import boto3
 ec2_client = boto3.client('ec2', region_name='us-west-2')
 ec2_resource = boto3.resource('ec2', region_name='us-west-2')
 
-INSTNACE_COUNT = 450
+INSTNACE_COUNT = 27
 
 def isDone():
     # S3 버킷 정보
@@ -21,7 +21,7 @@ def isDone():
         object_count = response['KeyCount']
 
         # 2023.07.16 일자에 수집한 데이터는 개수에서 제함.
-        if (object_count - 464 == INSTNACE_COUNT):
+        if (object_count == INSTNACE_COUNT):
             break
 
         time.sleep(10)
