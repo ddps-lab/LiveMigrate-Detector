@@ -24,8 +24,10 @@ The text-segment full scan method analyzes all executable code loaded into a pro
 
 On the other hand, execution path tracking traces branching instructions such as call and jmp. Therefore, it includes only code that is likely to be actually executed, ensuring low overhead and very high accuracy. **We recommend this method.**
 
+In Python, the source code is not loaded into the process memory as executable instructions, making it impossible to perform accurate compatibility checks using Execution Path Tracking. Bytecode Tracking is **recommended for Python workloads**, as it traces the native functions invoked by the intermediate representation (bytecode) interpreted and executed by the Python Virtual Machine. It then collects the CPU features used by these native functions to ensure accurate compatibility checks.
+
 **How to run?**  
-You can simply analyze the desired process by running the workload_instruction_analyzer/ins_disas/execution_path_tracking.sh script. The results can be checked in the log, and by migrating to a system where the extracted CPU features exist, you can ensure perfect stability!
+You can simply analyze the desired process by running the workload_instruction_analyzer/execution_path_tracking.sh script. The results can be checked in the log, and by migrating to a system where the extracted CPU features exist, you can ensure perfect stability!
 
 ### Mandatory requirements
 

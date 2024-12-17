@@ -4,9 +4,8 @@ from pathlib import Path
 import gspread as gs
 from gspread_formatting import *
 
-root_path = str(Path(__file__).resolve().parent.parent)
-
-gc = gs.service_account(filename=f'{root_path}/secure-outpost-380004-8d45b1504f3e.json')
+root_path = str(Path(__file__).resolve().parent)
+gc = gs.service_account(filename=f'{root_path}/secure-outpost-380004-e4e1eebe8a35.json')
 
 def read_gspread(worksheet):
     sheet = gc.open('us-west-2 x86 isa set').worksheet(worksheet)

@@ -32,7 +32,3 @@ def groupby_isa(df, isa = None):
         df_new = pd.concat([df_new, row], ignore_index=True)
     
     return df_new
-
-df = GspreadUtils.read_gspread('us-west-2 x86 isa set(23.08.31)')
-group = groupby_isa(df)
-GspreadUtils.write_gspread('adx(r4.large)', group)

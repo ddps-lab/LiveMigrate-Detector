@@ -5,7 +5,7 @@ provider "aws" {
 
 module "read-instances" {
   source    = "./modules/read-instances"
-  file_path = "AWS x86 instances(us-west-2, 23.07.07).csv"
+  file_path = "AWS x86 instances(us-west-2, feature group).csv"
 }
 
 module "vpc" {
