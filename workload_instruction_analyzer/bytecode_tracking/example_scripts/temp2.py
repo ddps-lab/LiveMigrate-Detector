@@ -1,2 +1,0 @@
-def ttest():
-    print('test~~')

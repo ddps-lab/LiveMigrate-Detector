@@ -3,8 +3,6 @@ import marshal
 import io
 from contextlib import redirect_stdout
 
-from pprint import pprint
-
 def read_pyc(path):
     with open(path, 'rb') as f:
         # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
@@ -205,8 +203,6 @@ def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
                 try:
                     # FIXME: alias 중복에 대한 처리 - 기존 모듈을 트래킹에서 누락시킴
                     if dictA[key]['__origin_name'] != value['__origin_name']:
-                        # numpy.core, xgboost.core 등 꽤 많은 alias가 겹침
-                        # print(dictA[key]['__origin_name'], value['__origin_name'])
                         dictA[key] = value
                         continue
                 except KeyError:

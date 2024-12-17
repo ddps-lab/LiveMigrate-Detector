@@ -2,8 +2,6 @@ import subprocess
 import struct
 from elftools.elf.elffile import ELFFile
 
-from pprint import pprint
-
 def get_func_list(binary_file):
     command = (
         "readelf -Ws -s "

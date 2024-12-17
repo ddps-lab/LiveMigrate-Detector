@@ -2,7 +2,6 @@ import bcode_instructions
 import importlib
 import sys
 
-from pprint import pprint
 import re
 
 pattern = re.compile(r'\((.*?)\)')
@@ -51,13 +50,10 @@ def module_classification(__module, __from):
             pass
         # 특정 OS에 최적화된 모듈을 import 하려는 경우 발생
         except ImportError as e:
-            # print(f'ImportError when import {module}')
             return e
         except AttributeError as e:
-            # print(f'AttributeError when import {module}')
             return e
         except AssertionError as e:
-            # print(f'AssertionError when import {module}')
             return e
 
 def func_classification(func, called_objs, obj_sets, obj_map):
@@ -112,7 +108,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         
         module_path = module_classification(module, shared_variables.current_module)
         if module_path == None:
-            # print(f'failed module classification {content}')
             return False
 
         if isinstance(module_path, ModuleNotFoundError):
@@ -133,7 +128,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             
             module_path = module_classification(module, shared_variables.current_module)
             if module_path == None:
-                # print(f'failed module classification {content}')
                 return False      
             
             if isinstance(module_path, ModuleNotFoundError):
@@ -180,7 +174,6 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
 def parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
     # 아래와 같은 경우 조건이 else라면 분기 전 스택을 기준으로 동작함.
     # 즉, 조건이 참인 경우에 변화할 스택 상태로 else를 처리하면 에러가 발생하므로 분기문에 대한 처리가 필요함.
-    # print("NumPy CPU features: ", (info if info else 'nothing enabled'))
     '''
     [분기 처리 기본 동작]
     1. POP_JUMP_IF_FALSE 마다 stack을 capture하여 stack_cap에 push.
@@ -269,10 +262,8 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
     
     if offset in branch_shared_variables.branch_targets:
         shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
-        # print(f'rollback!\toffset:{offset}, verification:{verification}, rollback to {verification[-1]}')
 
         branch_shared_variables.stack_cap.pop(-1)
-        # print(f'pop!\t\toffset:{offset}, verification:{verification}, pop:{verification.pop(-1)}')
         return False
 
     if 'POP_JUMP_IF_FALSE' in content:
@@ -280,12 +271,7 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
 
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
         branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
-        # if len(verification) == 0:
-        #     verification.append(1)
-        # else:
-        #     verification.append(max(verification) + 1)
-        # print(f'push!\t\toffset:{offset}, verification:{verification}, push:{max(verification)}')
-        # print(offset, shared_variables.LOAD)
+
         return True
     elif 'JUMP_IF_FALSE_OR_POP' in content:
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
@@ -295,7 +281,6 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
 
     if 'JUMP_FORWARD' in content:
         branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
-        # print(offset, shared_variables.LOAD)
         return True
 
 def parse_shared_instructions(content, shared_variables):
@@ -475,8 +460,6 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 obj_map[result] = method
         else:
             parse_shared_instructions(content, shared_variables)
-        # if shared_variables.current_module == 'distributed.shuffle._buffer':
-            # print(offset, shared_variables.LOAD)
     return called_objs
 
 def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
@@ -635,8 +618,4 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
         else:
             parse_shared_instructions(content, shared_variables)
 
-        # if shared_variables.current_module == 'distributed.shuffle._buffer':
-        #     print(offset, shared_variables.LOAD)
-    # pprint(shared_variables.decorator_map)
-    # input()
     return called_objs, shared_variables.decorator_map

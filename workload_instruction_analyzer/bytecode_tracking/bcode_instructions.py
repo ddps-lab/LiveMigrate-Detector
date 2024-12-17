@@ -1,7 +1,5 @@
 import re
 
-from pprint import pprint
-
 pattern = re.compile(r'\((.*?)\)')
 
 def import_name(idx, shared_variables):

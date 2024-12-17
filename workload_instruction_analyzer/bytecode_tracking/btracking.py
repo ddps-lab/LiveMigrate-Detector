@@ -8,12 +8,6 @@ import func_mapping
 # get python builtin modules
 from stdlib_list import stdlib_list
 
-import re
-
-# temp
-from pprint import pprint
-import time
-
 LIBRARIES = stdlib_list("3.10")
 
 def is_builtin_module(module_name):
@@ -61,13 +55,10 @@ def user_def_tracking(called_map, obj_map, def_map):
                 if func not in called_map[category]['__called']:
                     new_tracked[category]['__called'].add(func)
 
-    # print(f'\033[31m==== new tracked - user_def_tracking ====\033[0m')
-    # pprint(new_tracked)
     return new_tracked
 
 debug_modules = {}
 def create_call_map(byte_code, module):
-    # print(f'\033[33m======================================== {module} ========================================\033[0m')
     if module in debug_modules:
         debug_modules[module] += 0
     else:
@@ -84,13 +75,6 @@ def create_call_map(byte_code, module):
 
     called_map, decorator_map = bcode_parser.parse_main(codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
     bcode_utils.postprocessing_defmap(def_map, addr_map)
-    # print(f'\033[31m================ def map ================\033[0m')
-    # pprint(def_map)
-    # print(f'\033[31m================ called map ================\033[0m')
-    # pprint(called_map)
-    # print(f'\033[31m================ obj map ================\033[0m')
-    # pprint(obj_map)
-    # print('------------------------------------------------------------------------------------------------------------')
 
     return called_map, def_map, obj_map, decorator_map
 
@@ -118,9 +102,6 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func.setdefault(key, set())
         called_func[key].update(base_map[alias]['__called'])
-
-        # print(f'\033[33mcalled func : {called_func[key]}\033[0m')
-        # print(f'\033[33muser def : {set(def_map.keys())}\033[0m')
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func[key]:
@@ -150,12 +131,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             if bcode_utils.dict_empty_check(new_tracked):
                 break
             called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-        # print(f'\033[31m==== after user def tracking ====\033[0m')
-        # pprint(called_map)
-
         new_called_map = bcode_utils.merge_dictionaries(new_called_map, called_map)
-        # print(f'\033[35m==== new called map ====\033[0m')
-        # pprint(new_called_map)
 
     return new_called_map
 
@@ -227,8 +203,6 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
-    # print(f'\033[31m==== after user def tracking ====\033[0m')
-    # pprint(called_map)
     return called_map, pycaches, modules_info
 
 def main(SCRIPT_PATH):
@@ -238,8 +212,6 @@ def main(SCRIPT_PATH):
     called_func = {}
 
     called_map, pycaches, modules_info = entry_tracking(pycaches, modules_info, SCRIPT_PATH)
-    # print(f'\033[31m==== main tracking ====\033[0m')
-    # pprint(called_map)
 
     new_called_map = module_tracking(pycaches, called_map, C_functions_with_decorators, called_func)
     while(True):
@@ -258,52 +230,22 @@ def main(SCRIPT_PATH):
         modules_info = pycaches | modules_info
 
         if next_tracking:
-            # print(f'\033[31m==== next tracking ====\033[0m')
-            # pprint(next_tracking)
-
             called_map = bcode_utils.merge_dictionaries(called_map, new_called_map)
             new_called_map = module_tracking(pycaches, next_tracking, C_functions_with_decorators, called_func)
         else:
             break
 
-    # print(f'\033[31m==== end ====\033[0m')
-    # pprint(called_map)
-    # print(f'\033[31m==== modules ====\033[0m')
-    # pprint(modules_info)
-
-    keys = [key for key, value in debug_modules.items() if value >= 2]
-    print(f'두 번 이상 탐색한 모듈 : {keys}')
-    # print(f'탐색한 모듈 수 : {len(debug_modules.keys())}')
-
-    ########################################################################################################################
     not_pymodules = extract_c_func(modules_info, called_map)
     
-    # print(f'\033[31m==== c modules ====\033[0m')
-    # pprint(not_pymodules)
-    # pprint(C_functions_with_decorators)
-    
-    # FIXME: 임시코드
-    # not_pymodules['libxedwrapper.so'] = not_pymodules.pop('/libxedwrapper.so')
-    # not_pymodules = {'numpy.core._multiarray_umath': {'add_docstring'},
-    # 'psutil._psutil_posix': {'getpagesize'},
-    # 'sklearn.utils._isfinite': {'cy_isfinite'}}
-    # pprint(not_pymodules)
-
-    start_time = time.time()
     C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
     C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
-    end_time = time.time()
-    addr_collect_time = end_time - start_time
 
-    # C_functions = C_functions1
-    # print(f'\033[31m==== c functions ====\033[0m')
-    # print(C_functions)
+    C_functions = C_functions1
 
     set_c_functions = set()
 
     for _, addr in C_functions.items():
         set_c_functions.add(addr)
 
-    return set_c_functions, addr_collect_time, len(debug_modules.keys())
-    # return set_c_functions
+    return set_c_functions

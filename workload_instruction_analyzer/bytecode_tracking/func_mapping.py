@@ -1,7 +1,6 @@
 import gdb
 import subprocess
 import re
-from pprint import pprint
 
 from infer_variable_type import infer_global_variable_type
 
@@ -106,23 +105,17 @@ def get_PyMethodDef(lib, func_mapping):
         command = f'objdump -t {lib} | grep {var}'
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         PyMethodDef_elf_offset = int(result.stdout.split(' ')[0], 16)
-        # print(f'PyMethodDef_elf_offset: {hex(PyMethodDef_elf_offset)}')
 
         if lib not in offset_table:
             command = f'readelf -S {lib}'
             result = subprocess.run(command, shell=True, capture_output=True, text=True)
-            # match = re.search(r'\.data\s+PROGBITS\s+\S+\s+(\S+)', result.stdout)
             match = re.search(r'\[.*\]\s+\.data\s+PROGBITS\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)', result.stdout)
             offset_table[lib] = int(match.group(1), 16)
         data_ELF_VMA = offset_table[lib]
-        # print(f'.data_ELF_VMA: {hex(data_ELF_VMA)}')
 
         PyMethodDef_offset = PyMethodDef_elf_offset - data_ELF_VMA
-        # print(f'PyMethodDef_offset: {hex(PyMethodDef_offset)}')
 
         start_addr = data_addr_table[lib] + PyMethodDef_offset
-        # print(f'data_addr: {hex(data_addr_table[lib])}')
-        # print(f'start_addr: {hex(start_addr)}')
         while True:
             ml_name_ptr = gdb.execute(f"x/a {hex(start_addr)}", to_string=True).split(':')[1].strip()
             ml_name = gdb.execute(f"x/s {ml_name_ptr}", to_string=True)
@@ -168,13 +161,10 @@ def check_PyMethodDef(not_pymodules):
         for lib in shared_libraries:
             if module in lib:
                 if is_cython(lib):
-                    print(f'{lib} is cython')
                     get_func_addr_from_cython(module, functions, C_functions)
                 elif is_c(lib):
-                    print(f'{lib} is c')
                     get_func_addr_from_c(functions, C_functions)
                 else:
-                    print(f'{lib} is cpython with C API')
                     get_PyMethodDef(lib, func_mapping)
                     
                     for func in functions:
