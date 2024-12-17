@@ -1,0 +1,29 @@
+ISA_SET,SHORT
+PPRO,"nop edx, edi"
+I86,push rbp
+I186,leave 
+SSE,"movaps xmmword ptr [rsp+0x50], xmm0"
+SSE2,"movdqu xmm1, xmmword ptr [rax]"
+LONGMODE,"movsxd rdx, ebx"
+CMOV,"cmovnz eax, edx"
+FAT_NOP,nop word ptr [rax+rax*1]
+I386,"movzx r13d, byte ptr [r13+0x1]"
+I486REAL,"lock cmpxchg dword ptr [rdi], edx"
+X87,"fld st, ptr [rax]"
+AVX512BW_256,"vpbroadcastb ymm17, esi"
+AVX512F_128,"vpxorq xmm16, xmm16, xmm16"
+AVX512F_256,"vmovdqu64 ymm18, ymmword ptr [rdi]"
+AVX512BW_KOP,"kmovd eax, k0"
+BMI1,"tzcnt eax, eax"
+BMI2,"sarx eax, eax, edx"
+FCOMI,"fucomip st, st(0)"
+AVX512F_128N,"vmovq rdi, xmm16"
+AVX,"vmovdqu xmm0, xmmword ptr [rsi]"
+SSE_PREFETCH,prefetcht0 zmmword ptr [rsi+0x80]
+SSEMXCSR,stmxcsr dword ptr [rsp+0x2c]
+AVX512DQ_KOP,"kmovb ecx, k1"
+PAUSE,pause
+AVX512F_KOP,"kunpckbw k0, k1, k0"
+AVX2,"vpmovmskb ecx, ymm4"
+SSE42,"pcmpistri xmm1, xmm1, 0x3a"
+SSSE3,"pshufb xmm0, xmm2"
