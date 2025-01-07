@@ -5,5 +5,7 @@ settings.json
 *terraform*
 *.txt
 
-secure-outpost-380004-8d45b1504f3e.json
+.venv/*
+
+secure-outpost-*.json
 *pycache*

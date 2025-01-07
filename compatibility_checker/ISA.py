@@ -25,6 +25,11 @@ def get_ISAs(isa):
             "avx512_ifma_128", "avx512_ifma_256", "avx512_ifma_512", "tsx_ldtrk", "hreset", "amx_fp16", "sgx", "rtm", "invpcid",
             "lzcnt", "rdpid", "rao_int", 'xtest']
 
+    import warnings
+
+    # FutureWarning을 무시합니다.
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
     # DataFrame의 모든 값을 소문자로 변환
     isa = isa.applymap(lambda s:s.lower() if type(s) == str else s)
 

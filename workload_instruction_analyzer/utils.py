@@ -1,8 +1,6 @@
 import pandas as pd
 
 from pathlib import Path
-import sys
-import os
 
 rootdir = str(Path(__file__).resolve().parent)
 
@@ -15,7 +13,7 @@ def create_csv(workload_data_list, is_tsx_run=None, xtest_enable=None):
 
     if is_tsx_run != None and xtest_enable != None:
         if not is_tsx_run:
-            workload_df = workload_df[workload_df['ISA_SET'] != '   RTM']
+            workload_df = workload_df[~workload_df['ISA_SET'].str.contains('RTM')]
 
         workload_df = workload_df[['ISA_SET', 'SHORT']]
         if xtest_enable:
