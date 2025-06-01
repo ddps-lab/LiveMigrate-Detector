@@ -1,5 +1,6 @@
 import sys
 import importlib
+import time
 
 import bcode_parser
 import bcode_utils
@@ -229,6 +230,8 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
 
 
 def main(SCRIPT_PATH):
+    addr_collect_start_time = time.time()
+
     pycaches = {}
     modules_info = {}
     C_functions_with_decorators = {}
@@ -276,4 +279,8 @@ def main(SCRIPT_PATH):
     for _, addr in C_functions.items():
         set_c_functions.add(addr)
 
-    return set_c_functions
+    addr_collect_end_time = time.time()
+    addr_collect_time = addr_collect_end_time - addr_collect_start_time
+    module_count = len(modules_info)
+
+    return set_c_functions, addr_collect_time, module_count
