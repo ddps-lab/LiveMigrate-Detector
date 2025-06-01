@@ -3,14 +3,16 @@ import marshal
 import io
 from contextlib import redirect_stdout
 
+
 def read_pyc(path):
     with open(path, 'rb') as f:
         # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
         f.read(16)
         # marshal 모듈을 사용하여 코드 객체를 로드합니다
         code_obj = marshal.load(f)
-    
+
     return code_obj
+
 
 def preprocessing_bytecode(byte_code):
     # 라인 번호를 추출하기 위한 함수
@@ -38,7 +40,7 @@ def preprocessing_bytecode(byte_code):
             content = parts[1:]
 
         return int(offset), ' '.join(content), int(line_number)
-    
+
     '''
     바이트코드를 main과 def 파트로 구분해 각각 반환.
     '''
@@ -46,7 +48,7 @@ def preprocessing_bytecode(byte_code):
     dis_objects = []
     list_def_bcode_block_start_offsets = []
 
-    cleanup = set() # 바이트코드 상에 추가되는 클린업 코드(유저가 작성하지 않음)
+    cleanup = set()  # 바이트코드 상에 추가되는 클린업 코드(유저가 작성하지 않음)
 
     # StringIO 객체를 생성
     f = io.StringIO()
@@ -56,7 +58,8 @@ def preprocessing_bytecode(byte_code):
 
     # StringIO 객체에서 값을 얻고, 이를 줄 단위로 분할
     dis_output = f.getvalue()
-    codes = dis_output.split('Disassembly of <code object')[0].strip().split('\n')
+    codes = dis_output.split('Disassembly of <code object')[
+        0].strip().split('\n')
 
     objects = dis_output.split('Disassembly of <code object')[1:]
     for i, obj in enumerate(objects):
@@ -70,8 +73,8 @@ def preprocessing_bytecode(byte_code):
         # 소스코드 기준 새로운 라인
         if line_number != 0:
             bcode_block_number = line_number
-            main_bcode_block_start_offsets.append(offset)            
-            
+            main_bcode_block_start_offsets.append(offset)
+
         if not isinstance(offset, int):
             continue
 
@@ -80,12 +83,12 @@ def preprocessing_bytecode(byte_code):
         if 'SETUP_WITH' in content or 'SETUP_ASYNC_WITH' in content:
             cleanup.add(bcode_block_number)
             bcode_block_number += 1
-        
+
         if bcode_block_number in cleanup:
             continue
 
         dis_bytecode[offset] = content
-    
+
     for obj in objects:
         dis_object = {}
         first_line = obj[0].split()
@@ -110,17 +113,19 @@ def preprocessing_bytecode(byte_code):
 
             if 'SETUP_WITH' in content or 'SETUP_ASYNC_WITH' in content:
                 cleanup.add(bcode_block_number)
-                bcode_block_number += 1                
-            
+                bcode_block_number += 1
+
             if line_number in cleanup:
                 continue
-            
+
             dis_object[offset] = content
 
         dis_objects.append(dis_object)
-        list_def_bcode_block_start_offsets.append(def_bcode_block_start_offsets)
+        list_def_bcode_block_start_offsets.append(
+            def_bcode_block_start_offsets)
 
     return dis_bytecode, dis_objects, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets
+
 
 def postprocessing_defmap(DEF_MAP, addr_map):
     '''
@@ -141,19 +146,20 @@ def postprocessing_defmap(DEF_MAP, addr_map):
         else:
             DEF_MAP[key.split('.')[1]] = DEF_MAP.pop(key)
 
+
 def scan_definition(definitions):
     '''
     사용자 정의 객체를 수집.
     '''
     obj_lists = []
     obj_sets = set()
-    
+
     for obj in definitions:
         __name = obj['__name']
         __addr = obj['__addr']
 
         obj_sets.add(__name)
-        obj_lists.append({__name:__addr})
+        obj_lists.append({__name: __addr})
 
     return obj_sets, obj_lists
 
@@ -184,11 +190,12 @@ def scan_definition(definitions):
             try:
                 dictA[key]['__from'] = (value['__from'])
             except:
-                pass            
+                pass
 
     return dictA
 
-def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
+
+def merge_dictionaries(dictA, dictB):  # 이게 전체 트래킹 버전
     for key, value in dictB.items():
         # __builtin, __user_def 처리
         if isinstance(value, set):
@@ -206,7 +213,7 @@ def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
                         dictA[key] = value
                         continue
                 except KeyError:
-                    pass                
+                    pass
                 dictA[key]['__called'].update(value['__called'])
             else:
                 # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
@@ -222,6 +229,7 @@ def merge_dictionaries(dictA, dictB): # 이게 전체 트래킹 버전
 
     return dictA
 
+
 def find_unique_keys_values(A, B):
     """
     B에만 존재하는 키와 값을 찾아 새 딕셔너리로 반환하며,
@@ -233,11 +241,12 @@ def find_unique_keys_values(A, B):
     """
     unique_to_B = {key: value for key, value in B.items()
                    if key not in A or A[key] != value}
-    
+
     unique_to_B.pop('__builtin', None)
     unique_to_B.pop('__user_def', None)
 
     return unique_to_B
+
 
 def dict_empty_check(input_dict):
     for key, value in input_dict.items():
