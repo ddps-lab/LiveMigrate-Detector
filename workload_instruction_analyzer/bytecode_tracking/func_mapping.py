@@ -85,8 +85,9 @@ def get_func_addr_from_cython(module, functions, C_functions):
             try:
                 result = gdb.execute(f'info addr {sym}', to_string=True)
                 match = re.search(r'0x[0-9a-fA-F]+', result)
-                addr = match.group()
-                C_functions[sym] = addr
+                if match is not None:
+                    addr = match.group()
+                    C_functions[sym] = addr
             except gdb.error:
                 break
 
@@ -95,10 +96,15 @@ def get_func_addr_from_cython(module, functions, C_functions):
 
 def get_func_addr_from_c(functions, C_functions):
     for func in functions:
-        result = gdb.execute(f'info addr {func}', to_string=True)
-        match = re.search(r'0x[0-9a-fA-F]+', result)
-        addr = match.group()
-        C_functions[func] = addr
+        try:
+            result = gdb.execute(f'info addr {func}', to_string=True)
+            match = re.search(r'0x[0-9a-fA-F]+', result)
+            if match is not None:
+                addr = match.group()
+                C_functions[func] = addr
+        except gdb.error:
+            # 함수를 찾을 수 없는 경우 건너뜀
+            continue
 
 
 def get_PyMethodDef(lib, func_mapping):
@@ -126,7 +132,11 @@ def get_PyMethodDef(lib, func_mapping):
                 command, shell=True, capture_output=True, text=True)
             match = re.search(
                 r'\[.*\]\s+\.data\s+PROGBITS\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)', result.stdout)
-            offset_table[lib] = int(match.group(1), 16)
+            if match is not None:
+                offset_table[lib] = int(match.group(1), 16)
+            else:
+                # .data 섹션을 찾을 수 없는 경우 에러 처리
+                raise ValueError(f"Could not find .data section in {lib}")
         data_ELF_VMA = offset_table[lib]
 
         PyMethodDef_offset = PyMethodDef_elf_offset - data_ELF_VMA
@@ -142,7 +152,14 @@ def get_PyMethodDef(lib, func_mapping):
             if ml_name_ptr == '0x0' and ml_meth == '0x0':
                 break
 
-            ml_name = re.search(r'\"([^\"]*)\"', ml_name).group(1)
+            # 정규식 검색 결과가 None인지 확인
+            ml_name_match = re.search(r'\"([^\"]*)\"', ml_name)
+            if ml_name_match is None:
+                # 패턴이 매치되지 않으면 다음 항목으로 건너뜀
+                start_addr += 32
+                continue
+
+            ml_name = ml_name_match.group(1)
 
             func_mapping[ml_name] = ml_meth
             start_addr += 32
@@ -163,7 +180,13 @@ def get_PyMethodDef(lib, func_mapping):
     result = subprocess.run(command, shell=True,
                             capture_output=True, text=True)
     for line in result.stdout.splitlines():
-        var = re.search(r'\bPyMethodDef\s+(\w+)\[', line).group(1)
+        # 정규식 검색 결과가 None인지 확인
+        var_match = re.search(r'\bPyMethodDef\s+(\w+)\[', line)
+        if var_match is None:
+            # 패턴이 매치되지 않으면 해당 라인을 건너뜀
+            continue
+
+        var = var_match.group(1)
         search_mapping(var, lib)
 
 
