@@ -272,7 +272,7 @@ def main(SCRIPT_PATH):
     C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
 
-    C_functions = C_functions1
+    # C_functions = C_functions1
 
     set_c_functions = set()
 
