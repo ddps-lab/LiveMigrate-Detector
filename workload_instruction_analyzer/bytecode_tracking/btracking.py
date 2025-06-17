@@ -240,6 +240,8 @@ def main(SCRIPT_PATH):
     called_map, pycaches, modules_info = entry_tracking(
         pycaches, modules_info, SCRIPT_PATH)
 
+    print(called_map, pycaches, modules_info)
+
     new_called_map = module_tracking(
         pycaches, called_map, C_functions_with_decorators, called_func)
     while (True):
@@ -265,6 +267,8 @@ def main(SCRIPT_PATH):
                 pycaches, next_tracking, C_functions_with_decorators, called_func)
         else:
             break
+
+    print(called_map, pycaches, modules_info)
 
     not_pymodules = extract_c_func(modules_info, called_map)
 
