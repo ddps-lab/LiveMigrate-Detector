@@ -1,7 +1,7 @@
 import ctypes
 import time
 
-# libland.so 파일을 로드합니다.
+# librand.so 파일을 로드합니다.
 librand = ctypes.CDLL(f'/home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/exp_workloads/rand/librand.so')
 
 # 반환 유형과 인자 유형을 설정합니다.
