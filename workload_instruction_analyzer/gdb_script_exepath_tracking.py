@@ -466,7 +466,7 @@ if __name__ == '__main__':
     print(f"addr collect time: {addr_collect_time:.6f} sec")
     print(f"disassemble time: {dis_time:.6f} sec")
     print(f"exe path tracking time: {tracking_time:.6f} sec")
-    print(f'additionally tracked: {tracked_func_count - 1674}')
+    print(f'additionally tracked: {tracked_func_count - 1663}')
     print(f"total time: {total_time:.6f} sec")
     print(f"Number of modules searched: {module_count}")
 
