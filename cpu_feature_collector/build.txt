@@ -1,0 +1,1 @@
+gcc -o collector collector.c -I/home/ubuntu/xed/include/public/xed/ -I/home/ubuntu/xed/obj/ -L/home/ubuntu/xed/obj/ -lxed
