@@ -240,8 +240,6 @@ def main(SCRIPT_PATH):
     called_map, pycaches, modules_info = entry_tracking(
         pycaches, modules_info, SCRIPT_PATH)
 
-    print(called_map, pycaches, modules_info)
-
     new_called_map = module_tracking(
         pycaches, called_map, C_functions_with_decorators, called_func)
     while (True):
@@ -268,15 +266,13 @@ def main(SCRIPT_PATH):
         else:
             break
 
-    print(called_map, pycaches, modules_info)
-
     not_pymodules = extract_c_func(modules_info, called_map)
 
     C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
     C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
     C_functions = C_functions1 | C_functions2
 
-    C_functions = C_functions1
+    # C_functions = C_functions1
 
     set_c_functions = set()
 
