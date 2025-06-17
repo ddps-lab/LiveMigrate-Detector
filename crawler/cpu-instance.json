@@ -1,0 +1,4048 @@
+{
+    "Intel Xeon Platinum 8175": [
+        {
+            "instance": "m5.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5.metal",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5d.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5d.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5d.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5d.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5d.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5d.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5d.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5d.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5d.metal",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "t3.nano",
+            "memory": "0.50",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3.micro",
+            "memory": "1.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3.small",
+            "memory": "2.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3.medium",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "t3.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5d.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5d.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5d.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5d.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5d.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5d.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5d.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5d.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5d.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i3en.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "i3en.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i3en.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i3en.3xlarge",
+            "memory": "96.00",
+            "vcpu": "12",
+            "cores": "6"
+        },
+        {
+            "instance": "i3en.6xlarge",
+            "memory": "192.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "i3en.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "i3en.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i3en.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "p3dn.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "p4d.24xlarge",
+            "memory": "1152.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "p4de.24xlarge",
+            "memory": "1152.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "AMD EPYC 7571": [
+        {
+            "instance": "m5a.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5a.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5a.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5a.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5a.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5a.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5a.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5a.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5ad.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5ad.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5ad.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5ad.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5ad.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5ad.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5ad.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5ad.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "t3a.nano",
+            "memory": "0.50",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3a.micro",
+            "memory": "1.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3a.small",
+            "memory": "2.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3a.medium",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3a.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "t3a.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "t3a.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5a.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5a.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5a.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5a.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5a.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5a.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5a.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5a.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5ad.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5ad.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5ad.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5ad.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5ad.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5ad.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5ad.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5ad.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "Intel Xeon Platinum 8259": [
+        {
+            "instance": "m5dn.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5dn.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5dn.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5dn.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5dn.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5dn.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5dn.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5dn.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5dn.metal",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5n.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5n.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5n.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5n.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m5n.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m5n.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5n.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m5n.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m5n.metal",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5b.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5b.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5b.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5b.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5b.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5b.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5b.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5b.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5b.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5dn.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5dn.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5dn.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5dn.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5dn.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5dn.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5dn.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5dn.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5dn.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5n.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r5n.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r5n.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r5n.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r5n.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r5n.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r5n.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r5n.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r5n.metal",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "d3.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "d3.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "d3.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "d3.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "d3en.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "d3en.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "d3en.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "d3en.6xlarge",
+            "memory": "96.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "d3en.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "d3en.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        }
+    ],
+    "Intel Xeon Platinum 8252": [
+        {
+            "instance": "m5zn.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m5zn.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m5zn.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m5zn.3xlarge",
+            "memory": "48.00",
+            "vcpu": "12",
+            "cores": "6"
+        },
+        {
+            "instance": "m5zn.6xlarge",
+            "memory": "96.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "m5zn.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m5zn.metal",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "x2iezn.2xlarge",
+            "memory": "256.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "x2iezn.4xlarge",
+            "memory": "512.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "x2iezn.6xlarge",
+            "memory": "768.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "x2iezn.8xlarge",
+            "memory": "1024.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "x2iezn.12xlarge",
+            "memory": "1536.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "x2iezn.metal",
+            "memory": "1536.00",
+            "vcpu": "48",
+            "cores": "24"
+        }
+    ],
+    "AMD EPYC 7R13": [
+        {
+            "instance": "m6a.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m6a.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m6a.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m6a.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m6a.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m6a.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m6a.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m6a.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m6a.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6a.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "m6a.metal",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "c6a.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c6a.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c6a.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c6a.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c6a.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c6a.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c6a.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c6a.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c6a.32xlarge",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6a.48xlarge",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "c6a.metal",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "r6a.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r6a.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r6a.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r6a.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r6a.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r6a.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r6a.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r6a.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r6a.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6a.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "r6a.metal",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "f2.6xlarge",
+            "memory": "256.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "f2.12xlarge",
+            "memory": "512.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "f2.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "g6.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "g6.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "g6.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g6.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g6.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "g6.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g6.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "g6.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "g6e.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "g6e.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "g6e.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g6e.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g6e.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "g6e.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g6e.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "g6e.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "gr6.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "gr6.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "inf2.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "inf2.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "inf2.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "inf2.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "p5.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "p5e.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "hpc6a.48xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "96"
+        }
+    ],
+    "Intel Xeon Ice Lake": [
+        {
+            "instance": "m6i.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m6i.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m6i.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m6i.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m6i.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m6i.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m6i.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m6i.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m6i.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6i.metal",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6id.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m6id.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m6id.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m6id.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m6id.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m6id.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m6id.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m6id.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m6id.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6id.metal",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6idn.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m6idn.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m6idn.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m6idn.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m6idn.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m6idn.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m6idn.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m6idn.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m6idn.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6idn.metal",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6in.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m6in.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m6in.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m6in.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m6in.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m6in.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m6in.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m6in.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m6in.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "m6in.metal",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6i.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c6i.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c6i.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c6i.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c6i.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c6i.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c6i.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c6i.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c6i.32xlarge",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6i.metal",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6id.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c6id.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c6id.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c6id.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c6id.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c6id.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c6id.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c6id.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c6id.32xlarge",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6id.metal",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6in.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c6in.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c6in.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c6in.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c6in.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c6in.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c6in.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c6in.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c6in.32xlarge",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "c6in.metal",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6i.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r6i.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r6i.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r6i.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r6i.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r6i.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r6i.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r6i.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r6i.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6i.metal",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6idn.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r6idn.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r6idn.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r6idn.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r6idn.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r6idn.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r6idn.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r6idn.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r6idn.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6idn.metal",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6in.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r6in.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r6in.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r6in.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r6in.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r6in.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r6in.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r6in.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r6in.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6in.metal",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6id.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r6id.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r6id.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r6id.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r6id.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r6id.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r6id.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r6id.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r6id.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r6id.metal",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "x2idn.16xlarge",
+            "memory": "1024.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "x2idn.24xlarge",
+            "memory": "1536.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "x2idn.32xlarge",
+            "memory": "2048.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "x2idn.metal",
+            "memory": "2048.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "x2iedn.xlarge",
+            "memory": "128.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "x2iedn.2xlarge",
+            "memory": "256.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "x2iedn.4xlarge",
+            "memory": "512.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "x2iedn.8xlarge",
+            "memory": "1024.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "x2iedn.16xlarge",
+            "memory": "2048.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "x2iedn.24xlarge",
+            "memory": "3072.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "x2iedn.32xlarge",
+            "memory": "4096.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "x2iedn.metal",
+            "memory": "4096.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "i4i.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "i4i.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i4i.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i4i.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "i4i.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "i4i.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "i4i.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "i4i.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i4i.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "i4i.metal",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "trn1n.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "hpc6id.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "64",
+            "cores": "64"
+        }
+    ],
+    "AMD EPYC 9R14": [
+        {
+            "instance": "m7a.medium",
+            "memory": "4.00",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "m7a.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "m7a.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "m7a.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "8"
+        },
+        {
+            "instance": "m7a.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "16"
+        },
+        {
+            "instance": "m7a.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "32"
+        },
+        {
+            "instance": "m7a.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "48"
+        },
+        {
+            "instance": "m7a.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "64"
+        },
+        {
+            "instance": "m7a.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "96"
+        },
+        {
+            "instance": "m7a.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "128"
+        },
+        {
+            "instance": "m7a.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "m7a.metal-48xl",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "c7a.medium",
+            "memory": "2.00",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "c7a.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "c7a.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "c7a.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "8"
+        },
+        {
+            "instance": "c7a.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "16"
+        },
+        {
+            "instance": "c7a.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "32"
+        },
+        {
+            "instance": "c7a.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "48"
+        },
+        {
+            "instance": "c7a.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "64"
+        },
+        {
+            "instance": "c7a.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "96"
+        },
+        {
+            "instance": "c7a.32xlarge",
+            "memory": "256.00",
+            "vcpu": "128",
+            "cores": "128"
+        },
+        {
+            "instance": "c7a.48xlarge",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "c7a.metal-48xl",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "r7a.medium",
+            "memory": "8.00",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "r7a.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "r7a.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "r7a.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "8"
+        },
+        {
+            "instance": "r7a.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "16"
+        },
+        {
+            "instance": "r7a.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "32"
+        },
+        {
+            "instance": "r7a.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "48"
+        },
+        {
+            "instance": "r7a.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "64"
+        },
+        {
+            "instance": "r7a.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "96"
+        },
+        {
+            "instance": "r7a.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "128"
+        },
+        {
+            "instance": "r7a.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "r7a.metal-48xl",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "192"
+        },
+        {
+            "instance": "hpc7a.12xlarge",
+            "memory": "768.00",
+            "vcpu": "24",
+            "cores": "24"
+        },
+        {
+            "instance": "hpc7a.24xlarge",
+            "memory": "768.00",
+            "vcpu": "48",
+            "cores": "48"
+        },
+        {
+            "instance": "hpc7a.48xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "96"
+        },
+        {
+            "instance": "hpc7a.96xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "192"
+        }
+    ],
+    "Intel Xeon Sapphire Rapids": [
+        {
+            "instance": "m7i.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m7i.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m7i.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m7i.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m7i.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m7i.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m7i.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m7i.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m7i.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "m7i.metal-24xl",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "m7i.metal-48xl",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "m7i-flex.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m7i-flex.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m7i-flex.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m7i-flex.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m7i-flex.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m7i-flex.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "m7i-flex.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c7i.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c7i.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c7i.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c7i.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c7i.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c7i.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c7i.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c7i.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c7i.48xlarge",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "c7i.metal-24xl",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c7i.metal-48xl",
+            "memory": "384.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "c7i-flex.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c7i-flex.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c7i-flex.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c7i-flex.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c7i-flex.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c7i-flex.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c7i-flex.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r7i.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r7i.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r7i.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r7i.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r7i.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r7i.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r7i.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r7i.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r7i.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "r7i.metal-24xl",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "r7i.metal-48xl",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "r7iz.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r7iz.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r7iz.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r7iz.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r7iz.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r7iz.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "r7iz.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r7iz.32xlarge",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "r7iz.metal-16xl",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r7iz.metal-32xl",
+            "memory": "1024.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "u7i-6tb.112xlarge",
+            "memory": "6144.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u7i-8tb.112xlarge",
+            "memory": "8192.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u7i-12tb.224xlarge",
+            "memory": "12288.00",
+            "vcpu": "896",
+            "cores": "448"
+        },
+        {
+            "instance": "u7in-16tb.224xlarge",
+            "memory": "16384.00",
+            "vcpu": "896",
+            "cores": "448"
+        },
+        {
+            "instance": "u7in-24tb.224xlarge",
+            "memory": "24576.00",
+            "vcpu": "896",
+            "cores": "448"
+        },
+        {
+            "instance": "u7in-32tb.224xlarge",
+            "memory": "32768.00",
+            "vcpu": "896",
+            "cores": "448"
+        },
+        {
+            "instance": "u7inh-32tb.480xlarge",
+            "memory": "32768.00",
+            "vcpu": "1920",
+            "cores": "960"
+        },
+        {
+            "instance": "p5en.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "trn2.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "trn2u.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        }
+    ],
+    "Intel Core i7-8700B": [
+        {
+            "instance": "mac1.metal",
+            "memory": "32.00",
+            "vcpu": "12",
+            "cores": "6"
+        }
+    ],
+    "Intel Xeon Family": [
+        {
+            "instance": "t2.nano",
+            "memory": "0.50",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "t2.micro",
+            "memory": "1.00",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "t2.small",
+            "memory": "2.00",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "c1.medium",
+            "memory": "1.70",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "c1.xlarge",
+            "memory": "7.00",
+            "vcpu": "8",
+            "cores": "8"
+        },
+        {
+            "instance": "m1.small",
+            "memory": "1.70",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "m1.medium",
+            "memory": "3.70",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "m1.large",
+            "memory": "7.50",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "m1.xlarge",
+            "memory": "15.00",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "m2.xlarge",
+            "memory": "17.10",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "m2.2xlarge",
+            "memory": "34.20",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "m2.4xlarge",
+            "memory": "68.40",
+            "vcpu": "8",
+            "cores": "8"
+        }
+    ],
+    "Intel Xeon E5-2686v4": [
+        {
+            "instance": "t2.medium",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "t2.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "2"
+        },
+        {
+            "instance": "t2.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "4"
+        },
+        {
+            "instance": "t2.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "8"
+        },
+        {
+            "instance": "h1.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "h1.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "h1.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "h1.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "i3.large",
+            "memory": "15.25",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "i3.xlarge",
+            "memory": "30.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i3.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i3.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "i3.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "i3.16xlarge",
+            "memory": "488.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "i3.metal",
+            "memory": "512.00",
+            "vcpu": "72",
+            "cores": "36"
+        },
+        {
+            "instance": "f1.2xlarge",
+            "memory": "122.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "f1.4xlarge",
+            "memory": "244.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "f1.16xlarge",
+            "memory": "976.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "p3.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "p3.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "p3.16xlarge",
+            "memory": "488.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g3.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g3.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g3.16xlarge",
+            "memory": "488.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "m4.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "p2.xlarge",
+            "memory": "61.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "p2.8xlarge",
+            "memory": "488.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "p2.16xlarge",
+            "memory": "732.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "r4.large",
+            "memory": "15.25",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r4.xlarge",
+            "memory": "30.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r4.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r4.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r4.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "r4.16xlarge",
+            "memory": "488.00",
+            "vcpu": "64",
+            "cores": "32"
+        }
+    ],
+    "Intel Xeon Platinum 8124M": [
+        {
+            "instance": "c5.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c5.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c5.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c5.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c5.9xlarge",
+            "memory": "72.00",
+            "vcpu": "36",
+            "cores": "18"
+        },
+        {
+            "instance": "c5.18xlarge",
+            "memory": "144.00",
+            "vcpu": "72",
+            "cores": "36"
+        },
+        {
+            "instance": "c5d.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c5d.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c5d.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c5d.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c5d.9xlarge",
+            "memory": "72.00",
+            "vcpu": "36",
+            "cores": "18"
+        },
+        {
+            "instance": "c5d.18xlarge",
+            "memory": "144.00",
+            "vcpu": "72",
+            "cores": "36"
+        },
+        {
+            "instance": "c5n.large",
+            "memory": "5.25",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c5n.xlarge",
+            "memory": "10.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c5n.2xlarge",
+            "memory": "21.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c5n.4xlarge",
+            "memory": "42.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c5n.9xlarge",
+            "memory": "96.00",
+            "vcpu": "36",
+            "cores": "18"
+        },
+        {
+            "instance": "c5n.18xlarge",
+            "memory": "192.00",
+            "vcpu": "72",
+            "cores": "36"
+        },
+        {
+            "instance": "c5n.metal",
+            "memory": "192.00",
+            "vcpu": "72",
+            "cores": "36"
+        }
+    ],
+    "Intel Xeon Platinum 8275CL": [
+        {
+            "instance": "c5.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c5.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c5.metal",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c5d.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c5d.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c5d.metal",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "dl1.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "AMD EPYC 7R32": [
+        {
+            "instance": "c5a.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c5a.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c5a.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c5a.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c5a.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c5a.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c5a.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c5a.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "c5ad.large",
+            "memory": "4.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c5ad.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c5ad.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c5ad.4xlarge",
+            "memory": "32.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c5ad.8xlarge",
+            "memory": "64.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "c5ad.12xlarge",
+            "memory": "96.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "c5ad.16xlarge",
+            "memory": "128.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "c5ad.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "g4ad.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "g4ad.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "g4ad.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g4ad.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g4ad.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g5.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "g5.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "g5.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g5.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g5.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "g5.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g5.24xlarge",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "g5.48xlarge",
+            "memory": "768.00",
+            "vcpu": "192",
+            "cores": "96"
+        }
+    ],
+    "Intel Xeon Platinum 8176M": [
+        {
+            "instance": "u-3tb1.56xlarge",
+            "memory": "3072.00",
+            "vcpu": "224",
+            "cores": "112"
+        },
+        {
+            "instance": "u-6tb1.56xlarge",
+            "memory": "6144.00",
+            "vcpu": "224",
+            "cores": "224"
+        },
+        {
+            "instance": "u-6tb1.112xlarge",
+            "memory": "6144.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-6tb1.metal",
+            "memory": "6144.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-9tb1.112xlarge",
+            "memory": "9216.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-9tb1.metal",
+            "memory": "9216.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-12tb1.112xlarge",
+            "memory": "12288.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-12tb1.metal",
+            "memory": "12288.00",
+            "vcpu": "448",
+            "cores": "224"
+        }
+    ],
+    "Intel Xeon Platinum 8280L": [
+        {
+            "instance": "u-18tb1.112xlarge",
+            "memory": "18432.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-18tb1.metal",
+            "memory": "18432.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-24tb1.112xlarge",
+            "memory": "24576.00",
+            "vcpu": "448",
+            "cores": "224"
+        },
+        {
+            "instance": "u-24tb1.metal",
+            "memory": "24576.00",
+            "vcpu": "448",
+            "cores": "224"
+        }
+    ],
+    "Intel Xeon E7-8880v3": [
+        {
+            "instance": "x1.16xlarge",
+            "memory": "976.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "x1.32xlarge",
+            "memory": "1952.00",
+            "vcpu": "128",
+            "cores": "64"
+        },
+        {
+            "instance": "x1e.xlarge",
+            "memory": "122.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "x1e.2xlarge",
+            "memory": "244.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "x1e.4xlarge",
+            "memory": "488.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "x1e.8xlarge",
+            "memory": "976.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "x1e.16xlarge",
+            "memory": "1952.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "x1e.32xlarge",
+            "memory": "3904.00",
+            "vcpu": "128",
+            "cores": "64"
+        }
+    ],
+    "Intel Xeon Platinum 8151": [
+        {
+            "instance": "z1d.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "z1d.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "z1d.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "z1d.3xlarge",
+            "memory": "96.00",
+            "vcpu": "12",
+            "cores": "6"
+        },
+        {
+            "instance": "z1d.6xlarge",
+            "memory": "192.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "z1d.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "z1d.metal",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        }
+    ],
+    "Intel Xeon E5-2676v3": [
+        {
+            "instance": "d2.xlarge",
+            "memory": "30.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "d2.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "d2.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "d2.8xlarge",
+            "memory": "244.00",
+            "vcpu": "36",
+            "cores": "18"
+        },
+        {
+            "instance": "m4.large",
+            "memory": "8.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m4.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m4.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "m4.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "m4.10xlarge",
+            "memory": "160.00",
+            "vcpu": "40",
+            "cores": "20"
+        }
+    ],
+    "Intel Xeon Emerald Rapids": [
+        {
+            "instance": "i7i.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "i7i.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i7i.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i7i.4xlarge",
+            "memory": "128.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "i7i.8xlarge",
+            "memory": "256.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "i7i.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "i7i.16xlarge",
+            "memory": "512.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "i7i.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i7i.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "i7i.metal-24xl",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i7i.metal-48xl",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "i7ie.large",
+            "memory": "16.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "i7ie.xlarge",
+            "memory": "32.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i7ie.2xlarge",
+            "memory": "64.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i7ie.3xlarge",
+            "memory": "96.00",
+            "vcpu": "12",
+            "cores": "6"
+        },
+        {
+            "instance": "i7ie.6xlarge",
+            "memory": "192.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "i7ie.12xlarge",
+            "memory": "384.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "i7ie.18xlarge",
+            "memory": "576.00",
+            "vcpu": "72",
+            "cores": "36"
+        },
+        {
+            "instance": "i7ie.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i7ie.48xlarge",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "i7ie.metal-24xl",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "i7ie.metal-48xl",
+            "memory": "1536.00",
+            "vcpu": "192",
+            "cores": "96"
+        },
+        {
+            "instance": "p6-b200.48xlarge",
+            "memory": "2048.00",
+            "vcpu": "192",
+            "cores": "96"
+        }
+    ],
+    "Intel Xeon Cascade Lake": [
+        {
+            "instance": "dl2q.24xlarge",
+            "memory": "768.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "Intel Xeon Platinum 8259L": [
+        {
+            "instance": "g4dn.xlarge",
+            "memory": "16.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "g4dn.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "g4dn.4xlarge",
+            "memory": "64.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "g4dn.8xlarge",
+            "memory": "128.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "g4dn.12xlarge",
+            "memory": "192.00",
+            "vcpu": "48",
+            "cores": "24"
+        },
+        {
+            "instance": "g4dn.16xlarge",
+            "memory": "256.00",
+            "vcpu": "64",
+            "cores": "32"
+        },
+        {
+            "instance": "g4dn.metal",
+            "memory": "384.00",
+            "vcpu": "96",
+            "cores": "48"
+        },
+        {
+            "instance": "inf1.xlarge",
+            "memory": "8.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "inf1.2xlarge",
+            "memory": "16.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "inf1.6xlarge",
+            "memory": "48.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "inf1.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "Intel Xeon Platinum 8375C": [
+        {
+            "instance": "trn1.2xlarge",
+            "memory": "32.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "trn1.32xlarge",
+            "memory": "512.00",
+            "vcpu": "128",
+            "cores": "64"
+        }
+    ],
+    "Intel Xeon Platinum 8259CL": [
+        {
+            "instance": "vt1.3xlarge",
+            "memory": "24.00",
+            "vcpu": "12",
+            "cores": "6"
+        },
+        {
+            "instance": "vt1.6xlarge",
+            "memory": "48.00",
+            "vcpu": "24",
+            "cores": "12"
+        },
+        {
+            "instance": "vt1.24xlarge",
+            "memory": "192.00",
+            "vcpu": "96",
+            "cores": "48"
+        }
+    ],
+    "Intel Xeon E5-2680v2": [
+        {
+            "instance": "c3.large",
+            "memory": "3.75",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c3.xlarge",
+            "memory": "7.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c3.2xlarge",
+            "memory": "15.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c3.4xlarge",
+            "memory": "30.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c3.8xlarge",
+            "memory": "60.00",
+            "vcpu": "32",
+            "cores": "16"
+        }
+    ],
+    "Intel Xeon E5-2666v3": [
+        {
+            "instance": "c4.large",
+            "memory": "3.75",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "c4.xlarge",
+            "memory": "7.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "c4.2xlarge",
+            "memory": "15.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "c4.4xlarge",
+            "memory": "30.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "c4.8xlarge",
+            "memory": "60.00",
+            "vcpu": "36",
+            "cores": "18"
+        }
+    ],
+    "Intel Xeon E5-2670v2": [
+        {
+            "instance": "i2.xlarge",
+            "memory": "30.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "i2.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "i2.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "i2.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        },
+        {
+            "instance": "m3.medium",
+            "memory": "3.75",
+            "vcpu": "1",
+            "cores": "1"
+        },
+        {
+            "instance": "m3.large",
+            "memory": "7.50",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "m3.xlarge",
+            "memory": "15.00",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "m3.2xlarge",
+            "memory": "30.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r3.large",
+            "memory": "15.00",
+            "vcpu": "2",
+            "cores": "1"
+        },
+        {
+            "instance": "r3.xlarge",
+            "memory": "30.50",
+            "vcpu": "4",
+            "cores": "2"
+        },
+        {
+            "instance": "r3.2xlarge",
+            "memory": "61.00",
+            "vcpu": "8",
+            "cores": "4"
+        },
+        {
+            "instance": "r3.4xlarge",
+            "memory": "122.00",
+            "vcpu": "16",
+            "cores": "8"
+        },
+        {
+            "instance": "r3.8xlarge",
+            "memory": "244.00",
+            "vcpu": "32",
+            "cores": "16"
+        }
+    ],
+    "Intel Xeon E5-2650": [
+        {
+            "instance": "t1.micro",
+            "memory": "0.61",
+            "vcpu": "1",
+            "cores": "1"
+        }
+    ]
+}

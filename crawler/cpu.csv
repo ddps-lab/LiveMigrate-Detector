@@ -1,0 +1,29 @@
+name,genname,gencode
+Intel Xeon Platinum 8175,Skylake,80673
+AMD EPYC 7571,Zen,1
+Intel Xeon Platinum 8259,Cascade Lake,80695
+Intel Xeon Platinum 8252,Cascade Lake,80695
+AMD EPYC 7R13,Zen 3,3
+Intel Xeon Ice Lake,Ice Lake,80689
+AMD EPYC 9R14,Zen 4,4
+Intel Xeon Sapphire Rapids,Sapphire Rapids,80713
+Intel Core i7-8700B,Coffee Lake,80684
+Intel Xeon Family,Sandy Bridge,80621
+Intel Xeon Platinum 8124M,Skylake,80673
+Intel Xeon Platinum 8275CL,Cascade Lake,80695
+AMD EPYC 7R32,Zen 2,2
+Intel Xeon Platinum 8176M,Skylake,80673
+Intel Xeon Platinum 8280L,Cascade Lake,80695
+Intel Xeon E7-8880v3,Haswell,80645
+Intel Xeon Platinum 8151,Skylake,80673
+Intel Xeon E5-2676v3,Haswell,80644
+Intel Xeon Cascade Lake,Cascade Lake,80695
+Intel Xeon E5-2686v4,Broadwell,80660
+Intel Xeon Platinum 8259L,Cascade Lake,80695
+Intel Xeon Emerald Rapids,Emerald Rapids,80722
+Intel Xeon Platinum 8375C,Ice Lake,80689
+Intel Xeon Platinum 8259CL,Cascade Lake,80695
+Intel Xeon E5-2680v2,Ivy Bridge,80635
+Intel Xeon E5-2666v3,Haswell,80644
+Intel Xeon E5-2670v2,Ivy Bridge,80635
+Intel Xeon E5-2650,Sandy Bridge,80621
