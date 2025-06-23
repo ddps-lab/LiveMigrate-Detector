@@ -145,6 +145,7 @@ def get_PyMethodDef(lib, func_mapping):
         while True:
             ml_name_ptr = gdb.execute(
                 f"x/a {hex(start_addr)}", to_string=True).split(':')[1].strip()
+            ml_name_ptr = ml_name_ptr.split(" ")[0].strip()
             ml_name = gdb.execute(f"x/s {ml_name_ptr}", to_string=True)
             ml_meth = gdb.execute(
                 f"x/a {hex(start_addr + 8)}", to_string=True).split(':')[1].split('<')[0].strip()
