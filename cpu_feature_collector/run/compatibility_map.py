@@ -235,6 +235,87 @@ class CPUFeatureAnalyzer:
                     print("  ✗", end="")
             print()
 
+    def generate_feature_statistics_csv(self, output_file: str = "feature_statistics.csv"):
+        """각 CPU feature를 지원하는 그룹 개수를 통계내어 CSV로 출력합니다."""
+        print(f"\n📊 CPU Feature 통계 생성 중...")
+
+        if not self.group_features:
+            print("오류: 그룹 feature 데이터가 없습니다.")
+            return
+
+        # 모든 feature 목록 수집
+        all_features = set()
+        for group_data in self.group_features.values():
+            all_features.update(group_data['features'].keys())
+
+        all_features = sorted(all_features)
+
+        # 각 feature별로 지원하는 그룹 개수 계산
+        feature_counts = {}
+        for feature in all_features:
+            count = 0
+            for group_data in self.group_features.values():
+                if group_data['features'].get(feature, 0) == 1:
+                    count += 1
+            feature_counts[feature] = count
+
+            # CSV 파일 생성 (행렬 변환 - 각 행이 하나의 feature)
+        try:
+            with open(output_file, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+
+                # 헤더 작성
+                writer.writerow(['Feature', 'Supporting_Groups',
+                                'Support_Rate', 'Unsupporting_Groups'])
+
+                # 각 feature별로 데이터 작성
+                total_groups = len(self.group_features)
+                for feature in all_features:
+                    count = feature_counts[feature]
+                    support_rate = round((count / total_groups) * 100, 1)
+                    unsupported = total_groups - count
+                    writer.writerow(
+                        [feature, count, support_rate, unsupported])
+
+            print(f"✅ Feature 통계 CSV 파일 생성 완료: {output_file}")
+            print(f"   - 총 {len(all_features)}개 feature 정보 저장")
+            print(f"   - 엑셀에서 Support_Rate 열로 정렬하여 분석 가능")
+
+        except Exception as e:
+            print(f"오류: CSV 파일 생성 실패 - {e}")
+
+    def analyze_feature_distribution(self):
+        """Feature 분포를 분석합니다."""
+        print(f"\n🔬 Feature 분포 분석:")
+
+        total_groups = len(self.group_features)
+        feature_counts = self.calculate_feature_counts()
+
+        # 그룹별 feature 수 분포
+        min_features = min(feature_counts.values())
+        max_features = max(feature_counts.values())
+        avg_features = sum(feature_counts.values()) / len(feature_counts)
+
+        print(f"   최소 feature 수: {min_features}개")
+        print(f"   최대 feature 수: {max_features}개")
+        print(f"   평균 feature 수: {avg_features:.1f}개")
+
+        # feature 수 구간별 그룹 분포
+        ranges = [
+            (0, 60, "기본형"),
+            (61, 80, "표준형"),
+            (81, 110, "고급형"),
+            (111, 150, "프리미엄형")
+        ]
+
+        print(f"\n📊 그룹별 feature 수 분포:")
+        for min_f, max_f, category in ranges:
+            count = sum(1 for fc in feature_counts.values()
+                        if min_f <= fc <= max_f)
+            percentage = (count / total_groups) * 100
+            print(
+                f"   {category} ({min_f:3d}-{max_f:3d}개): {count:2d}개 그룹 ({percentage:5.1f}%)")
+
 
 def main():
     if len(sys.argv) != 2:
@@ -262,8 +343,16 @@ def main():
         # 호환성 트리 구축 및 출력
         analyzer.build_compatibility_tree()
 
+        # Feature 분포 분석
+        analyzer.analyze_feature_distribution()
+
+        # Feature 통계 CSV 생성
+        csv_filename = f"feature_statistics_{groups_file.replace('.json', '.csv')}"
+        analyzer.generate_feature_statistics_csv(csv_filename)
+
         print(f"\n✅ 호환성 분석이 완료되었습니다!")
         print(f"📁 결과 파일: {groups_file} 기반 분석")
+        print(f"📊 통계 파일: {csv_filename}")
 
     except Exception as e:
         print(f"오류 발생: {e}")
