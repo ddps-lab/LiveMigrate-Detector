@@ -99,17 +99,21 @@ def create_call_map(byte_code, module):
         raise
 
     # Process definitions
+    failed_definitions = 0
     for i in range(len(definitions)):
         try:
             key, value = next(iter(user_def_list[i].items()))
             def_map[value + '.' + key] = bcode_parser.parse_def(
                 definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
-            print(
-                f"[CREATE_CALL_MAP] Processed definition {i+1}/{len(definitions)}: {key}")
         except Exception as e:
+            failed_definitions += 1
             print(
                 f"[CREATE_CALL_MAP ERROR] Failed to process definition {i}: {e}")
             continue
+
+    if len(definitions) > 0:
+        print(
+            f"[CREATE_CALL_MAP] Processed {len(definitions)} definitions ({failed_definitions} failed)")
 
     try:
         called_map, decorator_map = bcode_parser.parse_main(
@@ -152,23 +156,21 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
     processed_modules = 0
     skipped_modules = 0
+    error_modules = 0
 
     for module, path in pycaches.items():
         processed_modules += 1
 
         if path in no_tracking:
             skipped_modules += 1
-            print(
-                f"[MODULE_TRACKING] Skipping module {module} (reason: {path})")
+            if path == '__ModuleNotFoundError':
+                print(f"[MODULE_TRACKING] Module not found: {module}")
             continue
-
-        print(
-            f"[MODULE_TRACKING] Processing module {module} from path: {path}")
 
         try:
             byte_code = bcode_utils.read_pyc(path)
-            print(f"[MODULE_TRACKING] Successfully read bytecode for {module}")
         except Exception as e:
+            error_modules += 1
             print(
                 f"[MODULE_TRACKING ERROR] Failed to read bytecode for {module}: {e}")
             continue
@@ -176,9 +178,8 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         try:
             called_map, def_map, obj_map, decorator_map = create_call_map(
                 byte_code, module)
-            print(
-                f"[MODULE_TRACKING] Created call map for {module}: {len(called_map)} called objects")
         except Exception as e:
+            error_modules += 1
             print(
                 f"[MODULE_TRACKING ERROR] Failed to create call map for {module}: {e}")
             continue
@@ -191,17 +192,12 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         # alias가 None이 아닌 경우에만 base_map에서 정보를 가져옴
         if alias is not None and alias in base_map:
             called_func[key].update(base_map[alias]['__called'])
-            print(
-                f"[MODULE_TRACKING] Added functions from alias {alias} for module {key}")
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func[key]:
             origin_name = func
 
             if func in decorator_map:
-                print(
-                    f"[MODULE_TRACKING] Found decorator for function {func}: {decorator_map[func]}")
-                # FIXME: 데코레이터 사용에서 .이 없을 수도 있을듯?
                 if '.' in decorator_map[func]:
                     c_module = decorator_map[func].split('.')[0]
                     c_func = decorator_map[func].split('.')[1]
@@ -218,8 +214,6 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
             if origin_name in def_map:
                 called_map['__user_def'].add(origin_name)
-                print(
-                    f"[MODULE_TRACKING] Added user-defined function {origin_name} to tracking")
 
         # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
         user_def_iterations = 0
@@ -236,16 +230,13 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                     f"[MODULE_TRACKING WARNING] Too many user_def iterations for {module}, breaking")
                 break
 
-        if user_def_iterations > 1:
-            print(
-                f"[MODULE_TRACKING] User-defined tracking took {user_def_iterations} iterations for {module}")
-
         new_called_map = bcode_utils.merge_dictionaries(
             new_called_map, called_map)
 
     print(f"[MODULE_TRACKING] Completed:")
     print(f"[MODULE_TRACKING]   Processed: {processed_modules}")
     print(f"[MODULE_TRACKING]   Skipped: {skipped_modules}")
+    print(f"[MODULE_TRACKING]   Errors: {error_modules}")
     print(f"[MODULE_TRACKING]   Result size: {len(new_called_map)}")
 
     return new_called_map
@@ -265,85 +256,61 @@ def search_module_path(called_map, pycaches):
     print(
         f"[SEARCH_MODULE_PATH] Found {len(origin_names)} unique origin names to process")
 
+    builtin_count = 0
+    not_found_count = 0
+    error_count = 0
+    cached_count = 0
+
     for __origin_name in origin_names:
-        print(f"[SEARCH_MODULE_PATH] Processing module: {__origin_name}")
 
         if is_builtin_module(__origin_name):
             pycaches[__origin_name] = '__builtin'
-            print(
-                f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as builtin")
+            builtin_count += 1
             continue
 
         try:
             if __origin_name in sys.modules:
                 loaded_module = sys.modules[__origin_name]
-                print(
-                    f"[SEARCH_MODULE_PATH] Module {__origin_name} already loaded in sys.modules")
             else:
-                print(f"[SEARCH_MODULE_PATH] Importing module {__origin_name}")
                 loaded_module = importlib.import_module(__origin_name)
 
             module_path = loaded_module.__cached__
             if module_path:
                 pycaches[__origin_name] = module_path
-                print(
-                    f"[SEARCH_MODULE_PATH] Found cached path for {__origin_name}: {module_path}")
-            else:
-                print(
-                    f"[SEARCH_MODULE_PATH] No cached path found for {__origin_name}")
+                cached_count += 1
 
         except AttributeError as e:
-            print(
-                f"[SEARCH_MODULE_PATH] AttributeError for {__origin_name}: {e}")
             # 가상 모듈 구분
             try:
                 if not loaded_module.__spec__.origin:
                     pycaches[__origin_name] = '__virtual_pymodule'
-                    print(
-                        f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as virtual pymodule")
                 else:
                     pycaches[__origin_name] = '__not_pymodule'
-                    print(
-                        f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as not pymodule")
             except Exception as inner_e:
-                print(
-                    f"[SEARCH_MODULE_PATH] Error checking module spec for {__origin_name}: {inner_e}")
                 pycaches[__origin_name] = '__not_pymodule'
+                error_count += 1
 
         # 런타임에 import되지 않는 모듈이 존재하며 해당 모듈은 시스템에 설치되지 않았을 수 있음.
         except ModuleNotFoundError as e:
-            print(
-                f"[SEARCH_MODULE_PATH] ModuleNotFoundError for {__origin_name}: {e}")
             # ctypes로 로드되는 모듈의 경우 importlib로 import할 수 없음.
             if __origin_name.endswith('.so'):
                 pycaches[__origin_name] = '__not_pymodule'
-                print(
-                    f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as .so file (not pymodule)")
             else:
                 pycaches[__origin_name] = '__ModuleNotFoundError'
-                print(f"[SEARCH_MODULE_PATH] Module {__origin_name} not found")
+                not_found_count += 1
+                if not_found_count <= 5:  # Show first few missing modules
+                    print(
+                        f"[SEARCH_MODULE_PATH] Module not found: {__origin_name}")
         except Exception as e:
-            print(
-                f"[SEARCH_MODULE_PATH] Unexpected error for {__origin_name}: {e}")
             pycaches[__origin_name] = '__ModuleNotFoundError'
+            error_count += 1
 
-    print(
-        f"[SEARCH_MODULE_PATH] Completed. Total cached modules: {len(pycaches)}")
-
-    # Summary of results
-    categories = {}
-    for module, path in pycaches.items():
-        if path in categories:
-            categories[path] += 1
-        else:
-            categories[path] = 1
-
-    print(f"[SEARCH_MODULE_PATH] Module categories:")
-    for category, count in categories.items():
-        if category in {'__builtin', '__not_pymodule', '__virtual_pymodule', '__ModuleNotFoundError'}:
-            print(f"[SEARCH_MODULE_PATH]   {category}: {count}")
-        else:
-            print(f"[SEARCH_MODULE_PATH]   cached_paths: {count}")
+    print(f"[SEARCH_MODULE_PATH] Completed. Results:")
+    print(f"[SEARCH_MODULE_PATH]   Builtin: {builtin_count}")
+    print(f"[SEARCH_MODULE_PATH]   Cached: {cached_count}")
+    print(f"[SEARCH_MODULE_PATH]   Not found: {not_found_count}")
+    print(f"[SEARCH_MODULE_PATH]   Errors: {error_count}")
+    print(f"[SEARCH_MODULE_PATH]   Total: {len(pycaches)}")
 
 
 def extract_c_func(modules_info, called_map):

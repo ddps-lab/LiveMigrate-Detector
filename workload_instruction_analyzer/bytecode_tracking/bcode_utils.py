@@ -5,17 +5,13 @@ from contextlib import redirect_stdout
 
 
 def read_pyc(path):
-    print(f"[READ_PYC] Attempting to read: {path}")
-
     try:
         with open(path, 'rb') as f:
             # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
             header = f.read(16)
-            print(f"[READ_PYC] Read {len(header)} bytes of header for {path}")
 
             # marshal 모듈을 사용하여 코드 객체를 로드합니다
             code_obj = marshal.load(f)
-            print(f"[READ_PYC] Successfully loaded code object for {path}")
 
             return code_obj
 

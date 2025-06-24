@@ -146,13 +146,10 @@ def dis_func(addr, tracked_instructions):
         if 'Dump of assembler code for function' in line:
             func_name = line.split('function ')[1].split(':')[0]
             logging_functions.append(func_name)
-            print(f'[DEBUG] Disassembling function: {func_name} at {addr}')
 
         # tsx를 사용하는 glibc 내부 함수에 대해 처리
         if func_name and func_name in tsx_enabled_glibc_functions:
             if glibc_rtm_enable:
-                print(
-                    f'[DEBUG] TSX-enabled glibc function {func_name} allowed (RTM enabled)')
                 pass
             else:
                 print(
@@ -186,8 +183,6 @@ def dis_func(addr, tracked_instructions):
 
         # exclude cold functions
         if '-' in gdb_comment or '.cold' in gdb_comment:
-            print(
-                f'[DEBUG] Skipping cold function instruction: {instruction_part}')
             continue
 
         if 'call' in instruction_part and 'QWORD PTR' in line:
@@ -213,7 +208,6 @@ def dis_func(addr, tracked_instructions):
 
         # exclude cold functions
         if '-' in offset or '.cold' in offset:
-            print(f'[DEBUG] Skipping cold function offset: {offset}')
             continue
 
         is_func_call = None
@@ -252,8 +246,7 @@ def dis_func(addr, tracked_instructions):
 
     if not func:
         print(f'[DEBUG] No instructions found for function at {addr}')
-    else:
-        print(f'[DEBUG] Found {len(func)} instructions for function at {addr}')
+        return None
 
     return func
 
@@ -273,8 +266,6 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
         try:
             address = gdb.execute(f'x/g {gdb_comment}',
                                   to_string=True).split(':')[-1].strip()
-            print(
-                f'[DEBUG] GOT address calculation: {gdb_comment} -> {address}')
         except Exception as e:
             print(
                 f'[DEBUG] Failed to calculate GOT address for {gdb_comment}: {e}')
@@ -290,18 +281,13 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
                 address = address + instruction_addr
                 address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
                 address = "0x{:016x}".format(int(address, 16))
-                print(f'[DEBUG] Calculated relative address: {address}')
             # QWORD PTR [rip+0x2f53] 처럼 call 하는 주소를 계산할 수 없는 경우
             except Exception as e:
-                print(
-                    f'[DEBUG] Failed to calculate relative address, trying symbol lookup: {e}')
                 try:
                     symbol = gdb_comment.replace('<', '')
                     symbol = symbol.replace('>', '')
                     address = gdb.execute(f'info address {symbol}', to_string=True).split(
                         ' ')[-1].split('.')[0]
-                    print(
-                        f'[DEBUG] Symbol lookup result: {symbol} -> {address}')
                 except Exception as symbol_e:
                     print(
                         f'[DEBUG] Symbol lookup failed for {symbol}: {symbol_e}')
@@ -312,10 +298,7 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
                 address = "0x{:016x}".format(int(address, 16))
                 # lea로 할당된 주소가 .text 섹션이 아닌 경우
                 if not check_address_in_range(address):
-                    print(
-                        f'[DEBUG] LEA address {address} not in .text section, skipping')
                     return None
-                print(f'[DEBUG] LEA address calculation: {address}')
             except Exception as e:
                 print(f'[DEBUG] Failed to calculate LEA address: {e}')
                 return None
@@ -329,12 +312,9 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
                 plt_addr = plt_addr.split(' ')[0].strip()
                 address = gdb.execute(
                     f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
-                print(f'[DEBUG] PLT address with LD_BIND_NOW: {address}')
             else:
                 # 트래킹 불가
                 if '*ABS*' in gdb_comment:
-                    print(
-                        f'[DEBUG] PLT address contains *ABS*, skipping: {gdb_comment}')
                     return None
                 symbol = gdb_comment.split('@')[0].split('<')[1]
                 address = gdb.execute(
@@ -342,16 +322,13 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
                 # '0x'로 시작하는 항목을 찾습니다.
                 address = [part for part in address if part.startswith('0x')]
                 address = ''.join(address)
-                print(f'[DEBUG] PLT symbol lookup: {symbol} -> {address}')
         except Exception as e:
             print(f'[DEBUG] Failed to resolve PLT address: {e}')
             return None
 
     if address not in tracking_functions:
-        print(f'[DEBUG] New function address found: {address}')
         return address
     else:
-        print(f'[DEBUG] Function address already tracked: {address}')
         return None
 
 
@@ -451,16 +428,16 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
 
     for function_address in list_tracking_functions:
         processed_functions += 1
-        if processed_functions % 100 == 0:
+        if processed_functions % 500 == 0:
             print(
-                f"[DEBUG] Processing function {processed_functions}/{len(list_tracking_functions)}: {function_address}")
+                f"[DEBUG] Processing function {processed_functions}/{len(list_tracking_functions)}")
 
         func = dis_func(function_address, tracked_instructions)
 
         if func is None:
             failed_functions += 1
-            print(
-                f"[DEBUG] Failed to disassemble function at {function_address}")
+            if failed_functions % 100 == 0:  # Show failed functions less frequently
+                print(f"[DEBUG] Failed functions so far: {failed_functions}")
             continue
 
         for instruction_hex, instruction_meta in func.items():

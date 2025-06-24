@@ -207,11 +207,10 @@ def check_PyMethodDef(not_pymodules):
 
     processed_modules = 0
     found_libraries = 0
+    mapped_functions = 0
 
     for module, functions in not_pymodules.items():
         processed_modules += 1
-        print(
-            f"[FUNC_MAPPING] Processing module {module} with {len(functions)} functions")
 
         if '.' in module:
             module = module.replace('.', '/')
@@ -223,31 +222,20 @@ def check_PyMethodDef(not_pymodules):
             if module in lib:
                 module_found = True
                 found_libraries += 1
-                print(
-                    f"[FUNC_MAPPING] Found library for module {module}: {lib}")
 
                 try:
                     if is_cython(lib):
-                        print(
-                            f"[FUNC_MAPPING] Processing as Cython library: {lib}")
                         get_func_addr_from_cython(
                             module, functions, C_functions)
                     elif is_c(lib):
-                        print(f"[FUNC_MAPPING] Processing as C library: {lib}")
                         get_func_addr_from_c(functions, C_functions)
                     else:
-                        print(
-                            f"[FUNC_MAPPING] Processing as Python extension with PyMethodDef: {lib}")
                         get_PyMethodDef(lib, func_mapping)
 
                         for func in functions:
                             if func in func_mapping:
                                 C_functions[func] = func_mapping[func]
-                                print(
-                                    f"[FUNC_MAPPING] Mapped function {func} to address {func_mapping[func]}")
-                            else:
-                                print(
-                                    f"[FUNC_MAPPING] Function {func} not found in PyMethodDef")
+                                mapped_functions += 1
                 except Exception as e:
                     print(
                         f"[FUNC_MAPPING ERROR] Failed to process library {lib}: {e}")
@@ -255,11 +243,14 @@ def check_PyMethodDef(not_pymodules):
                 continue
 
         if not module_found:
-            print(f"[FUNC_MAPPING] No library found for module {module}")
+            # Only show first few missing modules to avoid spam
+            if processed_modules <= 5:
+                print(f"[FUNC_MAPPING] No library found for module {module}")
 
     print(f"[FUNC_MAPPING] Completed:")
     print(f"[FUNC_MAPPING]   Processed modules: {processed_modules}")
     print(f"[FUNC_MAPPING]   Found libraries: {found_libraries}")
-    print(f"[FUNC_MAPPING]   Total C functions mapped: {len(C_functions)}")
+    print(f"[FUNC_MAPPING]   Mapped functions: {mapped_functions}")
+    print(f"[FUNC_MAPPING]   Total C functions: {len(C_functions)}")
 
     return C_functions
