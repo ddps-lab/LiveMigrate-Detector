@@ -499,7 +499,17 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                                 print(
                                     f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
 
-            called_objs.add(func)
+            # Properly categorize and add func to called_objs
+            category = func_classification(
+                func, called_objs, obj_sets, obj_map)
+
+            if category == '__builtin' or category == '__user_def':
+                called_objs.add(func)
+            else:
+                if category not in called_objs.keys():
+                    called_objs[category] = {'__called': set()}
+                called_objs[category]['__called'].add(
+                    func.split('.')[-1] if '.' in str(func) else func)
 
             next_content = byte_code[shared_variables.keys_list[i - 2]]
 
@@ -511,7 +521,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             method = bcode_instructions.call_method(content, shared_variables)
-            called_objs.add(method)
+            # Don't add method directly to called_objs - it will be handled later in the function
             next_content = byte_code[shared_variables.keys_list[i - 2]]
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
@@ -643,7 +653,17 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                                 print(
                                     f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
 
-            called_objs.add(func)
+            # Properly categorize and add func to called_objs
+            category = func_classification(
+                func, called_objs, obj_sets, obj_map)
+
+            if category == '__builtin' or category == '__user_def':
+                called_objs[category].add(func)
+            else:
+                if category not in called_objs.keys():
+                    called_objs[category] = {'__called': set()}
+                called_objs[category]['__called'].add(
+                    func.split('.')[-1] if '.' in str(func) else func)
 
             next_content = byte_code[shared_variables.keys_list[i - 2]]
 
