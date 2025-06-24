@@ -229,7 +229,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                         f"[LLAMA_DEBUG] Decorator for {func}: '{decorator_name}' (type: {type(decorator_name)})")
 
                 # Look for any decorator that contains function call patterns
-                if isinstance(decorator_name, str):
+                if isinstance(decorator_name, str) and decorator_name is not None:
                     # Pattern: Any decorator that looks like a function call with string arguments
                     if ('(' in decorator_name and ')' in decorator_name and '"' in decorator_name) or ("'" in decorator_name and '(' in decorator_name):
                         print(
@@ -261,7 +261,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                                     f"[MODULE_TRACKING DEBUG] Extracted potential C function {match} for library {c_module}")
 
                     # Also check for any decorator that just contains function-like names
-                    elif len(decorator_name) > 3 and decorator_name.replace('_', '').replace('.', '').isalnum():
+                    elif decorator_name and len(decorator_name) > 3 and decorator_name.replace('_', '').replace('.', '').isalnum():
                         if module == 'llama_cpp.llama_cpp':
                             print(
                                 f"[LLAMA_DEBUG] Simple decorator name: '{decorator_name}' for function {func}")
@@ -306,7 +306,7 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                     f"[LLAMA_DEBUG] Sample: {func_name} -> {decorator_value}")
 
                 # Try to extract function names even from malformed decorator strings
-                if isinstance(decorator_value, str) and len(decorator_value) > 5:
+                if isinstance(decorator_value, str) and decorator_value is not None and len(decorator_value) > 5:
                     # Look for patterns like "llama_xxx" in the decorator string
                     import re
                     llama_matches = re.findall(
