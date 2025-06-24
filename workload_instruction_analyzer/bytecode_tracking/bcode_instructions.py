@@ -208,7 +208,27 @@ def make_function(idx, content, shared_variables):
             print(f"[MAKE_FUNCTION DEBUG] LOAD stack at decorator: {LOAD}")
 
             shared_variables.decorator_map[maked_func] = decorator_func
-            shared_variables.decorators.add(decorator_func)
+
+            # Debug the decorators object type before calling add()
+            print(
+                f"[DECORATORS DEBUG] Type of shared_variables.decorators: {type(shared_variables.decorators)}")
+            print(
+                f"[DECORATORS DEBUG] Value of shared_variables.decorators: {shared_variables.decorators}")
+
+            try:
+                shared_variables.decorators.add(decorator_func)
+            except AttributeError as e:
+                print(f"[DECORATORS ERROR] Failed to add decorator: {e}")
+                print(
+                    f"[DECORATORS ERROR] decorators type: {type(shared_variables.decorators)}")
+                print(
+                    f"[DECORATORS ERROR] decorators value: {shared_variables.decorators}")
+                # Convert to set if it's not already
+                if not isinstance(shared_variables.decorators, set):
+                    print(
+                        f"[DECORATORS ERROR] Converting decorators from {type(shared_variables.decorators)} to set")
+                    shared_variables.decorators = set()
+                shared_variables.decorators.add(decorator_func)
 
             # Check if this is a ctypes_function decorator
             if 'ctypes_function' in str(decorator_func):
