@@ -192,29 +192,74 @@ def get_PyMethodDef(lib, func_mapping):
 
 
 def check_PyMethodDef(not_pymodules):
-    shared_libraries = get_sharedlibrary()
+    print(
+        f"[FUNC_MAPPING] Starting PyMethodDef check for {len(not_pymodules)} modules")
+
+    try:
+        shared_libraries = get_sharedlibrary()
+        print(f"[FUNC_MAPPING] Found {len(shared_libraries)} shared libraries")
+    except Exception as e:
+        print(f"[FUNC_MAPPING ERROR] Failed to get shared libraries: {e}")
+        return {}
 
     func_mapping = dict()
     C_functions = {}
+
+    processed_modules = 0
+    found_libraries = 0
+
     for module, functions in not_pymodules.items():
+        processed_modules += 1
+        print(
+            f"[FUNC_MAPPING] Processing module {module} with {len(functions)} functions")
+
         if '.' in module:
             module = module.replace('.', '/')
         if '/so' in module:
             module = module.replace('/so', '.so')
 
+        module_found = False
         for lib in shared_libraries:
             if module in lib:
-                if is_cython(lib):
-                    get_func_addr_from_cython(module, functions, C_functions)
-                elif is_c(lib):
-                    get_func_addr_from_c(functions, C_functions)
-                else:
-                    get_PyMethodDef(lib, func_mapping)
+                module_found = True
+                found_libraries += 1
+                print(
+                    f"[FUNC_MAPPING] Found library for module {module}: {lib}")
 
-                    for func in functions:
-                        if func in func_mapping:
-                            C_functions[func] = func_mapping[func]
+                try:
+                    if is_cython(lib):
+                        print(
+                            f"[FUNC_MAPPING] Processing as Cython library: {lib}")
+                        get_func_addr_from_cython(
+                            module, functions, C_functions)
+                    elif is_c(lib):
+                        print(f"[FUNC_MAPPING] Processing as C library: {lib}")
+                        get_func_addr_from_c(functions, C_functions)
+                    else:
+                        print(
+                            f"[FUNC_MAPPING] Processing as Python extension with PyMethodDef: {lib}")
+                        get_PyMethodDef(lib, func_mapping)
+
+                        for func in functions:
+                            if func in func_mapping:
+                                C_functions[func] = func_mapping[func]
+                                print(
+                                    f"[FUNC_MAPPING] Mapped function {func} to address {func_mapping[func]}")
+                            else:
+                                print(
+                                    f"[FUNC_MAPPING] Function {func} not found in PyMethodDef")
+                except Exception as e:
+                    print(
+                        f"[FUNC_MAPPING ERROR] Failed to process library {lib}: {e}")
             else:
                 continue
+
+        if not module_found:
+            print(f"[FUNC_MAPPING] No library found for module {module}")
+
+    print(f"[FUNC_MAPPING] Completed:")
+    print(f"[FUNC_MAPPING]   Processed modules: {processed_modules}")
+    print(f"[FUNC_MAPPING]   Found libraries: {found_libraries}")
+    print(f"[FUNC_MAPPING]   Total C functions mapped: {len(C_functions)}")
 
     return C_functions

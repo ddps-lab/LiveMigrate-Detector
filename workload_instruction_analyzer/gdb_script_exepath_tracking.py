@@ -136,21 +136,27 @@ def dis_func(addr, tracked_instructions):
         global dis_time
         dis_time += end_time - start_time
     except gdb.error as e:
-        print(f'error: {addr}')
+        print(f'[DEBUG] GDB disassembly error for address {addr}: {e}')
         return None
 
     lines = disas_result.split('\n')
+    func_name = None
 
     for line in lines:
         if 'Dump of assembler code for function' in line:
             func_name = line.split('function ')[1].split(':')[0]
             logging_functions.append(func_name)
+            print(f'[DEBUG] Disassembling function: {func_name} at {addr}')
 
         # tsx를 사용하는 glibc 내부 함수에 대해 처리
-        if func_name in tsx_enabled_glibc_functions:
+        if func_name and func_name in tsx_enabled_glibc_functions:
             if glibc_rtm_enable:
+                print(
+                    f'[DEBUG] TSX-enabled glibc function {func_name} allowed (RTM enabled)')
                 pass
             else:
+                print(
+                    f'[DEBUG] TSX-enabled glibc function {func_name} skipped (RTM disabled)')
                 return None
 
         # ex) ["0x0000561161740078 <_start+24>", "48 8d 3d bb 02 00 00	lea    rdi,[rip+0x2bb]        # 0x56116174033a <main>"]
@@ -163,6 +169,9 @@ def dis_func(addr, tracked_instructions):
 
         # ex) "48 8d 3d bb 02 00 00	lea    rdi,[rip+0x2bb]        # 0x56116174033a <main>"
         instruction_part = parts[1].strip()
+        if '\t' not in instruction_part:
+            continue
+
         instruction_hex = instruction_part.split('\t')[0].replace(' ', '')
         instruction = instruction_part.split('\t')[1].split(' ')[0]
 
@@ -177,6 +186,8 @@ def dis_func(addr, tracked_instructions):
 
         # exclude cold functions
         if '-' in gdb_comment or '.cold' in gdb_comment:
+            print(
+                f'[DEBUG] Skipping cold function instruction: {instruction_part}')
             continue
 
         if 'call' in instruction_part and 'QWORD PTR' in line:
@@ -192,6 +203,8 @@ def dis_func(addr, tracked_instructions):
         addresse_part = addresse_part.split(' ')
         # ex) "0x0000561161740078"
         address = addresse_part[0]
+        if len(addresse_part) < 2:
+            continue
         offset = addresse_part[1]
 
         # instruction not within function
@@ -200,6 +213,7 @@ def dis_func(addr, tracked_instructions):
 
         # exclude cold functions
         if '-' in offset or '.cold' in offset:
+            print(f'[DEBUG] Skipping cold function offset: {offset}')
             continue
 
         is_func_call = None
@@ -236,6 +250,11 @@ def dis_func(addr, tracked_instructions):
 
         func[instruction_hex] = address, is_func_call, gdb_comment
 
+    if not func:
+        print(f'[DEBUG] No instructions found for function at {addr}')
+    else:
+        print(f'[DEBUG] Found {len(func)} instructions for function at {addr}')
+
     return func
 
 
@@ -251,8 +270,15 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
     instruction_addr = ctypes.c_int64(int(instruction_addr, 16)).value
 
     if is_func_call == 'got':
-        address = gdb.execute(f'x/g {gdb_comment}',
-                              to_string=True).split(':')[-1].strip()
+        try:
+            address = gdb.execute(f'x/g {gdb_comment}',
+                                  to_string=True).split(':')[-1].strip()
+            print(
+                f'[DEBUG] GOT address calculation: {gdb_comment} -> {address}')
+        except Exception as e:
+            print(
+                f'[DEBUG] Failed to calculate GOT address for {gdb_comment}: {e}')
+            return None
     else:
         # Calculate Call Address
         address = instruction_data["SHORT"].split(' ')
@@ -264,41 +290,68 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
                 address = address + instruction_addr
                 address = hex(address & 0xFFFFFFFFFFFFFFFF)  # 결과를 64비트로 자르기
                 address = "0x{:016x}".format(int(address, 16))
+                print(f'[DEBUG] Calculated relative address: {address}')
             # QWORD PTR [rip+0x2f53] 처럼 call 하는 주소를 계산할 수 없는 경우
-            except:
-                symbol = gdb_comment.replace('<', '')
-                symbol = symbol.replace('>', '')
-                address = gdb.execute(f'info address {symbol}', to_string=True).split(
-                    ' ')[-1].split('.')[0]
+            except Exception as e:
+                print(
+                    f'[DEBUG] Failed to calculate relative address, trying symbol lookup: {e}')
+                try:
+                    symbol = gdb_comment.replace('<', '')
+                    symbol = symbol.replace('>', '')
+                    address = gdb.execute(f'info address {symbol}', to_string=True).split(
+                        ' ')[-1].split('.')[0]
+                    print(
+                        f'[DEBUG] Symbol lookup result: {symbol} -> {address}')
+                except Exception as symbol_e:
+                    print(
+                        f'[DEBUG] Symbol lookup failed for {symbol}: {symbol_e}')
+                    return None
         elif is_func_call == 'lea':
-            address = gdb_comment.split(' ')[0].strip()
-            address = "0x{:016x}".format(int(address, 16))
-            # lea로 할당된 주소가 .text 섹션이 아닌 경우
-            if not check_address_in_range(address):
+            try:
+                address = gdb_comment.split(' ')[0].strip()
+                address = "0x{:016x}".format(int(address, 16))
+                # lea로 할당된 주소가 .text 섹션이 아닌 경우
+                if not check_address_in_range(address):
+                    print(
+                        f'[DEBUG] LEA address {address} not in .text section, skipping')
+                    return None
+                print(f'[DEBUG] LEA address calculation: {address}')
+            except Exception as e:
+                print(f'[DEBUG] Failed to calculate LEA address: {e}')
                 return None
 
     # if address is not function start address
     if is_func_call == 'plt':
-        if LD_BIND_NOW:
-            plt_addr = gdb.execute(
-                f'disas {address}', to_string=True).split('#')[-1].strip()
-            plt_addr = plt_addr.split(' ')[0].strip()
-            address = gdb.execute(
-                f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
-        else:
-            # 트래킹 불가
-            if '*ABS*' in gdb_comment:
-                return None
-            symbol = gdb_comment.split('@')[0].split('<')[1]
-            address = gdb.execute(
-                f'info address {symbol}', to_string=True).split(' ')
-            # '0x'로 시작하는 항목을 찾습니다.
-            address = [part for part in address if part.startswith('0x')]
-            address = ''.join(address)
+        try:
+            if LD_BIND_NOW:
+                plt_addr = gdb.execute(
+                    f'disas {address}', to_string=True).split('#')[-1].strip()
+                plt_addr = plt_addr.split(' ')[0].strip()
+                address = gdb.execute(
+                    f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
+                print(f'[DEBUG] PLT address with LD_BIND_NOW: {address}')
+            else:
+                # 트래킹 불가
+                if '*ABS*' in gdb_comment:
+                    print(
+                        f'[DEBUG] PLT address contains *ABS*, skipping: {gdb_comment}')
+                    return None
+                symbol = gdb_comment.split('@')[0].split('<')[1]
+                address = gdb.execute(
+                    f'info address {symbol}', to_string=True).split(' ')
+                # '0x'로 시작하는 항목을 찾습니다.
+                address = [part for part in address if part.startswith('0x')]
+                address = ''.join(address)
+                print(f'[DEBUG] PLT symbol lookup: {symbol} -> {address}')
+        except Exception as e:
+            print(f'[DEBUG] Failed to resolve PLT address: {e}')
+            return None
 
     if address not in tracking_functions:
+        print(f'[DEBUG] New function address found: {address}')
         return address
     else:
+        print(f'[DEBUG] Function address already tracked: {address}')
         return None
 
 
@@ -337,6 +390,8 @@ def calculate_list_memory_size(lst):
 
 
 def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
+    print(
+        f"[DEBUG] Starting tracking with LANGUAGE_TYPE={LANGUAGE_TYPE}, SCRIPT_PATH={SCRIPT_PATH}")
     start_time = time.time()
 
     executable_instructions = []
@@ -353,28 +408,59 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     btracking_end_time = 0
 
     if LANGUAGE_TYPE == 'python':
+        print(
+            f"[DEBUG] Python language detected, starting bytecode tracking for {SCRIPT_PATH}")
         record_memory_start()
         btracking_start_time = time.time()
-        tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(
-            SCRIPT_PATH)
-        list_tracking_functions = list(tracking_functions)
+
+        try:
+            tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(
+                SCRIPT_PATH)
+            list_tracking_functions = list(tracking_functions)
+            print(
+                f"[DEBUG] Bytecode tracking completed. Found {len(tracking_functions)} functions, {module_count} modules")
+        except Exception as e:
+            print(f"[ERROR] Bytecode tracking failed: {e}")
+            print(f"[DEBUG] Continuing with empty tracking_functions")
+            tracking_functions = set()
+            list_tracking_functions = []
+
         btracking_end_time = time.time()
         btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
-        print(f'Btracking 추가된 메모리 사용량: {record_memory_end()} MB')
+        print(f'[DEBUG] Btracking 추가된 메모리 사용량: {record_memory_end()} MB')
+    else:
+        print(f"[DEBUG] Non-Python language detected: {LANGUAGE_TYPE}")
 
     record_memory_start()
     # search the starting point of tracking
-    start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
-    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
-    start_addr = "0x{:016x}".format(int(start_addr, 16))
+    try:
+        start_addr = gdb.execute(
+            f"p/x (long) main", to_string=True).split(' ')[-1]
+        # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
+        start_addr = "0x{:016x}".format(int(start_addr, 16))
+        print(f"[DEBUG] Found main function at address: {start_addr}")
+    except Exception as e:
+        print(f"[ERROR] Failed to find main function address: {e}")
+        return
 
     tracking_functions.add(start_addr)
     list_tracking_functions.append(start_addr)
 
+    processed_functions = 0
+    failed_functions = 0
+
     for function_address in list_tracking_functions:
+        processed_functions += 1
+        if processed_functions % 100 == 0:
+            print(
+                f"[DEBUG] Processing function {processed_functions}/{len(list_tracking_functions)}: {function_address}")
+
         func = dis_func(function_address, tracked_instructions)
 
         if func is None:
+            failed_functions += 1
+            print(
+                f"[DEBUG] Failed to disassemble function at {function_address}")
             continue
 
         for instruction_hex, instruction_meta in func.items():
@@ -399,21 +485,34 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
                     instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions)
 
                 if dst_addr:
-                    tracking_functions.add(dst_addr)
-                    list_tracking_functions.append(dst_addr)
+                    if dst_addr not in tracking_functions:
+                        tracking_functions.add(dst_addr)
+                        list_tracking_functions.append(dst_addr)
+
+    print(f"[DEBUG] Function processing complete:")
+    print(f"[DEBUG]   - Processed: {processed_functions}")
+    print(f"[DEBUG]   - Failed: {failed_functions}")
+    print(f"[DEBUG]   - Total instructions: {len(executable_instructions)}")
 
     list_size_in_bytes = calculate_list_memory_size(executable_instructions)
     list_size_in_mb = list_size_in_bytes / 1024 / 1024  # MB 단위로 변환
-    print(f'executable_instructions의 메모리 사용량: {list_size_in_mb:.2f} MB')
-    print(len(executable_instructions))
+    print(
+        f'[DEBUG] executable_instructions의 메모리 사용량: {list_size_in_mb:.2f} MB')
+    print(
+        f'[DEBUG] Total executable instructions: {len(executable_instructions)}')
 
     # print(f'tracked function count: {len(tracking_functions)}')
     global tracked_func_count
     tracked_func_count = len(tracking_functions)
-    utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
+
+    try:
+        utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
+        print(f"[DEBUG] CSV file created successfully")
+    except Exception as e:
+        print(f"[ERROR] Failed to create CSV file: {e}")
 
     btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
-    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
+    print(f'[DEBUG] exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
 
     end_time = time.time()
     global tracking_time
@@ -421,6 +520,8 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
 
     tracking_time = end_time - start_time - \
         dis_time - btracking_time - addr_collect_time
+
+    print(f"[DEBUG] Tracking completed successfully")
 
 
 def measure_initial_memory_usage():
@@ -430,7 +531,8 @@ def measure_initial_memory_usage():
 
 
 if __name__ == '__main__':
-    print(f"프로세스 시작 시점의 메모리 사용량: {measure_initial_memory_usage()} MB")
+    print(f"[MAIN] Starting workload instruction analyzer")
+    print(f"[MAIN] 프로세스 시작 시점의 메모리 사용량: {measure_initial_memory_usage()} MB")
     start_time = float(os.getenv('START_TIME', '0'))
 
     gdb_time = time.time()
@@ -445,30 +547,55 @@ if __name__ == '__main__':
     LANGUAGE_TYPE = os.getenv('LANGUAGE_TYPE', '0')
     SCRIPT_PATH = os.getenv('SCRIPT_PATH', '0')
 
-    glibc_tunables_check()
-    binding_check(PID)
+    print(f"[MAIN] Configuration:")
+    print(f"[MAIN]   PID: {PID}")
+    print(f"[MAIN]   Language: {LANGUAGE_TYPE}")
+    print(f"[MAIN]   Script: {SCRIPT_PATH}")
 
-    got_addr = get_got_sections()
-    sections = get_text_sections()
+    print(f"[MAIN] Checking environment settings...")
+    glibc_tunables_check()
+    print(f"[MAIN] GLIBC RTM enabled: {glibc_rtm_enable}")
+
+    binding_check(PID)
+    print(f"[MAIN] LD_BIND_NOW: {LD_BIND_NOW}")
+
+    print(f"[MAIN] Getting memory sections...")
+    try:
+        got_addr = get_got_sections()
+        sections = get_text_sections()
+        print(
+            f"[MAIN] Found {len(sections)} .text sections and GOT at {got_addr}")
+    except Exception as e:
+        print(f"[MAIN ERROR] Failed to get memory sections: {e}")
+        exit(1)
 
     compile_indirect = []
     runtime_indirect = []
     call_regi = []
 
-    tracking(LANGUAGE_TYPE, SCRIPT_PATH)
+    print(f"[MAIN] Starting tracking...")
+    try:
+        tracking(LANGUAGE_TYPE, SCRIPT_PATH)
+        print(f"[MAIN] Tracking completed successfully")
+    except Exception as e:
+        print(f"[MAIN ERROR] Tracking failed: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
 
     end_time = time.time()
     total_time = end_time - start_time
 
-    print(f'tracked function count: {tracked_func_count}')
-    print(f"GDB load time: {load_time:.6f} sec")
-    print(f"btracking time: {btracking_time:.6f} sec")
-    print(f"addr collect time: {addr_collect_time:.6f} sec")
-    print(f"disassemble time: {dis_time:.6f} sec")
-    print(f"exe path tracking time: {tracking_time:.6f} sec")
-    print(f'additionally tracked: {tracked_func_count - 1663}')
-    print(f"total time: {total_time:.6f} sec")
-    print(f"Number of modules searched: {module_count}")
+    print(f"[MAIN] Final Results:")
+    print(f'[MAIN] tracked function count: {tracked_func_count}')
+    print(f"[MAIN] GDB load time: {load_time:.6f} sec")
+    print(f"[MAIN] btracking time: {btracking_time:.6f} sec")
+    print(f"[MAIN] addr collect time: {addr_collect_time:.6f} sec")
+    print(f"[MAIN] disassemble time: {dis_time:.6f} sec")
+    print(f"[MAIN] exe path tracking time: {tracking_time:.6f} sec")
+    print(f'[MAIN] additionally tracked: {tracked_func_count - 1663}')
+    print(f"[MAIN] total time: {total_time:.6f} sec")
+    print(f"[MAIN] Number of modules searched: {module_count}")
 
     exit()
 

@@ -5,13 +5,30 @@ from contextlib import redirect_stdout
 
 
 def read_pyc(path):
-    with open(path, 'rb') as f:
-        # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
-        f.read(16)
-        # marshal 모듈을 사용하여 코드 객체를 로드합니다
-        code_obj = marshal.load(f)
+    print(f"[READ_PYC] Attempting to read: {path}")
 
-    return code_obj
+    try:
+        with open(path, 'rb') as f:
+            # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
+            header = f.read(16)
+            print(f"[READ_PYC] Read {len(header)} bytes of header for {path}")
+
+            # marshal 모듈을 사용하여 코드 객체를 로드합니다
+            code_obj = marshal.load(f)
+            print(f"[READ_PYC] Successfully loaded code object for {path}")
+
+            return code_obj
+
+    except FileNotFoundError:
+        print(f"[READ_PYC ERROR] File not found: {path}")
+        raise
+    except EOFError:
+        print(
+            f"[READ_PYC ERROR] EOF error reading {path} - file may be corrupted or incomplete")
+        raise
+    except Exception as e:
+        print(f"[READ_PYC ERROR] Unexpected error reading {path}: {e}")
+        raise
 
 
 def preprocessing_bytecode(byte_code):

@@ -67,30 +67,75 @@ debug_modules = {}
 
 
 def create_call_map(byte_code, module):
+    print(f"[CREATE_CALL_MAP] Creating call map for module: {module}")
+
     if module in debug_modules:
-        debug_modules[module] += 0
+        debug_modules[module] += 1
     else:
         debug_modules[module] = 1
 
     def_map, obj_map, addr_map = {}, {}, {}
-    codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(
-        byte_code)
+
+    try:
+        codes, definitions, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets = bcode_utils.preprocessing_bytecode(
+            byte_code)
+        print(f"[CREATE_CALL_MAP] Preprocessing completed for {module}")
+        print(
+            f"[CREATE_CALL_MAP]   Main code blocks: {len(main_bcode_block_start_offsets)}")
+        print(f"[CREATE_CALL_MAP]   Definitions: {len(definitions)}")
+    except Exception as e:
+        print(
+            f"[CREATE_CALL_MAP ERROR] Preprocessing failed for {module}: {e}")
+        raise
 
     # 현재 파싱중인 스크립트에 정의된 객체(함수, 클래스, 메서드)
-    obj_sets, user_def_list = bcode_utils.scan_definition(definitions)
+    try:
+        obj_sets, user_def_list = bcode_utils.scan_definition(definitions)
+        print(
+            f"[CREATE_CALL_MAP] Found {len(obj_sets)} user-defined objects in {module}")
+    except Exception as e:
+        print(
+            f"[CREATE_CALL_MAP ERROR] Failed to scan definitions for {module}: {e}")
+        raise
+
+    # Process definitions
     for i in range(len(definitions)):
-        key, value = next(iter(user_def_list[i].items()))
-        def_map[value + '.' + key] = bcode_parser.parse_def(
-            definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
+        try:
+            key, value = next(iter(user_def_list[i].items()))
+            def_map[value + '.' + key] = bcode_parser.parse_def(
+                definitions[i], addr_map, obj_map, list_def_bcode_block_start_offsets[i], module)
+            print(
+                f"[CREATE_CALL_MAP] Processed definition {i+1}/{len(definitions)}: {key}")
+        except Exception as e:
+            print(
+                f"[CREATE_CALL_MAP ERROR] Failed to process definition {i}: {e}")
+            continue
 
-    called_map, decorator_map = bcode_parser.parse_main(
-        codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
-    bcode_utils.postprocessing_defmap(def_map, addr_map)
+    try:
+        called_map, decorator_map = bcode_parser.parse_main(
+            codes, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module)
+        print(f"[CREATE_CALL_MAP] Parsed main code for {module}")
+        print(f"[CREATE_CALL_MAP]   Called objects: {len(called_map)}")
+        print(f"[CREATE_CALL_MAP]   Decorators: {len(decorator_map)}")
+    except Exception as e:
+        print(
+            f"[CREATE_CALL_MAP ERROR] Failed to parse main code for {module}: {e}")
+        raise
 
+    try:
+        bcode_utils.postprocessing_defmap(def_map, addr_map)
+        print(f"[CREATE_CALL_MAP] Postprocessing completed for {module}")
+    except Exception as e:
+        print(
+            f"[CREATE_CALL_MAP ERROR] Postprocessing failed for {module}: {e}")
+
+    print(f"[CREATE_CALL_MAP] Call map creation completed for {module}")
     return called_map, def_map, obj_map, decorator_map
 
 
 def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func):
+    print(f"[MODULE_TRACKING] Starting with {len(pycaches)} cached modules")
+
     # 모듈의 origin name을 확인해 alias를 찾는 함수
     def check_module_alias(module):
         for key, value in base_map.items():
@@ -104,26 +149,58 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
     no_tracking = {'__builtin', '__not_pymodule',
                    '__virtual_pymodule', '__ModuleNotFoundError'}
+
+    processed_modules = 0
+    skipped_modules = 0
+
     for module, path in pycaches.items():
+        processed_modules += 1
+
         if path in no_tracking:
+            skipped_modules += 1
+            print(
+                f"[MODULE_TRACKING] Skipping module {module} (reason: {path})")
             continue
 
-        byte_code = bcode_utils.read_pyc(path)
-        called_map, def_map, obj_map, decorator_map = create_call_map(
-            byte_code, module)
+        print(
+            f"[MODULE_TRACKING] Processing module {module} from path: {path}")
+
+        try:
+            byte_code = bcode_utils.read_pyc(path)
+            print(f"[MODULE_TRACKING] Successfully read bytecode for {module}")
+        except Exception as e:
+            print(
+                f"[MODULE_TRACKING ERROR] Failed to read bytecode for {module}: {e}")
+            continue
+
+        try:
+            called_map, def_map, obj_map, decorator_map = create_call_map(
+                byte_code, module)
+            print(
+                f"[MODULE_TRACKING] Created call map for {module}: {len(called_map)} called objects")
+        except Exception as e:
+            print(
+                f"[MODULE_TRACKING ERROR] Failed to create call map for {module}: {e}")
+            continue
+
         key = module.split('.')[0]
         alias = check_module_alias(module)
+
         # 현재 모듈에서 트래킹할 함수 - 다른 모듈에서 호출된 현재 모듈의 함수
         called_func.setdefault(key, set())
         # alias가 None이 아닌 경우에만 base_map에서 정보를 가져옴
         if alias is not None and alias in base_map:
             called_func[key].update(base_map[alias]['__called'])
+            print(
+                f"[MODULE_TRACKING] Added functions from alias {alias} for module {key}")
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         for func in called_func[key]:
             origin_name = func
 
             if func in decorator_map:
+                print(
+                    f"[MODULE_TRACKING] Found decorator for function {func}: {decorator_map[func]}")
                 # FIXME: 데코레이터 사용에서 .이 없을 수도 있을듯?
                 if '.' in decorator_map[func]:
                     c_module = decorator_map[func].split('.')[0]
@@ -133,29 +210,51 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                     C_functions_with_decorators[c_module].add(c_func)
 
             module_base = module.split('.')[0]
-            for key in base_map.keys():
+            for key_base in base_map.keys():
                 # key가 None이 아닌 경우에만 확인
-                if key is not None and module_base in key:
-                    if '__func_alias' in base_map[key] and func in base_map[key]['__func_alias']:
-                        origin_name = base_map[key]['__func_alias'][func]
+                if key_base is not None and module_base in key_base:
+                    if '__func_alias' in base_map[key_base] and func in base_map[key_base]['__func_alias']:
+                        origin_name = base_map[key_base]['__func_alias'][func]
 
             if origin_name in def_map:
                 called_map['__user_def'].add(origin_name)
+                print(
+                    f"[MODULE_TRACKING] Added user-defined function {origin_name} to tracking")
 
         # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
+        user_def_iterations = 0
         while (True):
+            user_def_iterations += 1
             new_tracked = user_def_tracking(called_map, obj_map, def_map)
             if bcode_utils.dict_empty_check(new_tracked):
                 break
             called_map = bcode_utils.merge_dictionaries(
                 called_map, new_tracked)
+
+            if user_def_iterations > 50:  # Safety valve
+                print(
+                    f"[MODULE_TRACKING WARNING] Too many user_def iterations for {module}, breaking")
+                break
+
+        if user_def_iterations > 1:
+            print(
+                f"[MODULE_TRACKING] User-defined tracking took {user_def_iterations} iterations for {module}")
+
         new_called_map = bcode_utils.merge_dictionaries(
             new_called_map, called_map)
+
+    print(f"[MODULE_TRACKING] Completed:")
+    print(f"[MODULE_TRACKING]   Processed: {processed_modules}")
+    print(f"[MODULE_TRACKING]   Skipped: {skipped_modules}")
+    print(f"[MODULE_TRACKING]   Result size: {len(new_called_map)}")
 
     return new_called_map
 
 
 def search_module_path(called_map, pycaches):
+    print(
+        f"[SEARCH_MODULE_PATH] Starting search for {len(called_map)} modules")
+
     # __origin_name 값을 추출하여 리스트로 변환
     origin_names = list({
         module_info['__origin_name']
@@ -163,32 +262,88 @@ def search_module_path(called_map, pycaches):
         if '__origin_name' in module_info
     })
 
+    print(
+        f"[SEARCH_MODULE_PATH] Found {len(origin_names)} unique origin names to process")
+
     for __origin_name in origin_names:
+        print(f"[SEARCH_MODULE_PATH] Processing module: {__origin_name}")
+
         if is_builtin_module(__origin_name):
             pycaches[__origin_name] = '__builtin'
+            print(
+                f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as builtin")
             continue
 
         try:
             if __origin_name in sys.modules:
                 loaded_module = sys.modules[__origin_name]
+                print(
+                    f"[SEARCH_MODULE_PATH] Module {__origin_name} already loaded in sys.modules")
             else:
+                print(f"[SEARCH_MODULE_PATH] Importing module {__origin_name}")
                 loaded_module = importlib.import_module(__origin_name)
 
             module_path = loaded_module.__cached__
-            pycaches[__origin_name] = module_path
-        except AttributeError:
-            # 가상 모듈 구분
-            if not loaded_module.__spec__.origin:
-                pycaches[__origin_name] = '__virtual_pymodule'
+            if module_path:
+                pycaches[__origin_name] = module_path
+                print(
+                    f"[SEARCH_MODULE_PATH] Found cached path for {__origin_name}: {module_path}")
             else:
+                print(
+                    f"[SEARCH_MODULE_PATH] No cached path found for {__origin_name}")
+
+        except AttributeError as e:
+            print(
+                f"[SEARCH_MODULE_PATH] AttributeError for {__origin_name}: {e}")
+            # 가상 모듈 구분
+            try:
+                if not loaded_module.__spec__.origin:
+                    pycaches[__origin_name] = '__virtual_pymodule'
+                    print(
+                        f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as virtual pymodule")
+                else:
+                    pycaches[__origin_name] = '__not_pymodule'
+                    print(
+                        f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as not pymodule")
+            except Exception as inner_e:
+                print(
+                    f"[SEARCH_MODULE_PATH] Error checking module spec for {__origin_name}: {inner_e}")
                 pycaches[__origin_name] = '__not_pymodule'
+
         # 런타임에 import되지 않는 모듈이 존재하며 해당 모듈은 시스템에 설치되지 않았을 수 있음.
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
+            print(
+                f"[SEARCH_MODULE_PATH] ModuleNotFoundError for {__origin_name}: {e}")
             # ctypes로 로드되는 모듈의 경우 importlib로 import할 수 없음.
             if __origin_name.endswith('.so'):
                 pycaches[__origin_name] = '__not_pymodule'
+                print(
+                    f"[SEARCH_MODULE_PATH] Module {__origin_name} identified as .so file (not pymodule)")
             else:
                 pycaches[__origin_name] = '__ModuleNotFoundError'
+                print(f"[SEARCH_MODULE_PATH] Module {__origin_name} not found")
+        except Exception as e:
+            print(
+                f"[SEARCH_MODULE_PATH] Unexpected error for {__origin_name}: {e}")
+            pycaches[__origin_name] = '__ModuleNotFoundError'
+
+    print(
+        f"[SEARCH_MODULE_PATH] Completed. Total cached modules: {len(pycaches)}")
+
+    # Summary of results
+    categories = {}
+    for module, path in pycaches.items():
+        if path in categories:
+            categories[path] += 1
+        else:
+            categories[path] = 1
+
+    print(f"[SEARCH_MODULE_PATH] Module categories:")
+    for category, count in categories.items():
+        if category in {'__builtin', '__not_pymodule', '__virtual_pymodule', '__ModuleNotFoundError'}:
+            print(f"[SEARCH_MODULE_PATH]   {category}: {count}")
+        else:
+            print(f"[SEARCH_MODULE_PATH]   cached_paths: {count}")
 
 
 def extract_c_func(modules_info, called_map):
@@ -208,28 +363,71 @@ def extract_c_func(modules_info, called_map):
 
 
 def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
+    print(
+        f"[ENTRY_TRACKING] Starting entry tracking for script: {SCRIPT_PATH}")
+
     if SCRIPT_PATH not in sys.path:
         sys.path.append(SCRIPT_PATH)
+        print(f"[ENTRY_TRACKING] Added {SCRIPT_PATH} to sys.path")
 
-    with open(SCRIPT_PATH, 'r') as f:
-        source_code = f.read()
+    try:
+        with open(SCRIPT_PATH, 'r') as f:
+            source_code = f.read()
+        print(
+            f"[ENTRY_TRACKING] Successfully read source code ({len(source_code)} characters)")
+    except Exception as e:
+        print(f"[ENTRY_TRACKING ERROR] Failed to read script: {e}")
+        raise
 
-    byte_code = compile(source_code, '<string>', 'exec')
+    try:
+        byte_code = compile(source_code, '<string>', 'exec')
+        print(f"[ENTRY_TRACKING] Successfully compiled source code to bytecode")
+    except Exception as e:
+        print(f"[ENTRY_TRACKING ERROR] Failed to compile source code: {e}")
+        raise
 
-    called_map, def_map, obj_map, _ = create_call_map(byte_code, 'main')
+    try:
+        called_map, def_map, obj_map, _ = create_call_map(byte_code, 'main')
+        print(
+            f"[ENTRY_TRACKING] Created call map with {len(called_map)} called objects")
+        for key, value in called_map.items():
+            if isinstance(value, set):
+                print(f"[ENTRY_TRACKING]   {key}: {len(value)} items")
+            elif isinstance(value, dict) and '__called' in value:
+                print(
+                    f"[ENTRY_TRACKING]   {key}: {len(value['__called'])} called items")
+    except Exception as e:
+        print(f"[ENTRY_TRACKING ERROR] Failed to create call map: {e}")
+        raise
+
+    print(f"[ENTRY_TRACKING] Searching module paths...")
     search_module_path(called_map, pycaches)
     modules_info = pycaches | modules_info
+    print(f"[ENTRY_TRACKING] Found {len(modules_info)} total modules")
 
     # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
+    user_def_iterations = 0
     while (True):
+        user_def_iterations += 1
         new_tracked = user_def_tracking(called_map, obj_map, def_map)
         if bcode_utils.dict_empty_check(new_tracked):
             break
         called_map = bcode_utils.merge_dictionaries(called_map, new_tracked)
+
+        if user_def_iterations > 50:  # Safety valve
+            print(f"[ENTRY_TRACKING WARNING] Too many user_def iterations, breaking")
+            break
+
+    if user_def_iterations > 1:
+        print(
+            f"[ENTRY_TRACKING] User-defined tracking took {user_def_iterations} iterations")
+
+    print(f"[ENTRY_TRACKING] Entry tracking completed successfully")
     return called_map, pycaches, modules_info
 
 
 def main(SCRIPT_PATH):
+    print(f"[BTRACKING] Starting bytecode tracking for script: {SCRIPT_PATH}")
     addr_collect_start_time = time.time()
 
     pycaches = {}
@@ -237,14 +435,43 @@ def main(SCRIPT_PATH):
     C_functions_with_decorators = {}
     called_func = {}
 
-    called_map, pycaches, modules_info = entry_tracking(
-        pycaches, modules_info, SCRIPT_PATH)
+    print(f"[BTRACKING] Performing entry tracking...")
+    try:
+        called_map, pycaches, modules_info = entry_tracking(
+            pycaches, modules_info, SCRIPT_PATH)
+        print(
+            f"[BTRACKING] Entry tracking completed. Found {len(called_map)} called objects")
+        print(f"[BTRACKING] Modules found: {list(modules_info.keys())}")
+    except Exception as e:
+        print(f"[BTRACKING ERROR] Entry tracking failed: {e}")
+        return set(), 0, 0
 
-    new_called_map = module_tracking(
-        pycaches, called_map, C_functions_with_decorators, called_func)
+    print(f"[BTRACKING] Starting module tracking...")
+    try:
+        new_called_map = module_tracking(
+            pycaches, called_map, C_functions_with_decorators, called_func)
+        print(
+            f"[BTRACKING] Module tracking completed. Found {len(new_called_map)} new called objects")
+    except Exception as e:
+        print(f"[BTRACKING ERROR] Module tracking failed: {e}")
+        new_called_map = {'__builtin': set(), '__user_def': set()}
+
+    iteration = 0
     while (True):
+        iteration += 1
+        print(
+            f"[BTRACKING] Iteration {iteration}: Looking for unique keys/values...")
+
         next_tracking = bcode_utils.find_unique_keys_values(
             called_map, new_called_map)
+
+        if not next_tracking:
+            print(
+                f"[BTRACKING] No more unique tracking needed, stopping at iteration {iteration}")
+            break
+
+        print(
+            f"[BTRACKING] Found {len(next_tracking)} items for next tracking")
 
         # next_tracking[key][__called] 값이 called_map의 __called 값에 포함되는 항목을 next_tracking에서 제거
         keys_to_remove = [
@@ -254,23 +481,52 @@ def main(SCRIPT_PATH):
         for key in keys_to_remove:
             del next_tracking[key]
 
+        if keys_to_remove:
+            print(f"[BTRACKING] Removed {len(keys_to_remove)} duplicate keys")
+
         pycaches = {}
+        print(f"[BTRACKING] Searching module paths for next tracking...")
         search_module_path(next_tracking, pycaches)
         modules_info = pycaches | modules_info
 
         if next_tracking:
+            print(f"[BTRACKING] Merging called maps...")
             called_map = bcode_utils.merge_dictionaries(
                 called_map, new_called_map)
+            print(f"[BTRACKING] Starting next module tracking iteration...")
             new_called_map = module_tracking(
                 pycaches, next_tracking, C_functions_with_decorators, called_func)
         else:
+            print(f"[BTRACKING] No more tracking needed")
             break
 
-    not_pymodules = extract_c_func(modules_info, called_map)
+        if iteration > 10:  # Safety valve
+            print(
+                f"[BTRACKING WARNING] Too many iterations ({iteration}), breaking")
+            break
 
-    C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
-    C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
-    C_functions = C_functions1 | C_functions2
+    print(f"[BTRACKING] Extracting C functions...")
+    try:
+        not_pymodules = extract_c_func(modules_info, called_map)
+        print(f"[BTRACKING] Found {len(not_pymodules)} non-Python modules")
+        for module, funcs in not_pymodules.items():
+            print(f"[BTRACKING]   {module}: {len(funcs)} functions")
+    except Exception as e:
+        print(f"[BTRACKING ERROR] Failed to extract C functions: {e}")
+        not_pymodules = {}
+
+    print(f"[BTRACKING] Checking PyMethodDef...")
+    try:
+        C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
+        C_functions2 = func_mapping.check_PyMethodDef(
+            C_functions_with_decorators)
+        C_functions = C_functions1 | C_functions2
+        print(f"[BTRACKING] Found {len(C_functions)} C functions total")
+        print(f"[BTRACKING]   From modules: {len(C_functions1)}")
+        print(f"[BTRACKING]   From decorators: {len(C_functions2)}")
+    except Exception as e:
+        print(f"[BTRACKING ERROR] Failed to check PyMethodDef: {e}")
+        C_functions = {}
 
     # C_functions = C_functions1
 
@@ -282,5 +538,10 @@ def main(SCRIPT_PATH):
     addr_collect_end_time = time.time()
     addr_collect_time = addr_collect_end_time - addr_collect_start_time
     module_count = len(modules_info)
+
+    print(f"[BTRACKING] Completed successfully:")
+    print(f"[BTRACKING]   Total C function addresses: {len(set_c_functions)}")
+    print(f"[BTRACKING]   Address collection time: {addr_collect_time:.3f}s")
+    print(f"[BTRACKING]   Module count: {module_count}")
 
     return set_c_functions, addr_collect_time, module_count
