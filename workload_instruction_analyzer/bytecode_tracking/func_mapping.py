@@ -1,6 +1,8 @@
 import gdb
 import subprocess
 import re
+import ctypes
+import os
 
 from infer_variable_type import infer_global_variable_type
 
@@ -34,28 +36,126 @@ def get_data_addr():
 data_addr_table = get_data_addr()
 
 
-def get_sharedlibrary():
-    print("=== DEBUG: Getting shared libraries ===")
+def get_shared_libraries():
+    """Get list of shared libraries from GDB"""
     try:
-        result = gdb.execute("info sharedlibrary", to_string=True)
-        print(f"=== DEBUG: Shared library info length: {len(result)} ===")
+        output = gdb.execute("info sharedlibrary", to_string=True)
+        libs = []
+
+        for line in output.split('\n'):
+            if '.so' in line and 'python' in line.lower():
+                parts = line.split()
+                if len(parts) >= 4:
+                    libs.append(parts[-1])
+
+        return libs
     except Exception as e:
-        print(f"=== ERROR: Failed to get shared library info: {e} ===")
+        print(f"=== ERROR: Failed to get shared libraries: {e} ===")
         return []
 
-    shared_libraries = []
-    library_paths = re.findall(r'/[^\s]+', result)
-    for path in library_paths:
-        shared_libraries.append(path)
 
-    print(f"=== DEBUG: Found {len(shared_libraries)} shared libraries ===")
-    for i, lib in enumerate(shared_libraries[:5]):  # Show first 5
-        print(f"=== DEBUG: Shared library {i+1}: {lib} ===")
-    if len(shared_libraries) > 5:
-        print(
-            f"=== DEBUG: ... and {len(shared_libraries) - 5} more libraries ===")
+def extract_function_names(script_functions):
+    """Extract function names from script_functions dict"""
+    names = set()
 
-    return shared_libraries
+    for key in script_functions.keys():
+        if isinstance(key, str):
+            # Extract base function name
+            name = key.split('.')[-1]  # Get last part after dot
+            name = re.sub(r'[<>"]', '', name)  # Remove special chars
+            if name and not name.startswith('_'):
+                names.add(name)
+
+    return list(names)
+
+
+def find_library_functions(lib_path, function_names):
+    """Find function addresses in a specific library"""
+    functions = {}
+
+    try:
+        # Use objdump to get function symbols
+        result = subprocess.run(['objdump', '-t', lib_path],
+                                capture_output=True, text=True, timeout=10)
+
+        if result.returncode != 0:
+            return functions
+
+        for line in result.stdout.split('\n'):
+            for func_name in function_names:
+                if func_name in line and 'F .text' in line:
+                    parts = line.split()
+                    if len(parts) >= 1:
+                        addr = parts[0]
+                        try:
+                            addr_int = int(addr, 16)
+                            if addr_int > 0:
+                                functions[func_name] = f"0x{addr_int:016x}"
+                        except ValueError:
+                            continue
+
+    except Exception as e:
+        pass
+
+    return functions
+
+
+def check_PyMethodDef(module_dict):
+    """Check PyMethodDef structures for C function addresses"""
+    print("=== DEBUG: Checking PyMethodDef structures ===")
+    C_functions = {}
+    processed_count = 0
+
+    try:
+        for module_name, module_info in module_dict.items():
+            processed_count += 1
+            if processed_count % 50 == 0:
+                print(
+                    f"=== DEBUG: Processed {processed_count}/{len(module_dict)} modules ===")
+
+            try:
+                addresses = extract_pymethoddef_addresses(
+                    module_name, module_info)
+                C_functions.update(addresses)
+            except Exception as e:
+                continue
+
+    except Exception as e:
+        print(f"=== ERROR: PyMethodDef checking failed: {e} ===")
+
+    print(
+        f"=== DEBUG: PyMethodDef check completed: {len(C_functions)} functions found ===")
+    return C_functions
+
+
+def extract_pymethoddef_addresses(module_name, module_info):
+    """Extract function addresses from PyMethodDef structure"""
+    addresses = {}
+
+    try:
+        if not isinstance(module_info, dict) or '__called' not in module_info:
+            return addresses
+
+        called_functions = module_info['__called']
+
+        for func_name in called_functions:
+            try:
+                # Try to get function address directly
+                cmd = f"p/x &{func_name}"
+                result = gdb.execute(cmd, to_string=True)
+
+                if 'No symbol' not in result and '0x' in result:
+                    addr_str = result.split('=')[-1].strip()
+                    addr = int(addr_str, 16)
+                    addresses[func_name] = f"0x{addr:016x}"
+
+            except Exception:
+                continue
+
+    except Exception as e:
+        pass
+
+    return addresses
 
 
 def is_debug_symbols_available(lib):
@@ -302,62 +402,30 @@ def get_PyMethodDef(lib, func_mapping):
             f"=== ERROR: Failed to get PyMethodDef variables for {lib}: {e} ===")
 
 
-def check_PyMethodDef(not_pymodules):
+def map_c_functions(script_functions):
+    """Map Python function names to C function addresses"""
+    print("=== DEBUG: Starting C function mapping ===")
+    c_functions = {}
+
+    # Get shared libraries
+    libs = get_shared_libraries()
+    print(f"=== DEBUG: Found {len(libs)} shared libraries ===")
+
+    # Extract function names from script_functions
+    function_names = extract_function_names(script_functions)
     print(
-        f"=== DEBUG: Checking PyMethodDef for {len(not_pymodules)} modules ===")
+        f"=== DEBUG: Extracted {len(function_names)} function names to search ===")
 
-    try:
-        shared_libraries = get_sharedlibrary()
-    except Exception as e:
-        print(f"=== ERROR: Failed to get shared libraries: {e} ===")
-        return {}
+    # Search for C functions
+    for lib_path in libs:
+        if not lib_path or 'python' not in lib_path.lower():
+            continue
 
-    func_mapping = dict()
-    C_functions = {}
+        try:
+            lib_functions = find_library_functions(lib_path, function_names)
+            c_functions.update(lib_functions)
+        except Exception as e:
+            continue
 
-    processed_modules = 0
-    for module, functions in not_pymodules.items():
-        processed_modules += 1
-        print(
-            f"=== DEBUG: Processing module {processed_modules}/{len(not_pymodules)}: {module} with {len(functions)} functions ===")
-
-        if '.' in module:
-            module = module.replace('.', '/')
-        if '/so' in module:
-            module = module.replace('/so', '.so')
-
-        found_library = False
-        for lib in shared_libraries:
-            if module in lib:
-                found_library = True
-                print(f"=== DEBUG: Found matching library: {lib} ===")
-
-                try:
-                    if is_cython(lib):
-                        print(f"=== DEBUG: Processing as Cython library ===")
-                        get_func_addr_from_cython(
-                            module, functions, C_functions)
-                    elif is_c(lib):
-                        print(f"=== DEBUG: Processing as C library ===")
-                        get_func_addr_from_c(functions, C_functions)
-                    else:
-                        print(f"=== DEBUG: Processing as Python extension ===")
-                        get_PyMethodDef(lib, func_mapping)
-
-                        for func in functions:
-                            if func in func_mapping:
-                                C_functions[func] = func_mapping[func]
-                                print(
-                                    f"=== DEBUG: Mapped function {func} -> {func_mapping[func]} ===")
-                except Exception as e:
-                    print(
-                        f"=== ERROR: Failed to process library {lib}: {e} ===")
-                break
-
-        if not found_library:
-            print(
-                f"=== DEBUG: No matching library found for module {module} ===")
-
-    print(
-        f"=== DEBUG: check_PyMethodDef completed, found {len(C_functions)} C function addresses ===")
-    return C_functions
+    print(f"=== DEBUG: Found {len(c_functions)} C function mappings ===")
+    return c_functions

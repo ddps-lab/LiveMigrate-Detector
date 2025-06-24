@@ -1,6 +1,9 @@
 import bcode_instructions
 import importlib
 import sys
+import ast
+import dis
+import gdb
 
 import re
 
@@ -711,3 +714,131 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
             parse_shared_instructions(content, shared_variables)
 
     return called_objs, shared_variables.decorator_map
+
+
+def parse_script(script_path):
+    """Parse main Python script and extract function information"""
+    print(f"=== DEBUG: Parsing script: {script_path} ===")
+
+    try:
+        with open(script_path, 'r') as f:
+            source_code = f.read()
+
+        tree = ast.parse(source_code)
+        functions = extract_functions_from_ast(tree)
+
+        print(
+            f"=== DEBUG: Found {len(functions)} functions in main script ===")
+        return functions, 1
+
+    except Exception as e:
+        print(f"=== ERROR: Failed to parse script {script_path}: {e} ===")
+        return {}, 0
+
+
+def extract_functions_from_ast(tree):
+    """Extract function definitions from AST"""
+    functions = {}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            func_name = node.name
+            # Create a simple function representation
+            functions[func_name] = {
+                'type': 'user_function',
+                'lineno': node.lineno,
+                'args': [arg.arg for arg in node.args.args]
+            }
+
+    return functions
+
+
+def classify_functions_and_modules(functions_dict, definitions, module_count):
+    """Classify functions into user-defined and module functions"""
+    user_functions = {}
+    module_functions = {}
+    new_modules = 0
+
+    for func_name, func_data in functions_dict.items():
+        if isinstance(func_data, dict):
+            func_type = func_data.get('type', 'unknown')
+
+            if func_type == 'user_function':
+                user_functions[func_name] = func_data
+            elif func_type == 'module_function':
+                module_functions[func_name] = func_data
+                new_modules += 1
+
+    total_modules = module_count + new_modules
+    return user_functions, module_functions, total_modules
+
+
+def trace_user_functions(user_functions, module_count):
+    """Trace user-defined functions to find called functions"""
+    print(f"=== DEBUG: Tracing {len(user_functions)} user functions ===")
+
+    traced_functions = {}
+
+    for func_name, func_data in user_functions.items():
+        try:
+            # Try to find the function in the current Python environment
+            called_funcs = trace_function_calls(func_name)
+            if called_funcs:
+                traced_functions[func_name] = called_funcs
+
+        except Exception as e:
+            continue
+
+    print(
+        f"=== DEBUG: Traced {len(traced_functions)} functions successfully ===")
+    return traced_functions
+
+
+def trace_function_calls(func_name):
+    """Trace function calls within a specific function"""
+    called_functions = {}
+
+    try:
+        # Use GDB to get function information if available
+        cmd = f"info symbol {func_name}"
+        result = gdb.execute(cmd, to_string=True)
+
+        if "No symbol" not in result:
+            # Extract address information
+            addr_match = re.search(r'0x[0-9a-fA-F]+', result)
+            if addr_match:
+                address = addr_match.group()
+                called_functions[func_name] = [address]
+
+    except Exception:
+        pass
+
+    return called_functions
+
+
+def find_decorator_functions():
+    """Find decorator functions in the current Python environment"""
+    decorator_functions = {}
+
+    try:
+        # Look for common decorator patterns
+        common_decorators = ['property',
+                             'staticmethod', 'classmethod', 'lru_cache']
+
+        for decorator in common_decorators:
+            try:
+                cmd = f"p/x &{decorator}"
+                result = gdb.execute(cmd, to_string=True)
+
+                if "No symbol" not in result and "0x" in result:
+                    addr_str = result.split('=')[-1].strip()
+                    addr = int(addr_str, 16)
+                    decorator_functions[decorator] = [f"0x{addr:016x}"]
+
+            except Exception:
+                continue
+
+    except Exception as e:
+        pass
+
+    return decorator_functions

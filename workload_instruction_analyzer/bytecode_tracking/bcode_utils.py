@@ -214,92 +214,121 @@ def scan_definition(definitions):
     return obj_sets, obj_lists
 
 
-def merge_dictionaries(dictA, dictB):  # 이게 전체 트래킹 버전
+def preprocess_functions(functions_dict):
+    """Preprocess function dictionary to extract definitions"""
+    print(f"=== DEBUG: Preprocessing {len(functions_dict)} functions ===")
+
+    definitions = {}
+    processed_functions = {}
+
+    for key, value in functions_dict.items():
+        if isinstance(value, dict):
+            # Extract definitions if present
+            if '__definitions' in value:
+                definitions.update(value['__definitions'])
+
+            # Clean up the function data
+            cleaned_value = {k: v for k,
+                             v in value.items() if not k.startswith('__')}
+            if cleaned_value:
+                processed_functions[key] = cleaned_value
+        else:
+            processed_functions[key] = value
+
     print(
-        f"=== DEBUG: Merging dictionaries - A has {len(dictA)} entries, B has {len(dictB)} entries ===")
-
-    merged_count = 0
-    for key, value in dictB.items():
-        # __builtin, __user_def 처리
-        if isinstance(value, set):
-            if key in dictA and isinstance(dictA[key], set):
-                original_size = len(dictA[key])
-                dictA[key].update(value)
-                added = len(dictA[key]) - original_size
-                merged_count += added
-                if added > 0:
-                    print(
-                        f"=== DEBUG: Merged {added} items into {key} set ===")
-            else:
-                dictA[key] = value.copy()
-                merged_count += len(value)
-                print(
-                    f"=== DEBUG: Added new set {key} with {len(value)} items ===")
-        # 모듈 처리
-        elif isinstance(value, dict):
-            # dictB.key(module)가 dictA에도 존재한다면 dictA,B의 __called를 병합
-            if key in dictA and '__called' in dictA[key]:
-                try:
-                    # FIXME: alias 중복에 대한 처리 - 기존 모듈을 트래킹에서 누락시킴
-                    if dictA[key]['__origin_name'] != value['__origin_name']:
-                        dictA[key] = value
-                        print(
-                            f"=== DEBUG: Replaced module {key} due to origin name mismatch ===")
-                        continue
-                except KeyError:
-                    pass
-                original_size = len(dictA[key]['__called'])
-                dictA[key]['__called'].update(value['__called'])
-                added = len(dictA[key]['__called']) - original_size
-                merged_count += added
-                if added > 0:
-                    print(
-                        f"=== DEBUG: Merged {added} functions into module {key} ===")
-            else:
-                # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
-                if key not in dictA:
-                    dictA[key] = {}
-                dictA[key]['__called'] = value['__called'].copy()
-                merged_count += len(value['__called'])
-                print(
-                    f"=== DEBUG: Added new module {key} with {len(value['__called'])} functions ===")
-
-            try:
-                dictA[key]['__origin_name'] = value['__origin_name']
-                dictA[key]['__from'] = value['__from']
-            except KeyError:
-                pass
-
-    print(f"=== DEBUG: Merge completed, added {merged_count} total items ===")
-    return dictA
+        f"=== DEBUG: Found {len(definitions)} definitions, {len(processed_functions)} functions ===")
+    return processed_functions, definitions
 
 
-def find_unique_keys_values(A, B):
-    """
-    B에만 존재하는 키와 값을 찾아 새 딕셔너리로 반환하며,
-    A와 B에 동일한 키가 있지만 값이 다른 경우도 포함한다.
+def merge_dictionaries(dict1, dict2):
+    """Merge two dictionaries, combining values for duplicate keys"""
+    merged = dict1.copy()
+    merge_count = 0
 
-    :param A: 비교 대상이 되는 첫 번째 딕셔너리
-    :param B: 비교 대상이 되는 두 번째 딕셔너리
-    :return: B에만 존재하는 키와 값 또는 값이 다른 키와 값이 포함된 새 딕셔너리
-    """
-    print(
-        f"=== DEBUG: Finding unique keys/values - A has {len(A)} entries, B has {len(B)} entries ===")
+    for key, value in dict2.items():
+        if key in merged:
+            if isinstance(merged[key], dict) and isinstance(value, dict):
+                merged[key].update(value)
+                merge_count += 1
+            elif isinstance(merged[key], set) and isinstance(value, set):
+                merged[key].update(value)
+                merge_count += 1
+        else:
+            merged[key] = value
 
-    unique_to_B = {key: value for key, value in B.items()
-                   if key not in A or A[key] != value}
+    if merge_count > 0:
+        print(f"=== DEBUG: Merged {merge_count} duplicate entries ===")
 
-    unique_to_B.pop('__builtin', None)
-    unique_to_B.pop('__user_def', None)
+    return merged
 
-    print(f"=== DEBUG: Found {len(unique_to_B)} unique entries ===")
-    for key in list(unique_to_B.keys())[:5]:  # Show first 5
-        print(f"=== DEBUG: Unique entry: {key} ===")
-    if len(unique_to_B) > 5:
-        print(
-            f"=== DEBUG: ... and {len(unique_to_B) - 5} more unique entries ===")
 
-    return unique_to_B
+def remove_duplicates(functions_dict):
+    """Remove duplicate entries from function dictionary"""
+    original_count = len(functions_dict)
+
+    # Simple deduplication based on keys
+    deduplicated = {}
+    for key, value in functions_dict.items():
+        if key not in deduplicated:
+            deduplicated[key] = value
+
+    removed_count = original_count - len(deduplicated)
+    if removed_count > 0:
+        print(f"=== DEBUG: Removed {removed_count} duplicate functions ===")
+
+    return deduplicated
+
+
+def calculate_memory_usage(data_structure):
+    """Calculate approximate memory usage of a data structure"""
+    import sys
+
+    if isinstance(data_structure, dict):
+        total = sys.getsizeof(data_structure)
+        for key, value in data_structure.items():
+            total += sys.getsizeof(key) + sys.getsizeof(value)
+            if isinstance(value, (dict, list, set)):
+                total += calculate_memory_usage(value)
+        return total
+    elif isinstance(data_structure, (list, tuple)):
+        total = sys.getsizeof(data_structure)
+        for item in data_structure:
+            total += sys.getsizeof(item)
+            if isinstance(item, (dict, list, set)):
+                total += calculate_memory_usage(item)
+        return total
+    elif isinstance(data_structure, set):
+        total = sys.getsizeof(data_structure)
+        for item in data_structure:
+            total += sys.getsizeof(item)
+        return total
+    else:
+        return sys.getsizeof(data_structure)
+
+
+def find_unique_keys_values(original_dict, new_dict):
+    """Find unique keys and values between two dictionaries"""
+    unique_items = {}
+
+    for key, value in new_dict.items():
+        if key not in original_dict:
+            unique_items[key] = value
+        elif original_dict[key] != value:
+            # Handle different value types
+            if isinstance(value, dict) and isinstance(original_dict[key], dict):
+                diff = {k: v for k, v in value.items(
+                ) if k not in original_dict[key] or original_dict[key][k] != v}
+                if diff:
+                    unique_items[key] = diff
+            elif isinstance(value, set) and isinstance(original_dict[key], set):
+                diff = value - original_dict[key]
+                if diff:
+                    unique_items[key] = diff
+
+    if unique_items:
+        print(f"=== DEBUG: Found {len(unique_items)} unique items ===")
+
+    return unique_items
 
 
 def dict_empty_check(dictionary):

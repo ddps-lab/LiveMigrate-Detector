@@ -1,6 +1,9 @@
 import sys
 import importlib
 import time
+import re
+import collections
+import gdb
 
 import bcode_parser
 import bcode_utils
@@ -377,133 +380,122 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
     return called_map, pycaches, modules_info
 
 
-def main(SCRIPT_PATH):
-    print(f"=== DEBUG: Starting btracking main for script: {SCRIPT_PATH} ===")
-    addr_collect_start_time = time.time()
+def main(script_path):
+    start_time = time.time()
+    print(f"=== DEBUG: Starting bytecode tracking for: {script_path} ===")
 
-    pycaches = {}
-    modules_info = {}
-    C_functions_with_decorators = {}
-    called_func = {}
+    script_functions = {}
+    module_count = 0
+    c_functions_count = 0
+    tracked_addresses = set()
+    c_functions = {}
 
     try:
-        called_map, pycaches, modules_info = entry_tracking(
-            pycaches, modules_info, SCRIPT_PATH)
-        print(f"=== DEBUG: Entry tracking completed ===")
+        gdb.execute("call Py_DebugFlag = 1")
+        print("=== DEBUG: Python debug flag enabled ===")
     except Exception as e:
-        print(f"=== ERROR: Entry tracking failed: {e} ===")
-        import traceback
-        traceback.print_exc()
+        print(f"=== ERROR: Failed to enable Python debug flag: {e} ===")
+
+    # Parse main script
+    print("=== DEBUG: Parsing main script ===")
+    script_functions, module_count = bcode_parser.parse_script(script_path)
+    if not script_functions:
+        print("=== ERROR: No functions found in main script ===")
         return set(), 0, 0
 
-    try:
-        new_called_map = module_tracking(
-            pycaches, called_map, C_functions_with_decorators, called_func)
-        print(f"=== DEBUG: Initial module tracking completed ===")
-    except Exception as e:
-        print(f"=== ERROR: Module tracking failed: {e} ===")
-        import traceback
-        traceback.print_exc()
-        return set(), 0, 0
-
-    tracking_rounds = 0
-    while (True):
-        tracking_rounds += 1
-        print(f"=== DEBUG: Starting tracking round {tracking_rounds} ===")
-
-        next_tracking = bcode_utils.find_unique_keys_values(
-            called_map, new_called_map)
-
-        if not next_tracking:
-            print(
-                f"=== DEBUG: No new modules to track, stopping after {tracking_rounds} rounds ===")
-            break
-
-        # next_tracking[key][__called] 값이 called_map의 __called 값에 포함되는 항목을 next_tracking에서 제거
-        keys_to_remove = [
-            key for key in next_tracking
-            if key in called_map and called_map[key]['__called'].issuperset(next_tracking[key]['__called'])
-        ]
-        for key in keys_to_remove:
-            del next_tracking[key]
-
-        print(
-            f"=== DEBUG: Round {tracking_rounds}: Found {len(next_tracking)} new modules to track ===")
-
-        pycaches = {}
-        try:
-            search_module_path(next_tracking, pycaches)
-            modules_info = pycaches | modules_info
-            print(
-                f"=== DEBUG: Updated module info, total modules: {len(modules_info)} ===")
-        except Exception as e:
-            print(
-                f"=== ERROR: Failed to search module paths in round {tracking_rounds}: {e} ===")
-
-        if next_tracking:
-            called_map = bcode_utils.merge_dictionaries(
-                called_map, new_called_map)
-            try:
-                new_called_map = module_tracking(
-                    pycaches, next_tracking, C_functions_with_decorators, called_func)
-                print(
-                    f"=== DEBUG: Round {tracking_rounds} module tracking completed ===")
-            except Exception as e:
-                print(
-                    f"=== ERROR: Module tracking failed in round {tracking_rounds}: {e} ===")
-                break
-        else:
-            break
-
-        if tracking_rounds > 10:  # Prevent infinite loops
-            print(
-                f"=== WARNING: Too many tracking rounds, stopping at {tracking_rounds} ===")
-            break
-
-    try:
-        not_pymodules = extract_c_func(modules_info, called_map)
-        print(
-            f"=== DEBUG: Extracted {len(not_pymodules)} non-Python modules ===")
-    except Exception as e:
-        print(f"=== ERROR: Failed to extract C functions: {e} ===")
-        not_pymodules = {}
-
-    try:
-        C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
-        print(
-            f"=== DEBUG: Found {len(C_functions1)} C functions from PyMethodDef ===")
-    except Exception as e:
-        print(
-            f"=== ERROR: Failed to check PyMethodDef for not_pymodules: {e} ===")
-        C_functions1 = {}
-
-    try:
-        C_functions2 = func_mapping.check_PyMethodDef(
-            C_functions_with_decorators)
-        print(
-            f"=== DEBUG: Found {len(C_functions2)} C functions from decorators ===")
-    except Exception as e:
-        print(
-            f"=== ERROR: Failed to check PyMethodDef for decorators: {e} ===")
-        C_functions2 = {}
-
-    C_functions = C_functions1 | C_functions2
-
-    # C_functions = C_functions1
-
-    set_c_functions = set()
-
-    for _, addr in C_functions.items():
-        set_c_functions.add(addr)
-
-    addr_collect_end_time = time.time()
-    addr_collect_time = addr_collect_end_time - addr_collect_start_time
-    module_count = len(modules_info)
-
-    print(f"=== DEBUG: btracking main completed ===")
-    print(f"=== DEBUG: Total C functions found: {len(set_c_functions)} ===")
-    print(f"=== DEBUG: Total modules processed: {module_count} ===")
     print(
-        f"=== DEBUG: Address collection time: {addr_collect_time:.6f} sec ===")
+        f"=== DEBUG: Found {len(script_functions)} functions in main script ===")
 
-    return set_c_functions, addr_collect_time, module_count
+    round_count = 0
+    max_rounds = 10
+
+    while round_count < max_rounds:
+        round_count += 1
+        print(
+            f"=== DEBUG: Round {round_count}: Processing {len(script_functions)} total functions ===")
+
+        # Preprocess functions
+        script_functions, definitions = bcode_utils.preprocess_functions(
+            script_functions)
+
+        # Classify functions and modules
+        user_functions, module_functions, module_count = bcode_parser.classify_functions_and_modules(
+            script_functions, definitions, module_count)
+
+        if not user_functions and not module_functions:
+            print("=== DEBUG: No new functions to process ===")
+            break
+
+        print(
+            f"=== DEBUG: Round {round_count}: {len(user_functions)} user functions, {len(module_functions)} module functions ===")
+
+        # Recursively trace user functions
+        if user_functions:
+            print(
+                f"=== DEBUG: Tracing {len(user_functions)} user-defined functions ===")
+            new_functions = bcode_parser.trace_user_functions(
+                user_functions, module_count)
+
+            # Merge new functions
+            for key, value in new_functions.items():
+                if key not in script_functions:
+                    script_functions[key] = value
+                else:
+                    script_functions[key].update(value)
+
+        # Check for decorator functions
+        print(f"=== DEBUG: Scanning for decorator functions ===")
+        decorator_functions = bcode_parser.find_decorator_functions()
+        if decorator_functions:
+            print(
+                f"=== DEBUG: Found {len(decorator_functions)} decorator functions ===")
+            script_functions.update(decorator_functions)
+
+        # Stop if no new functions found
+        if not new_functions and not decorator_functions:
+            print("=== DEBUG: No new functions discovered, stopping ===")
+            break
+
+    if round_count >= max_rounds:
+        print("=== WARNING: Maximum rounds reached, some functions may be missed ===")
+
+    print(
+        f"=== DEBUG: Bytecode analysis completed in {round_count} rounds ===")
+    print(
+        f"=== DEBUG: Total functions discovered: {len(script_functions)} ===")
+
+    # Map C functions
+    print("=== DEBUG: Starting C function mapping ===")
+    c_functions_mapping_start = time.time()
+
+    c_functions = func_mapping.map_c_functions(script_functions)
+
+    c_functions_mapping_end = time.time()
+    c_functions_mapping_time = c_functions_mapping_end - c_functions_mapping_start
+
+    c_functions_count = len(c_functions)
+    print(
+        f"=== DEBUG: C function mapping completed: {c_functions_count} functions found in {c_functions_mapping_time:.3f}s ===")
+
+    # Merge all functions
+    script_functions.update(c_functions)
+    print(
+        f"=== DEBUG: Total functions after merging: {len(script_functions)} ===")
+
+    # Convert to addresses
+    for function, addresses in script_functions.items():
+        for address in addresses:
+            try:
+                addr_int = int(address, 16)
+                addr_formatted = "0x{:016x}".format(addr_int)
+                tracked_addresses.add(addr_formatted)
+            except (ValueError, TypeError):
+                continue
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(
+        f"=== DEBUG: Bytecode tracking summary: {len(tracked_addresses)} unique addresses in {total_time:.3f}s ===")
+
+    return tracked_addresses, c_functions_mapping_time, module_count
