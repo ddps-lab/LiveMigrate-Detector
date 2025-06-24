@@ -1,4 +1,3 @@
-import psutil
 import threading
 import bytecode_tracking.btracking
 import utils
@@ -7,7 +6,7 @@ import gdb
 from pathlib import Path
 import sys
 import os
-
+import resource
 import ctypes
 import time
 
@@ -310,20 +309,27 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
         return None
 
 
-process = psutil.Process(os.getpid())
+def get_memory_usage():
+    """Get current memory usage using resource module"""
+    try:
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        # ru_maxrss is in KB on Linux, convert to bytes
+        return usage.ru_maxrss * 1024
+    except Exception:
+        return 0
 
 
 def monitor_memory_usage():
     global max_memory, monitoring
     while monitoring:
-        current_memory = process.memory_info().rss
+        current_memory = get_memory_usage()
         max_memory = max(max_memory, current_memory)
         time.sleep(0.01)
 
 
 def record_memory_start():
     global start_memory, monitoring
-    start_memory = process.memory_info().rss
+    start_memory = get_memory_usage()
     monitoring = True
     thread = threading.Thread(target=monitor_memory_usage)
     thread.start()
@@ -463,9 +469,8 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
 
 
 def measure_initial_memory_usage():
-    process = psutil.Process(os.getpid())
-    mem_usage = process.memory_info().rss / 1024 / 1024
-    return mem_usage
+    memory_kb = get_memory_usage() / 1024
+    return memory_kb / 1024
 
 
 if __name__ == '__main__':
