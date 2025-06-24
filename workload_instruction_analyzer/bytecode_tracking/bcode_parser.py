@@ -371,6 +371,7 @@ def parse_shared_instructions(content, shared_variables):
 
 def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, module):
     called_objs = set()
+    obj_sets = set()  # Empty set for function definitions - most calls here are external modules
     comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'",
                       "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
@@ -499,17 +500,8 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                                 print(
                                     f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
 
-            # Properly categorize and add func to called_objs
-            category = func_classification(
-                func, called_objs, obj_sets, obj_map)
-
-            if category == '__builtin' or category == '__user_def':
-                called_objs.add(func)
-            else:
-                if category not in called_objs.keys():
-                    called_objs[category] = {'__called': set()}
-                called_objs[category]['__called'].add(
-                    func.split('.')[-1] if '.' in str(func) else func)
+            # In parse_def, we just add all functions to the set since it's only used for definitions
+            called_objs.add(func)
 
             next_content = byte_code[shared_variables.keys_list[i - 2]]
 
