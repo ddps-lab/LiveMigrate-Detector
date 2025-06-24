@@ -449,15 +449,6 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
-            # FIXME: 아래와 같은 경우 스택에는 np.ediff1d로 저장됨 때문에 np.np.ediff1d가 func 결과로 나오는 경우가 있음.
-            # LOAD_METHOD의 경우 스택에 [ediff1d, np]로 저장됨. 일관성을 만들어주는게 좋을듯
-            # 240 LOAD_GLOBAL              0 (np)
-            # 242 LOAD_ATTR               15 (ediff1d)
-            # 244 LOAD_FAST                4 (unique_pcts)
-            # 246 LOAD_FAST                5 (to_begin)
-            # 248 LOAD_FAST                6 (to_end)
-            # 250 LOAD_CONST              11 (('to_begin', 'to_end'))
-            # 252 CALL_FUNCTION_KW         3
             func = bcode_instructions.call_function(
                 func_offset, shared_variables)
             # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
@@ -465,6 +456,48 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 bcode_instructions.call_function_stack(
                     func_offset, shared_variables)
                 continue
+
+            # Look for ctypes structural patterns instead of specific function names
+            if func and isinstance(func, str):
+                # Pattern 1: CDLL constructor calls (ctypes.CDLL, ctypes.cdll.LoadLibrary, etc.)
+                if func in ['CDLL', 'cdll.LoadLibrary', 'WinDLL', 'PyDLL'] or func.endswith('.CDLL'):
+                    print(
+                        f"[CTYPES_PATTERN] Found ctypes library constructor: {func}")
+                    print(
+                        f"[CTYPES_PATTERN] LOAD stack: {shared_variables.LOAD[:10]}")
+
+                    # Look for library file paths in the stack
+                    for item in shared_variables.LOAD:
+                        if isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
+                            print(
+                                f"[CTYPES_PATTERN] Found library path: {item}")
+
+                # Pattern 2: getattr calls - common for accessing C functions from loaded libraries
+                elif func == 'getattr':
+                    if len(shared_variables.LOAD) >= 2:
+                        obj = shared_variables.LOAD[1] if len(
+                            shared_variables.LOAD) > 1 else None
+                        attr_name = shared_variables.LOAD[0] if len(
+                            shared_variables.LOAD) > 0 else None
+
+                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                            # Skip obvious Python attributes
+                            if not attr_name.startswith('__') and not attr_name.startswith('_') and attr_name.islower():
+                                print(
+                                    f"[CTYPES_PATTERN] Potential C function access: getattr({obj}, '{attr_name}')")
+
+                # Pattern 3: hasattr calls - often used to check if C functions exist
+                elif func == 'hasattr':
+                    if len(shared_variables.LOAD) >= 2:
+                        obj = shared_variables.LOAD[1] if len(
+                            shared_variables.LOAD) > 1 else None
+                        attr_name = shared_variables.LOAD[0] if len(
+                            shared_variables.LOAD) > 0 else None
+
+                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                            if not attr_name.startswith('__') and attr_name.islower():
+                                print(
+                                    f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
 
             called_objs.add(func)
 
@@ -562,55 +595,61 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
             func = bcode_instructions.call_function(
                 func_offset, shared_variables)
-
-            if func in shared_variables.decorators:
-                continue
-
             # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
             if func in comprehensions:
                 bcode_instructions.call_function_stack(
                     func_offset, shared_variables)
                 continue
 
-            # __build_class__
-            if func == None:
-                bcode_instructions.call_function_stack(
-                    func_offset, shared_variables)
-                continue
+            # Look for ctypes structural patterns instead of specific function names
+            if func and isinstance(func, str):
+                # Pattern 1: CDLL constructor calls (ctypes.CDLL, ctypes.cdll.LoadLibrary, etc.)
+                if func in ['CDLL', 'cdll.LoadLibrary', 'WinDLL', 'PyDLL'] or func.endswith('.CDLL'):
+                    print(
+                        f"[CTYPES_PATTERN] Found ctypes library constructor: {func}")
+                    print(
+                        f"[CTYPES_PATTERN] LOAD stack: {shared_variables.LOAD[:10]}")
 
-            category = func_classification(
-                func, called_objs, obj_sets, obj_map)
-            # 함수 또는 메서드의 호출 반환이 객체인 경우 정보를 저장
-            next_line = byte_code[shared_variables.keys_list[i + 1]]
-            if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
-                result = (pattern.search(next_line).group(1))
-                if category not in func and not category.startswith('__'):
-                    func = category + '.' + func
+                    # Look for library file paths in the stack
+                    for item in shared_variables.LOAD:
+                        if isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
+                            print(
+                                f"[CTYPES_PATTERN] Found library path: {item}")
+
+                # Pattern 2: getattr calls - common for accessing C functions from loaded libraries
+                elif func == 'getattr':
+                    if len(shared_variables.LOAD) >= 2:
+                        obj = shared_variables.LOAD[1] if len(
+                            shared_variables.LOAD) > 1 else None
+                        attr_name = shared_variables.LOAD[0] if len(
+                            shared_variables.LOAD) > 0 else None
+
+                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                            # Skip obvious Python attributes
+                            if not attr_name.startswith('__') and not attr_name.startswith('_') and attr_name.islower():
+                                print(
+                                    f"[CTYPES_PATTERN] Potential C function access: getattr({obj}, '{attr_name}')")
+
+                # Pattern 3: hasattr calls - often used to check if C functions exist
+                elif func == 'hasattr':
+                    if len(shared_variables.LOAD) >= 2:
+                        obj = shared_variables.LOAD[1] if len(
+                            shared_variables.LOAD) > 1 else None
+                        attr_name = shared_variables.LOAD[0] if len(
+                            shared_variables.LOAD) > 0 else None
+
+                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                            if not attr_name.startswith('__') and attr_name.islower():
+                                print(
+                                    f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
+
+            called_objs.add(func)
+
+            next_content = byte_code[shared_variables.keys_list[i - 2]]
+
+            if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
+                result = (pattern.search(next_content).group(1))
                 obj_map[result] = func
-
-            if func.split('.')[0] in obj_map:
-                external_module, obj_func = '', ''
-
-                assign = obj_map[func.split('.')[0]].split('.')
-                for i in range(len(assign), 0, -1):
-                    if '.'.join(assign[:i]) in called_objs.keys():
-                        external_module = '.'.join(assign[:i])
-                        obj_func = '.'.join(assign[i:])
-
-                if external_module and obj_func:
-                    called_objs[external_module]['__called'].add(
-                        obj_func + '.' + '.'.join(func.split('.')[1:]))
-                    continue
-
-            if category == '__builtin' or category == '__user_def':
-                called_objs[category].add(func)
-            else:
-                called_func = shared_variables.LOAD[func_offset]
-                # module.func 형태의 호출의 경우 func만 추출해 저장 ex) xgb.XGBClassifier -> XGBClassifier
-                if '.' in called_func and called_func.split('.')[0] in called_objs:
-                    called_func = ''.join(called_func.split('.')[1:])
-
-                called_objs[category]['__called'].add(called_func)
 
             bcode_instructions.call_function_stack(
                 func_offset, shared_variables)

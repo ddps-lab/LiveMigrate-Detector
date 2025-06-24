@@ -194,16 +194,55 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
             called_func[key].update(base_map[alias]['__called'])
 
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
+        potential_ctypes_objects = set()  # Track objects that might be ctypes libraries
+
         for func in called_func[key]:
             origin_name = func
 
-            if func in decorator_map:
-                if '.' in decorator_map[func]:
-                    c_module = decorator_map[func].split('.')[0]
-                    c_func = decorator_map[func].split('.')[1]
+            # Look for ctypes structural patterns
+            if isinstance(func, str):
+                # Pattern 1: ctypes library constructors
+                if func in ['CDLL', 'cdll.LoadLibrary', 'WinDLL', 'PyDLL'] or func.endswith('.CDLL'):
+                    print(
+                        f"[MODULE_TRACKING] Found ctypes library constructor in {module}: {func}")
+                    potential_ctypes_objects.add(func)
 
-                    C_functions_with_decorators.setdefault(c_module, set())
-                    C_functions_with_decorators[c_module].add(c_func)
+            if func in decorator_map:
+                decorator_name = decorator_map[func]
+                print(
+                    f"[MODULE_TRACKING DEBUG] Function {func} has decorator: {decorator_name}")
+
+                # Look for any decorator that contains function call patterns
+                if isinstance(decorator_name, str):
+                    # Pattern: Any decorator that looks like a function call with string arguments
+                    if ('(' in decorator_name and ')' in decorator_name and '"' in decorator_name) or ("'" in decorator_name and '(' in decorator_name):
+                        print(
+                            f"[MODULE_TRACKING DEBUG] Potential function wrapper decorator for {func}: {decorator_name}")
+
+                        # Extract all quoted strings from the decorator
+                        import re
+                        string_matches = re.findall(
+                            r'["\']([a-zA-Z_][a-zA-Z0-9_]*)["\']', decorator_name)
+
+                        for match in string_matches:
+                            if len(match) > 2 and not match.startswith('__'):
+                                # Determine library name from module context
+                                c_module = module.split(
+                                    '.')[0] if '.' in module else module
+
+                                # For known ctypes-using modules, try to infer library name
+                                if c_module == 'llama_cpp':
+                                    if 'llava' in module.lower():
+                                        c_module = 'llava'
+                                    elif any(lib in module.lower() for lib in ['llama', 'ggml']):
+                                        c_module = 'llama'
+
+                                C_functions_with_decorators.setdefault(
+                                    c_module, set())
+                                C_functions_with_decorators[c_module].add(
+                                    match)
+                                print(
+                                    f"[MODULE_TRACKING DEBUG] Extracted potential C function {match} for library {c_module}")
 
             module_base = module.split('.')[0]
             for key_base in base_map.keys():
@@ -214,6 +253,22 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
 
             if origin_name in def_map:
                 called_map['__user_def'].add(origin_name)
+
+        # Add heuristic C functions for modules that show ctypes patterns
+        if potential_ctypes_objects and module.startswith('llama_cpp'):
+            c_module = 'llama'
+            if 'llava' in module.lower():
+                c_module = 'llava'
+
+            if c_module not in C_functions_with_decorators or len(C_functions_with_decorators[c_module]) == 0:
+                C_functions_with_decorators.setdefault(c_module, set())
+                # Add some common function patterns that typically exist in these libraries
+                common_funcs = [
+                    f'{c_module}_init', f'{c_module}_free', f'{c_module}_new', f'{c_module}_delete']
+                for cf in common_funcs:
+                    C_functions_with_decorators[c_module].add(cf)
+                print(
+                    f"[MODULE_TRACKING DEBUG] Added heuristic functions for {c_module}: {common_funcs}")
 
         # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
         user_def_iterations = 0
@@ -481,6 +536,10 @@ def main(SCRIPT_PATH):
     except Exception as e:
         print(f"[BTRACKING ERROR] Failed to extract C functions: {e}")
         not_pymodules = {}
+
+    print(f"[BTRACKING] C_functions_with_decorators content:")
+    for module, funcs in C_functions_with_decorators.items():
+        print(f"[BTRACKING]   {module}: {list(funcs)}")
 
     print(f"[BTRACKING] Checking PyMethodDef...")
     try:

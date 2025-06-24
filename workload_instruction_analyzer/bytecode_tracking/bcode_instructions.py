@@ -166,6 +166,10 @@ def make_function(idx, content, shared_variables):
     operation_option = int(content.split(
         'MAKE_FUNCTION')[1].strip().split()[0])
     maked_func = LOAD[0].strip("'")
+    print(f"[MAKE_FUNCTION DEBUG] Creating function: {maked_func}")
+    # Show first 5 items
+    print(f"[MAKE_FUNCTION DEBUG] Current LOAD stack: {LOAD[:5]}")
+
     pop(operation_option, LOAD)
 
     offset = 0
@@ -190,10 +194,35 @@ def make_function(idx, content, shared_variables):
 
     if hasattr(shared_variables, 'decorator_map'):
         next_line = byte_code[keys_list[idx + 1]]
+        print(f"[MAKE_FUNCTION DEBUG] Next line: {next_line}")
+
         if 'CALL_FUNCTION' in next_line:
             func_offset = int(next_line.split('CALL_FUNCTION')[1].strip())
-            shared_variables.decorator_map[maked_func] = LOAD[func_offset]
-            shared_variables.decorators.add(LOAD[func_offset])
+            decorator_func = LOAD[func_offset] if func_offset < len(
+                LOAD) else "INDEX_OUT_OF_RANGE"
+
+            print(
+                f"[MAKE_FUNCTION DEBUG] Found decorator call with offset {func_offset}")
+            print(
+                f"[MAKE_FUNCTION DEBUG] Decorator function: {decorator_func}")
+            print(f"[MAKE_FUNCTION DEBUG] LOAD stack at decorator: {LOAD}")
+
+            shared_variables.decorator_map[maked_func] = decorator_func
+            shared_variables.decorators.add(decorator_func)
+
+            # Check if this is a ctypes_function decorator
+            if 'ctypes_function' in str(decorator_func):
+                print(
+                    f"[CTYPES DEBUG] Found ctypes_function decorator for {maked_func}")
+                print(f"[CTYPES DEBUG] Full decorator: {decorator_func}")
+                print(f"[CTYPES DEBUG] Full LOAD stack: {LOAD}")
+
+                # Try to extract the actual C function name from the decorator arguments
+                # Look for string arguments in the stack that might be function names
+                for i, item in enumerate(LOAD):
+                    if isinstance(item, str) and not item.startswith('(') and not item.startswith('['):
+                        print(
+                            f"[CTYPES DEBUG] Potential C function name at stack[{i}]: {item}")
 
 
 def build(content, shared_variables):
@@ -280,6 +309,27 @@ def call_function(func_offset, shared_variables):
             pass
         else:
             called_func = LOAD[func_offset]
+
+            # Special handling for ctypes_function decorator calls
+            if 'ctypes_function' in str(called_func):
+                print(
+                    f"[CALL_FUNCTION DEBUG] Processing ctypes_function call: {called_func}")
+                print(
+                    f"[CALL_FUNCTION DEBUG] Full LOAD stack: {LOAD[:func_offset+3]}")
+
+                # Try to extract the actual function name from arguments
+                # ctypes_function typically takes (name, argtypes, restype) as arguments
+                # The function name should be in the stack as a string argument
+                for i in range(min(func_offset, len(LOAD))):
+                    item = LOAD[i]
+                    if isinstance(item, str) and not item.startswith('(') and not item.startswith('[') and not item.startswith('function'):
+                        # This might be the C function name
+                        if len(item) > 2 and item.replace('_', '').replace('-', '').isalnum():
+                            print(
+                                f"[CALL_FUNCTION DEBUG] Potential C function name found: {item}")
+                            # Create a better representation for the ctypes function
+                            called_func = f"ctypes_function({item})"
+                            break
     except:
         return '__bug__'
 
