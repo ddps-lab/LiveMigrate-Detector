@@ -207,7 +207,12 @@ def make_function(idx, content, shared_variables):
                 f"[MAKE_FUNCTION DEBUG] Decorator function: {decorator_func}")
             print(f"[MAKE_FUNCTION DEBUG] LOAD stack at decorator: {LOAD}")
 
-            shared_variables.decorator_map[maked_func] = decorator_func
+            # Only store the decorator if it's not None
+            if decorator_func is not None:
+                shared_variables.decorator_map[maked_func] = decorator_func
+            else:
+                print(
+                    f"[MAKE_FUNCTION DEBUG] Skipping None decorator for {maked_func}")
 
             # Debug the decorators object type before calling add()
             print(
@@ -216,7 +221,8 @@ def make_function(idx, content, shared_variables):
                 f"[DECORATORS DEBUG] Value of shared_variables.decorators: {shared_variables.decorators}")
 
             try:
-                shared_variables.decorators.add(decorator_func)
+                if decorator_func is not None:
+                    shared_variables.decorators.add(decorator_func)
             except AttributeError as e:
                 print(f"[DECORATORS ERROR] Failed to add decorator: {e}")
                 print(
@@ -228,21 +234,15 @@ def make_function(idx, content, shared_variables):
                     print(
                         f"[DECORATORS ERROR] Converting decorators from {type(shared_variables.decorators)} to set")
                     shared_variables.decorators = set()
-                shared_variables.decorators.add(decorator_func)
+                if decorator_func is not None:
+                    shared_variables.decorators.add(decorator_func)
 
-            # Check if this is a ctypes_function decorator
-            if 'ctypes_function' in str(decorator_func):
+            # Log decorator information for structural analysis (not name-based)
+            if decorator_func is not None:
                 print(
-                    f"[CTYPES DEBUG] Found ctypes_function decorator for {maked_func}")
-                print(f"[CTYPES DEBUG] Full decorator: {decorator_func}")
-                print(f"[CTYPES DEBUG] Full LOAD stack: {LOAD}")
-
-                # Try to extract the actual C function name from the decorator arguments
-                # Look for string arguments in the stack that might be function names
-                for i, item in enumerate(LOAD):
-                    if isinstance(item, str) and not item.startswith('(') and not item.startswith('['):
-                        print(
-                            f"[CTYPES DEBUG] Potential C function name at stack[{i}]: {item}")
+                    f"[DECORATOR DEBUG] Function {maked_func} has decorator: {decorator_func}")
+                # Just show first 5 items
+                print(f"[DECORATOR DEBUG] LOAD stack: {LOAD[:5]}")
 
 
 def build(content, shared_variables):
