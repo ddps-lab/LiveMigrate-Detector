@@ -469,7 +469,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
 
                     # Look for library file paths in the stack
                     for item in shared_variables.LOAD:
-                        if isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
+                        if item is not None and isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
                             print(
                                 f"[CTYPES_PATTERN] Found library path: {item}")
 
@@ -481,7 +481,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                         attr_name = shared_variables.LOAD[0] if len(
                             shared_variables.LOAD) > 0 else None
 
-                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                        if attr_name is not None and isinstance(attr_name, str) and len(attr_name) > 2:
                             # Skip obvious Python attributes
                             if not attr_name.startswith('__') and not attr_name.startswith('_') and attr_name.islower():
                                 print(
@@ -495,7 +495,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                         attr_name = shared_variables.LOAD[0] if len(
                             shared_variables.LOAD) > 0 else None
 
-                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                        if attr_name is not None and isinstance(attr_name, str) and len(attr_name) > 2:
                             if not attr_name.startswith('__') and attr_name.islower():
                                 print(
                                     f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
@@ -614,7 +614,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
                     # Look for library file paths in the stack
                     for item in shared_variables.LOAD:
-                        if isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
+                        if item is not None and isinstance(item, str) and (item.endswith('.so') or item.endswith('.dll') or item.endswith('.dylib') or '/' in item):
                             print(
                                 f"[CTYPES_PATTERN] Found library path: {item}")
 
@@ -626,7 +626,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                         attr_name = shared_variables.LOAD[0] if len(
                             shared_variables.LOAD) > 0 else None
 
-                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                        if attr_name is not None and isinstance(attr_name, str) and len(attr_name) > 2:
                             # Skip obvious Python attributes
                             if not attr_name.startswith('__') and not attr_name.startswith('_') and attr_name.islower():
                                 print(
@@ -640,7 +640,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                         attr_name = shared_variables.LOAD[0] if len(
                             shared_variables.LOAD) > 0 else None
 
-                        if attr_name and isinstance(attr_name, str) and len(attr_name) > 2:
+                        if attr_name is not None and isinstance(attr_name, str) and len(attr_name) > 2:
                             if not attr_name.startswith('__') and attr_name.islower():
                                 print(
                                     f"[CTYPES_PATTERN] Checking C function existence: hasattr({obj}, '{attr_name}')")
