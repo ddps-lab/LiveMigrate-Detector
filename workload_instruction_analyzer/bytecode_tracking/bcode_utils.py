@@ -3,18 +3,29 @@ import marshal
 import io
 from contextlib import redirect_stdout
 
+print("=== DEBUG: bcode_utils.py imported ===")
+
 
 def read_pyc(path):
-    with open(path, 'rb') as f:
-        # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
-        f.read(16)
-        # marshal 모듈을 사용하여 코드 객체를 로드합니다
-        code_obj = marshal.load(f)
+    print(f"=== DEBUG: Reading pyc file: {path} ===")
+    try:
+        with open(path, 'rb') as f:
+            # Python 3.7 이상에서 .pyc 파일의 헤더는 16바이트입니다
+            header = f.read(16)
+            print(f"=== DEBUG: Read {len(header)} bytes header ===")
+            # marshal 모듈을 사용하여 코드 객체를 로드합니다
+            code_obj = marshal.load(f)
+            print(f"=== DEBUG: Successfully loaded code object ===")
+    except Exception as e:
+        print(f"=== ERROR: Failed to read pyc file {path}: {e} ===")
+        raise
 
     return code_obj
 
 
 def preprocessing_bytecode(byte_code):
+    print(f"=== DEBUG: Preprocessing bytecode ===")
+
     # 라인 번호를 추출하기 위한 함수
     def parse_bytecode_line(bytecode_line):
         parts = bytecode_line.strip().split()
@@ -53,20 +64,29 @@ def preprocessing_bytecode(byte_code):
     # StringIO 객체를 생성
     f = io.StringIO()
     # dis의 출력을 StringIO 객체로 리디렉션
-    with redirect_stdout(f):
-        dis.dis(byte_code)
+    try:
+        with redirect_stdout(f):
+            dis.dis(byte_code)
+        print(f"=== DEBUG: Disassembled bytecode ===")
+    except Exception as e:
+        print(f"=== ERROR: Failed to disassemble bytecode: {e} ===")
+        raise
 
     # StringIO 객체에서 값을 얻고, 이를 줄 단위로 분할
     dis_output = f.getvalue()
     codes = dis_output.split('Disassembly of <code object')[
         0].strip().split('\n')
+    print(f"=== DEBUG: Main code has {len(codes)} lines ===")
 
     objects = dis_output.split('Disassembly of <code object')[1:]
+    print(f"=== DEBUG: Found {len(objects)} code objects ===")
+
     for i, obj in enumerate(objects):
         objects[i] = obj.strip().split('\n')
 
     # 바이트코드의 main 부분
     main_bcode_block_start_offsets = []
+    processed_lines = 0
     for line in codes:
         offset, content, line_number = parse_bytecode_line(line)
 
@@ -88,7 +108,11 @@ def preprocessing_bytecode(byte_code):
             continue
 
         dis_bytecode[offset] = content
+        processed_lines += 1
 
+    print(f"=== DEBUG: Processed {processed_lines} main bytecode lines ===")
+
+    processed_objects = 0
     for obj in objects:
         dis_object = {}
         first_line = obj[0].split()
@@ -98,6 +122,7 @@ def preprocessing_bytecode(byte_code):
         obj.pop(0)
 
         def_bcode_block_start_offsets = []
+        object_processed_lines = 0
         for line in obj:
             offset, content, line_number = parse_bytecode_line(line)
 
@@ -119,11 +144,17 @@ def preprocessing_bytecode(byte_code):
                 continue
 
             dis_object[offset] = content
+            object_processed_lines += 1
 
         dis_objects.append(dis_object)
         list_def_bcode_block_start_offsets.append(
             def_bcode_block_start_offsets)
+        processed_objects += 1
+        print(
+            f"=== DEBUG: Processed object {processed_objects}: {dis_object['__name']} with {object_processed_lines} lines ===")
 
+    print(
+        f"=== DEBUG: Preprocessing completed - {len(dis_bytecode)} main instructions, {len(dis_objects)} objects ===")
     return dis_bytecode, dis_objects, main_bcode_block_start_offsets, list_def_bcode_block_start_offsets
 
 
@@ -132,8 +163,13 @@ def postprocessing_defmap(DEF_MAP, addr_map):
     함수 이름 중복을 구분하기 위해 상위 객체까지 이름에 포함.
     상위 객체의 주소를 이름으로 치환.
     '''
+    print(
+        f"=== DEBUG: Postprocessing definition map with {len(DEF_MAP)} entries ===")
+
     obj_addrs = addr_map.keys()
     def_map = DEF_MAP.copy()
+    processed_count = 0
+
     for key, _ in def_map.items():
         if key.split('.')[0] in obj_addrs:
             parent, value = next(iter(addr_map[key.split('.')[0]].items()))
@@ -143,14 +179,25 @@ def postprocessing_defmap(DEF_MAP, addr_map):
             else:
                 replace = parent + '.' + value
             DEF_MAP[replace] = DEF_MAP.pop(key)
+            processed_count += 1
+            print(f"=== DEBUG: Replaced {key} -> {replace} ===")
         else:
-            DEF_MAP[key.split('.')[1]] = DEF_MAP.pop(key)
+            new_key = key.split('.')[1]
+            DEF_MAP[new_key] = DEF_MAP.pop(key)
+            processed_count += 1
+            print(f"=== DEBUG: Simplified {key} -> {new_key} ===")
+
+    print(
+        f"=== DEBUG: Postprocessing completed, processed {processed_count} entries ===")
 
 
 def scan_definition(definitions):
     '''
     사용자 정의 객체를 수집.
     '''
+    print(
+        f"=== DEBUG: Scanning definitions for {len(definitions)} objects ===")
+
     obj_lists = []
     obj_sets = set()
 
@@ -160,49 +207,34 @@ def scan_definition(definitions):
 
         obj_sets.add(__name)
         obj_lists.append({__name: __addr})
+        print(f"=== DEBUG: Found definition: {__name} at {__addr} ===")
 
+    print(
+        f"=== DEBUG: Scan completed, found {len(obj_sets)} unique objects ===")
     return obj_sets, obj_lists
-
-# def merge_dictionaries(dictA, dictB):
-    for key, value in dictB.items():
-        if isinstance(value, set):
-            # dictB.key의 값이 비어있는 세트가 아닌 경우에만 업데이트
-            if value:
-                if key in dictA and isinstance(dictA[key], set):
-                    dictA[key].update(value)
-                else:
-                    dictA[key] = value.copy()
-        elif isinstance(value, dict):
-            # dictB.key의 값이 딕셔너리인 경우, __called 키의 세트를 업데이트
-            if '__called' in value and value['__called']:
-                if key in dictA and '__called' in dictA[key] and isinstance(dictA[key]['__called'], set):
-                    dictA[key]['__called'].update(value['__called'])
-                else:
-                    # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
-                    if key not in dictA:
-                        dictA[key] = {}
-                    dictA[key]['__called'] = value['__called'].copy()
-
-            try:
-                dictA[key]['__origin_name'] = (value['__origin_name'])
-            except:
-                pass
-            try:
-                dictA[key]['__from'] = (value['__from'])
-            except:
-                pass
-
-    return dictA
 
 
 def merge_dictionaries(dictA, dictB):  # 이게 전체 트래킹 버전
+    print(
+        f"=== DEBUG: Merging dictionaries - A has {len(dictA)} entries, B has {len(dictB)} entries ===")
+
+    merged_count = 0
     for key, value in dictB.items():
         # __builtin, __user_def 처리
         if isinstance(value, set):
             if key in dictA and isinstance(dictA[key], set):
+                original_size = len(dictA[key])
                 dictA[key].update(value)
+                added = len(dictA[key]) - original_size
+                merged_count += added
+                if added > 0:
+                    print(
+                        f"=== DEBUG: Merged {added} items into {key} set ===")
             else:
                 dictA[key] = value.copy()
+                merged_count += len(value)
+                print(
+                    f"=== DEBUG: Added new set {key} with {len(value)} items ===")
         # 모듈 처리
         elif isinstance(value, dict):
             # dictB.key(module)가 dictA에도 존재한다면 dictA,B의 __called를 병합
@@ -211,15 +243,26 @@ def merge_dictionaries(dictA, dictB):  # 이게 전체 트래킹 버전
                     # FIXME: alias 중복에 대한 처리 - 기존 모듈을 트래킹에서 누락시킴
                     if dictA[key]['__origin_name'] != value['__origin_name']:
                         dictA[key] = value
+                        print(
+                            f"=== DEBUG: Replaced module {key} due to origin name mismatch ===")
                         continue
                 except KeyError:
                     pass
+                original_size = len(dictA[key]['__called'])
                 dictA[key]['__called'].update(value['__called'])
+                added = len(dictA[key]['__called']) - original_size
+                merged_count += added
+                if added > 0:
+                    print(
+                        f"=== DEBUG: Merged {added} functions into module {key} ===")
             else:
                 # dictA[key]가 존재하지 않거나 __called 키가 없는 경우 새로운 딕셔너리와 세트를 생성
                 if key not in dictA:
                     dictA[key] = {}
                 dictA[key]['__called'] = value['__called'].copy()
+                merged_count += len(value['__called'])
+                print(
+                    f"=== DEBUG: Added new module {key} with {len(value['__called'])} functions ===")
 
             try:
                 dictA[key]['__origin_name'] = value['__origin_name']
@@ -227,6 +270,7 @@ def merge_dictionaries(dictA, dictB):  # 이게 전체 트래킹 버전
             except KeyError:
                 pass
 
+    print(f"=== DEBUG: Merge completed, added {merged_count} total items ===")
     return dictA
 
 
@@ -239,23 +283,40 @@ def find_unique_keys_values(A, B):
     :param B: 비교 대상이 되는 두 번째 딕셔너리
     :return: B에만 존재하는 키와 값 또는 값이 다른 키와 값이 포함된 새 딕셔너리
     """
+    print(
+        f"=== DEBUG: Finding unique keys/values - A has {len(A)} entries, B has {len(B)} entries ===")
+
     unique_to_B = {key: value for key, value in B.items()
                    if key not in A or A[key] != value}
 
     unique_to_B.pop('__builtin', None)
     unique_to_B.pop('__user_def', None)
 
+    print(f"=== DEBUG: Found {len(unique_to_B)} unique entries ===")
+    for key in list(unique_to_B.keys())[:5]:  # Show first 5
+        print(f"=== DEBUG: Unique entry: {key} ===")
+    if len(unique_to_B) > 5:
+        print(
+            f"=== DEBUG: ... and {len(unique_to_B) - 5} more unique entries ===")
+
     return unique_to_B
 
 
-def dict_empty_check(input_dict):
-    for key, value in input_dict.items():
-        if isinstance(value, dict) and '__called' in value:
-            # __called 키의 값이 세트이고 비어 있지 않으면 False 반환
-            if not value['__called'].issubset(set()):
+def dict_empty_check(dictionary):
+    """
+    딕셔너리가 비어있는지 확인하는 함수
+    """
+    if not dictionary:
+        return True
+
+    for key, value in dictionary.items():
+        if key in ['__builtin', '__user_def']:
+            if value:  # set이 비어있지 않으면
                 return False
-        elif isinstance(value, set) and value:
-            # 값이 비어 있지 않은 세트인 경우 False 반환
-            return False
-    # 모든 검사를 통과했다면, 모든 세트가 비어 있음
-    return True
+        else:
+            if isinstance(value, dict) and '__called' in value and value['__called']:
+                return False
+
+    is_empty = True
+    print(f"=== DEBUG: Dictionary empty check result: {is_empty} ===")
+    return is_empty

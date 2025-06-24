@@ -4,6 +4,8 @@ import sys
 
 import re
 
+print("=== DEBUG: bcode_parser.py imported ===")
+
 pattern = re.compile(r'\((.*?)\)')
 
 
@@ -19,6 +21,7 @@ def module_classification(__module, __from):
         4.	외부 패키지 디렉토리:
             •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
     '''
+    print(f"=== DEBUG: Classifying module '{__module}' from '{__from}' ===")
 
     # 아래 순서로 import를 시도하여 모듈을 구분함.
     # ex) __from : numpy.ma.extras, __module : core
@@ -35,27 +38,43 @@ def module_classification(__module, __from):
     case5 = __module
 
     modules = [case1, case2, case3, case4, case5]
-    for module in modules:
+    print(f"=== DEBUG: Testing module candidates: {modules} ===")
+
+    for i, module in enumerate(modules):
         # 모듈이 이미 로드된 경우를 처리
         if module in sys.modules:
+            print(
+                f"=== DEBUG: Module found in sys.modules (case {i+1}): {module} ===")
             return module
 
         # main, xgboost와 같은 최상위 패키지에서 import하는 경우 .numpy와 같이 잘못 생성된 import path를 건너뜀
         if module.startswith('.'):
+            print(
+                f"=== DEBUG: Skipping invalid module path (case {i+1}): {module} ===")
             continue
 
         try:
             importlib.import_module(module)
+            print(
+                f"=== DEBUG: Successfully imported module (case {i+1}): {module} ===")
             return module
         except ModuleNotFoundError:
+            print(f"=== DEBUG: Module not found (case {i+1}): {module} ===")
             pass
         # 특정 OS에 최적화된 모듈을 import 하려는 경우 발생
         except ImportError as e:
+            print(f"=== DEBUG: Import error for {module}: {e} ===")
             return e
         except AttributeError as e:
+            print(f"=== DEBUG: Attribute error for {module}: {e} ===")
             return e
         except AssertionError as e:
+            print(f"=== DEBUG: Assertion error for {module}: {e} ===")
             return e
+
+    print(
+        f"=== DEBUG: No valid module found for '{__module}' from '{__from}' ===")
+    return None
 
 
 def func_classification(func, called_objs, obj_sets, obj_map):
@@ -65,21 +84,29 @@ def func_classification(func, called_objs, obj_sets, obj_map):
       2. 외부 모듈의 객체
       3. 파이썬 내장 객체
     '''
+    print(f"=== DEBUG: Classifying function: {func} ===")
+
     if '.' in func:
         root_obj = func.split('.')[0]
 
         # 외부 모듈로부터 호출되는 함수 또는 메서드
         if root_obj in called_objs.keys():
+            print(
+                f"=== DEBUG: Function {func} classified as external module: {root_obj} ===")
             return root_obj
 
         # 할당된 객체로부터 호출되는 메서드
         elif root_obj in obj_map.keys():
             # 최상위 객체가 사용자 정의 함수 또는 클래스 등에서 할당된 경우
             if obj_map[root_obj] in obj_sets:
+                print(
+                    f"=== DEBUG: Function {func} classified as user-defined (via obj_map) ===")
                 return '__user_def'
 
     # 파싱중인 스크립트에 정의된 함수 호출
     elif func in obj_sets:
+        print(
+            f"=== DEBUG: Function {func} classified as user-defined (direct) ===")
         return '__user_def'
 
     # alias로 사용되는 외부 모듈의 함수 또는 메서드
@@ -87,33 +114,46 @@ def func_classification(func, called_objs, obj_sets, obj_map):
         if '__func_alias' not in inner_dict:
             continue
         if func in inner_dict['__func_alias']:
+            print(
+                f"=== DEBUG: Function {func} classified as external via alias: {outer_key} ===")
             return outer_key
 
+    print(f"=== DEBUG: Function {func} classified as builtin ===")
     return '__builtin'
 
 
 def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
+    print(f"=== DEBUG: Processing lazy loading at index {idx} ===")
+
     quotes = re.compile(r"'([^']*)'")
     module = quotes.search(cap_stack[0]).group(1)
+    print(f"=== DEBUG: Lazy loading module: {module} ===")
 
     if module not in called_objs.keys():
         next_line = byte_code[keys_list[idx + 1]]
         store = (pattern.search(next_line).group(1)).replace("'", '')
         called_objs[store] = {'__called': set(), '__origin_name': module}
+        print(f"=== DEBUG: Added lazy loaded module {module} as {store} ===")
 
 
 def parse_import_instructions(content, called_objs, shared_variables, i):
+    print(f"=== DEBUG: Parsing import instruction: {content} ===")
+
     if 'IMPORT_NAME' in content:
         module, shared_variables.alias = bcode_instructions.import_name(
             i, shared_variables)
+        print(
+            f"=== DEBUG: IMPORT_NAME - module: {module}, alias: {shared_variables.alias} ===")
 
         # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
         if module == None:
+            print(f"=== DEBUG: Relative import detected, need IMPORT_FROM ===")
             return True
 
         module_path = module_classification(
             module, shared_variables.current_module)
         if module_path == None:
+            print(f"=== DEBUG: Module classification failed for {module} ===")
             return False
 
         if isinstance(module_path, ModuleNotFoundError):
@@ -127,12 +167,16 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
 
         called_objs[shared_variables.alias] = {
             '__origin_name': module_path, '__called': set(), '__from': shared_variables.current_module}
+        print(
+            f"=== DEBUG: Added module {shared_variables.alias} -> {module_path} ===")
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
         if shared_variables.from_list:
             shared_variables.from_list.pop(0)
             module, shared_variables.alias = bcode_instructions.import_from(
                 i, shared_variables)
+            print(
+                f"=== DEBUG: IMPORT_FROM (from_list) - module: {module}, alias: {shared_variables.alias} ===")
 
             module_path = module_classification(
                 module, shared_variables.current_module)
@@ -161,23 +205,32 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         if shared_variables.from_pass:
             _, _ = bcode_instructions.import_from(i, shared_variables)
             shared_variables.from_pass -= 1
+            print(
+                f"=== DEBUG: IMPORT_FROM pass processing, remaining: {shared_variables.from_pass} ===")
             return True
 
         # IMPORT_FROM으로 함수 또는 메서드 객체를 로드하는 경우(본래 역할) 처리
         from_func, from_alias = bcode_instructions.import_from(
             i, shared_variables)
+        print(
+            f"=== DEBUG: IMPORT_FROM function - func: {from_func}, alias: {from_alias} ===")
 
         # import할 수 없는 모듈이어서 생략하는 경우 ex) 특정 os 전용 모듈
         if shared_variables.alias not in called_objs:
+            print(
+                f"=== DEBUG: Alias {shared_variables.alias} not in called_objs, skipping ===")
             return True
         if '__func_alias' not in called_objs[shared_variables.alias]:
             called_objs[shared_variables.alias]['__func_alias'] = {}
 
         called_objs[shared_variables.alias]['__func_alias'][from_alias] = from_func
+        print(
+            f"=== DEBUG: Added function alias {from_alias} -> {from_func} ===")
 
         return True
     elif 'IMPORT_STAR' in content:
         bcode_instructions.pop(shared_variables)
+        print(f"=== DEBUG: IMPORT_STAR processed ===")
         return True
 
     return False
