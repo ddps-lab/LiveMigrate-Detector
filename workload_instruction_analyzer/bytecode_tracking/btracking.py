@@ -196,6 +196,17 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
         # 해당 모듈에서 트래킹할 함수의 원본 이름을 확인해 해당 모듈의 사용자 정의 함수라면 __user_def에 추가
         potential_ctypes_objects = set()  # Track objects that might be ctypes libraries
 
+        # Special debugging for llama_cpp.llama_cpp module
+        if module == 'llama_cpp.llama_cpp':
+            print(f"[LLAMA_DEBUG] Processing key llama_cpp.llama_cpp module")
+            print(
+                f"[LLAMA_DEBUG] Functions in called_func: {list(called_func[key])[:10]}")
+            print(
+                f"[LLAMA_DEBUG] Decorators in decorator_map: {len(decorator_map)} total")
+            if decorator_map:
+                print(
+                    f"[LLAMA_DEBUG] Sample decorators: {list(decorator_map.items())[:5]}")
+
         for func in called_func[key]:
             origin_name = func
 
@@ -211,6 +222,11 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                 decorator_name = decorator_map[func]
                 print(
                     f"[MODULE_TRACKING DEBUG] Function {func} has decorator: {decorator_name}")
+
+                # Special debugging for llama_cpp.llama_cpp
+                if module == 'llama_cpp.llama_cpp':
+                    print(
+                        f"[LLAMA_DEBUG] Decorator for {func}: '{decorator_name}' (type: {type(decorator_name)})")
 
                 # Look for any decorator that contains function call patterns
                 if isinstance(decorator_name, str):
@@ -244,6 +260,12 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                                 print(
                                     f"[MODULE_TRACKING DEBUG] Extracted potential C function {match} for library {c_module}")
 
+                    # Also check for any decorator that just contains function-like names
+                    elif len(decorator_name) > 3 and decorator_name.replace('_', '').replace('.', '').isalnum():
+                        if module == 'llama_cpp.llama_cpp':
+                            print(
+                                f"[LLAMA_DEBUG] Simple decorator name: '{decorator_name}' for function {func}")
+
             module_base = module.split('.')[0]
             for key_base in base_map.keys():
                 # key가 None이 아닌 경우에만 확인
@@ -269,6 +291,36 @@ def module_tracking(pycaches, base_map, C_functions_with_decorators, called_func
                     C_functions_with_decorators[c_module].add(cf)
                 print(
                     f"[MODULE_TRACKING DEBUG] Added heuristic functions for {c_module}: {common_funcs}")
+
+        # Special handling for llama_cpp.llama_cpp since it has 208 decorators
+        if module == 'llama_cpp.llama_cpp' and len(decorator_map) > 0:
+            print(
+                f"[LLAMA_DEBUG] Processing {len(decorator_map)} decorators for llama_cpp.llama_cpp")
+            c_module = 'llama'
+            C_functions_with_decorators.setdefault(c_module, set())
+
+            # Sample some decorators to understand the pattern
+            sample_decorators = list(decorator_map.items())[:10]
+            for func_name, decorator_value in sample_decorators:
+                print(
+                    f"[LLAMA_DEBUG] Sample: {func_name} -> {decorator_value}")
+
+                # Try to extract function names even from malformed decorator strings
+                if isinstance(decorator_value, str) and len(decorator_value) > 5:
+                    # Look for patterns like "llama_xxx" in the decorator string
+                    import re
+                    llama_matches = re.findall(
+                        r'\b(llama_[a-zA-Z_][a-zA-Z0-9_]*)\b', decorator_value)
+                    for match in llama_matches:
+                        C_functions_with_decorators[c_module].add(match)
+                        print(
+                            f"[LLAMA_DEBUG] Extracted llama function: {match}")
+
+            if len(C_functions_with_decorators[c_module]) > 0:
+                print(
+                    f"[LLAMA_DEBUG] Total extracted C functions for llama: {len(C_functions_with_decorators[c_module])}")
+                print(
+                    f"[LLAMA_DEBUG] Sample functions: {list(C_functions_with_decorators[c_module])[:10]}")
 
         # 현재 모듈에서 정의된 함수가 호출됐다면 해당 함수가 호출하는 함수를 트래킹.
         user_def_iterations = 0
