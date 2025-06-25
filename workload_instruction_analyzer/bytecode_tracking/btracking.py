@@ -232,6 +232,9 @@ def entry_tracking(pycaches, modules_info, SCRIPT_PATH):
 def main(SCRIPT_PATH):
     addr_collect_start_time = time.time()
 
+    # normalize script path?
+    SCRIPT_PATH = SCRIPT_PATH.split("//")[-1]
+
     pycaches = {}
     modules_info = {}
     C_functions_with_decorators = {}
