@@ -144,7 +144,7 @@ void resolve_workload_function()
 
 // --- 파이썬 바인딩 래퍼(Wrapper) 함수들 ---
 
-static PyObject *py_dot_product(PyObject *self, PyObject *args)
+static PyObject *dot_product(PyObject *self, PyObject *args)
 {
     Py_buffer buf_a, buf_b;
     if (!PyArg_ParseTuple(args, "y*y*", &buf_a, &buf_b))
@@ -169,7 +169,7 @@ static PyObject *py_dot_product(PyObject *self, PyObject *args)
     return Py_BuildValue("l", (long)result);
 }
 
-static PyObject *py_get_selected_kernel(PyObject *self, PyObject *args)
+static PyObject *get_selected_kernel(PyObject *self, PyObject *args)
 {
     return Py_BuildValue("s", selected_workload_name);
 }
@@ -177,8 +177,8 @@ static PyObject *py_get_selected_kernel(PyObject *self, PyObject *args)
 // --- 파이썬 모듈 정의 ---
 
 static PyMethodDef Int8DotMethods[] = {
-    {"dot_product", py_dot_product, METH_VARARGS, "Calculates the dot product of two int8 byte arrays."},
-    {"get_selected_kernel", py_get_selected_kernel, METH_NOARGS, "Returns the name of the selected SIMD kernel."},
+    {"dot_product", dot_product, METH_VARARGS, "Calculates the dot product of two int8 byte arrays."},
+    {"get_selected_kernel", get_selected_kernel, METH_NOARGS, "Returns the name of the selected SIMD kernel."},
     {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef int8dotmodule = {
