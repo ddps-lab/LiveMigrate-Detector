@@ -4,7 +4,7 @@ from setuptools import setup, Extension
 int8dot_module = Extension(
     'int8dot',                         # 최종 모듈 이름 (import int8dot)
     sources=['int8dot_module.c'],      # 컴파일할 소스 파일
-    extra_compile_args=['-O3', '-fPIC']  # 최적화 및 위치 독립 코드 옵션
+    extra_compile_args=['-fPIC']  # 최적화 및 위치 독립 코드 옵션
 )
 
 setup(
