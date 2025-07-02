@@ -19,7 +19,7 @@ while True:
 
     # 데이터 생성
     a_bytes = bytearray(random.choices(range(128), k=DATA_SIZE))
-    b_bytes = bytearray(random.choices(range(-64, 64), k=DATA_SIZE))
+    b_bytes = bytearray(random.choices(range(256), k=DATA_SIZE))
 
     # 성능 측정
     start_time = time.perf_counter()
