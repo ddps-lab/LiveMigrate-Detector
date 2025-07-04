@@ -3,12 +3,6 @@ import time
 import os
 import requests
 
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
-
 MODEL_PATH = "./Qwen3-0.6B-Q8_0.gguf"
 
 # check model exists
@@ -20,8 +14,6 @@ if not os.path.exists(MODEL_PATH):
 
 llm = Llama(
     model_path=MODEL_PATH,
-    n_threads=1,
-    n_threads_batch=1,
 )
 
 while True:
