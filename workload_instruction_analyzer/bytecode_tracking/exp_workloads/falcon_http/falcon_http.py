@@ -19,7 +19,7 @@ app.add_route('/health', HealthResource())
 def run_server():
     # 웹서버 실행 (포트 8000)
     httpd = simple_server.make_server('127.0.0.1', 8000, app)
-    print("Falcon server running on http://127.0.0.1:8000")
+    print("Falcon server running on http://127.0.0.1:8000", flush=True)
     httpd.serve_forever()
 
 
@@ -28,9 +28,10 @@ def health_check():
     while True:
         try:
             response = requests.get('http://127.0.0.1:8000/health')
-            print(f"Health check: {response.status_code} - {response.json()}")
+            print(
+                f"Health check: {response.status_code} - {response.json()}", flush=True)
         except Exception as e:
-            print(f"Health check failed: {e}")
+            print(f"Health check failed: {e}", flush=True)
 
         time.sleep(5)
 

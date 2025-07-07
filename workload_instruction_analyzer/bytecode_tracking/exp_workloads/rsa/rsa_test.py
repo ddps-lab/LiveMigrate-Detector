@@ -6,6 +6,6 @@ plaintext = "Hello, OpenSSL!"
 while True:
     # plaintext를 bytes로 변환
     encrypted_text = rsa.encrypt_with_rsa(plaintext.encode('utf-8'))
-    print("Encrypted text:", encrypted_text)
+    print("Encrypted text:", encrypted_text, flush=True)
 
     time.sleep(5)

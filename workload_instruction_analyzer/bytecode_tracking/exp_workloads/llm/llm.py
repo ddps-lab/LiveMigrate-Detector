@@ -23,5 +23,5 @@ while True:
             {"role": "user", "content": "hi? /no_think"}
         ]
     )
-    print(response["choices"][0]["message"]["content"])
+    print(response["choices"][0]["message"]["content"], flush=True)
     time.sleep(5)

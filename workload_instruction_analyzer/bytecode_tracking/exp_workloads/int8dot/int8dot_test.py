@@ -6,9 +6,9 @@ DATA_SIZE = 1024 * 1024 * 32
 
 # CPU 기능 감지 (최초 1회)
 features = int8dot.detect_features()
-print("Detected CPU features:")
+print("Detected CPU features:", flush=True)
 for key, value in sorted(features.items()):
-    print(f"  {key}: {value}")
+    print(f"  {key}: {value}", flush=True)
 
 use_vnni = features.get("avx512_vnni", False)
 use_avx512f = features.get(
@@ -17,16 +17,16 @@ use_avx2 = features.get("avx2", False)
 use_sse41 = features.get("sse41", False)
 
 if not (use_vnni or use_avx512f or use_avx2 or use_sse41):
-    print("\nNo supported SIMD kernel found for this CPU. Exiting.")
+    print("\nNo supported SIMD kernel found for this CPU. Exiting.", flush=True)
     exit(1)
 
-print("\nStarting infinite loop (Press Ctrl+C to exit)...")
-print(f"Data size per loop: {DATA_SIZE // (1024*1024)} MB\n")
+print("\nStarting infinite loop (Press Ctrl+C to exit)...", flush=True)
+print(f"Data size per loop: {DATA_SIZE // (1024*1024)} MB\n", flush=True)
 
 loop_count = 0
 while True:
     loop_count += 1
-    print(f"--- Loop {loop_count} ---")
+    print(f"--- Loop {loop_count} ---", flush=True)
 
     a_bytes = bytearray(random.choices(range(256), k=DATA_SIZE))
     b_bytes = bytearray(random.choices(range(256), k=DATA_SIZE))
@@ -52,9 +52,9 @@ while True:
     end_time = time.perf_counter()
     elapsed_ms = (end_time - start_time) * 1000
 
-    print(f"  Kernel Used: {kernel_name}")
-    print(f"  Result: {result}")
-    print(f"  Execution time: {elapsed_ms:.2f} ms")
+    print(f"  Kernel Used: {kernel_name}", flush=True)
+    print(f"  Result: {result}", flush=True)
+    print(f"  Execution time: {elapsed_ms:.2f} ms", flush=True)
 
     time.sleep(5)
-    print()
+    print(flush=True)

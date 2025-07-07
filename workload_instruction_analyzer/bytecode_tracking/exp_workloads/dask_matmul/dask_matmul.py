@@ -10,7 +10,7 @@ while True:
     result = da.dot(matrix_a, matrix_b).compute()
 
     # 결과 출력
-    print(result)
+    print(result, flush=True)
 
     # 5초 대기
     time.sleep(5)

@@ -9,6 +9,7 @@ while (True):
     hash_value = sha256_hash(message)
 
     # 해시 값을 16진수 문자열로 변환하여 출력
-    print(f"SHA-256 hash of '{message.decode()}': {hash_value.hex()}")
+    print(
+        f"SHA-256 hash of '{message.decode()}': {hash_value.hex()}", flush=True)
 
     time.sleep(5)

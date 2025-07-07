@@ -49,8 +49,8 @@ accuracy = accuracy_score(y_test, y_pred)
 conf_matrix = confusion_matrix(y_test, y_pred)
 class_report = classification_report(y_test, y_pred)
 
-print("Accuracy:", accuracy)
-print("Confusion Matrix:\n", conf_matrix)
-print("Classification Report:\n", class_report)
+print("Accuracy:", accuracy, flush=True)
+print("Confusion Matrix:\n", conf_matrix, flush=True)
+print("Classification Report:\n", class_report, flush=True)
 
 time.sleep(10000)
