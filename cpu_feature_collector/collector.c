@@ -3,6 +3,9 @@
 #include <string.h>
 #include "xed-interface.h"
 #include <cpuid.h>
+#include <immintrin.h>
+#include <signal.h>
+#include <setjmp.h>
 
 // CPUID 명령을 실행하는 크로스-플랫폼 래퍼 함수
 void cpuid(unsigned int leaf, unsigned int subleaf, unsigned int *eax, unsigned int *ebx, unsigned int *ecx, unsigned int *edx)
@@ -101,6 +104,30 @@ bool is_isa_set_supported(xed_isa_set_enum_t isa_set)
     return false;
 }
 
+int xtest_available = 1;
+sigjmp_buf jump_buf;
+
+void handler(int sig)
+{
+    xtest_available = 0;
+    siglongjmp(jump_buf, 1);
+}
+
+int try_xtest()
+{
+    if (sigsetjmp(jump_buf, 1))
+    {
+        return xtest_available;
+    }
+
+    signal(SIGILL, handler);
+    signal(SIGSEGV, handler);
+
+    _xtest();
+
+    return xtest_available;
+}
+
 int main(int argc, char **argv)
 {
     xed_tables_init();
@@ -112,12 +139,14 @@ int main(int argc, char **argv)
         printf(isa == XED_ISA_SET_INVALID + 1 ? "%s" : ",%s", xed_isa_set_enum_t2str(isa));
     }
 
-    puts("");
+    puts(",XTEST");
 
     for (xed_isa_set_enum_t isa = XED_ISA_SET_INVALID + 1; isa < last_isa; isa++)
     {
         printf(isa == XED_ISA_SET_INVALID + 1 ? "%d" : ",%d", is_isa_set_supported(isa));
     }
+
+    printf(",%d", try_xtest());
 
     return 0;
 }
