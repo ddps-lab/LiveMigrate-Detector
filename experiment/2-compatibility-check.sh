@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+cd /home/ubuntu/LiveMigrate-Detector
+git pull
+
 snap install aws-cli --classic
 cd /home/ubuntu/
 aws s3 cp s3://shlee-pygration/1-collect-info.tar.zst - --region us-west-2 --no-sign-request | tar -I zstd -xvf -
