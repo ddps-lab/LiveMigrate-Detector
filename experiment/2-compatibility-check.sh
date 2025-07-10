@@ -94,7 +94,7 @@ for source_instance_dir in "$INFO_DIR"/*; do
     done
 
     # --- 2. 모든 워크로드가 끝날 때까지 상태를 폴링하며 확인 ---
-    echo "--> Waiting for all workloads to be validated (max 300s)..."
+    echo "--> Waiting for all workloads to be validated (max 600s)..."
     while (( ${#pids_to_names[@]} > 0 )); do
         for pid in "${!pids_to_names[@]}"; do
             workload_name="${pids_to_names[$pid]}"
@@ -124,8 +124,8 @@ for source_instance_dir in "$INFO_DIR"/*; do
                     echo "Failure: Process $pid terminated unexpectedly." >> "$restore_log_file"
                     journalctl -k --since "$dmesg_start_time" >> "$restore_log_file"
                 else # timeout
-                    echo "    [FAILURE] '$workload_name' (PID: $pid) timed out after 300 seconds."
-                    echo "Failure: Timeout. Process $pid is running but did not produce ready string within 300 seconds." >> "$restore_log_file"
+                    echo "    [FAILURE] '$workload_name' (PID: $pid) timed out after 600 seconds."
+                    echo "Failure: Timeout. Process $pid is running but did not produce ready string within 600 seconds." >> "$restore_log_file"
                     journalctl -k --since "$dmesg_start_time" >> "$restore_log_file"
                 fi
                 
