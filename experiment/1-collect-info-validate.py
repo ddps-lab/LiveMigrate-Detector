@@ -18,7 +18,7 @@ class ExperimentValidator:
 
         # Expected workloads from the script
         self.expected_workloads = [
-            "dask_matmul", "falcon_http", "int8dot", "llm",
+            "dask_matmul", "dask_uuid", "falcon_http", "int8dot", "llm",
             "matmul", "pku", "rand", "rsa", "sha", "xgboost"
         ]
 

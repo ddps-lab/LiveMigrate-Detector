@@ -15,6 +15,7 @@ result_path="/home/ubuntu/result"
 # IMPORTANT: 각 테스트에 맞는 실제 출력 문자열로 반드시 수정해주세요.
 declare -A ready_strings
 ready_strings["dask_matmul/dask_matmul.py"]="]]"
+ready_strings["dask_uuid/dask_uuid.py"]="Final Result"
 ready_strings["falcon_http/falcon_http.py"]="healthy"
 ready_strings["int8dot/int8dot_test.py"]="Execution time"
 ready_strings["llm/llm.py"]="remaining 1 prompt tokens to eval"
@@ -26,7 +27,7 @@ ready_strings["sha/sha_test.py"]="SHA-256 hash"
 ready_strings["xgboost/xgb_example.py"]="mlogloss"
 
 # 실행할 테스트 목록
-test_array=("dask_matmul/dask_matmul.py" "falcon_http/falcon_http.py" "int8dot/int8dot_test.py" "llm/llm.py" "matmul/matmul.py" "pku/pku_test.py" "rand/rand.py" "rsa/rsa_test.py" "sha/sha_test.py" "xgboost/xgb_example.py")
+test_array=("dask_matmul/dask_matmul.py" "dask_uuid/dask_uuid.py" "falcon_http/falcon_http.py" "int8dot/int8dot_test.py" "llm/llm.py" "matmul/matmul.py" "pku/pku_test.py" "rand/rand.py" "rsa/rsa_test.py" "sha/sha_test.py" "xgboost/xgb_example.py")
 
 # --- 스크립트 시작 ---
 

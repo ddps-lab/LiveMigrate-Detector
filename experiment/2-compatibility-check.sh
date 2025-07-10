@@ -17,6 +17,7 @@ cd /home/ubuntu/LiveMigrate-Detector/cpu_feature_collector/
 # 각 워크로드와 매칭되는 "준비 완료" 문자열
 declare -A ready_strings
 ready_strings["dask_matmul"]="]]"
+ready_strings["dask_uuid"]="Final Result"
 ready_strings["falcon_http"]="healthy"
 ready_strings["int8dot"]="Execution time"
 ready_strings["llm"]="remaining 1 prompt tokens to eval"
