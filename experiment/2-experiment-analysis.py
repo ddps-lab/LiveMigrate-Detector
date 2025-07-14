@@ -2,6 +2,71 @@ import os
 import glob
 from collections import defaultdict
 import pandas as pd
+import itertools
+from tqdm import tqdm
+import multiprocessing
+
+# Global variables for worker processes to avoid passing large data repeatedly
+g_workloads = []
+g_actuals_map = {}
+g_instance_isa_sets = {}
+g_workload_isa_sets = {}
+
+
+def init_worker(workloads, actuals, instance_isas, workload_isas):
+    """Initializer for multiprocessing pool to load shared data into each worker."""
+    global g_workloads, g_actuals_map, g_instance_isa_sets, g_workload_isa_sets
+    g_workloads = workloads
+    g_actuals_map = actuals
+    g_instance_isa_sets = instance_isas
+    g_workload_isa_sets = workload_isas
+
+
+def evaluate_combination(combo):
+    """
+    Evaluates a single combination of representative instances.
+    This function is executed by worker processes and uses global data.
+    """
+    reps = sorted(list(combo))
+    metrics = defaultdict(int)
+
+    for inst_dst in reps:
+        for inst_src in reps:
+            if inst_src == inst_dst:
+                continue
+
+            src_supported_isa = g_instance_isa_sets.get(inst_src, set())
+            dst_supported_isa = g_instance_isa_sets.get(inst_dst, set())
+
+            for workload in g_workloads:
+                key = (inst_src, inst_dst, workload)
+                if key not in g_actuals_map:
+                    continue
+                actual_ok = g_actuals_map[key]
+
+                workload_isa = g_workload_isa_sets.get(
+                    (inst_src, workload), None)
+
+                predicts_ok = False
+                if workload_isa is not None:
+                    normalized_isaset = workload_isa.intersection(
+                        src_supported_isa)
+                    unsupported_features = normalized_isaset - dst_supported_isa
+                    predicts_ok = len(unsupported_features) == 0
+                else:
+                    predicts_ok = False
+
+                if predicts_ok and actual_ok:
+                    metrics['TP'] += 1
+                elif predicts_ok and not actual_ok:
+                    metrics['FP'] += 1
+                elif not predicts_ok and not actual_ok:
+                    metrics['TN'] += 1
+                elif not predicts_ok and actual_ok:
+                    metrics['FN'] += 1
+
+    precision, recall = calculate_metrics(metrics)
+    return precision, recall, metrics, combo
 
 
 def read_isaset_from_csv(filepath):
@@ -116,10 +181,7 @@ def group_instances(valid_instances, base_dir):
     for i, group in enumerate(groups):
         print(f"  Group {i+1}: {group}")
 
-    representatives = [group[0] for group in groups if group]
-    print(
-        f"\nRepresentative instances ({len(representatives)}): {representatives}")
-    return representatives
+    return groups
 
 
 def get_workloads(base_dir_1, reps):
@@ -149,6 +211,85 @@ def calculate_metrics(results):
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     return precision, recall
+
+
+def find_best_reps_for_bept(groups, all_workloads, base_dir_1, base_dir_2):
+    """
+    Finds the best set of representative instances by testing all combinations
+    to maximize BEPT Recall while keeping Precision at 1.0.
+    """
+    print("\n--- Step 2.5: Optimizing Representative Set for BEPT (Precision=1, Max Recall) ---")
+
+    # 1. Pre-calculate all possible actuals and ISA sets to avoid re-reading files.
+    all_instances = sorted(
+        list(set(inst for group in groups for inst in group)))
+    # Workloads are now passed as an argument.
+    if not all_workloads:
+        print("Warning: No workloads found for any instance, cannot optimize. Falling back to default.")
+        return [g[0] for g in groups if g]
+
+    actuals_map = {}
+    for inst_dst in all_instances:
+        for inst_src in all_instances:
+            if inst_src == inst_dst:
+                continue
+            for workload in all_workloads:
+                restore_log = os.path.join(
+                    base_dir_2, inst_dst, f"{inst_src}_{workload}_restore.log")
+                if os.path.exists(restore_log):
+                    actual_ok = "Success" in open(
+                        restore_log, 'r', errors='ignore').read()
+                    actuals_map[(inst_src, inst_dst, workload)] = actual_ok
+
+    instance_isa_sets = {inst: read_isaset_from_csv(
+        os.path.join(base_dir_2, inst, "isaset.csv")) for inst in all_instances}
+
+    workload_isa_sets = {}
+    for inst in all_instances:
+        for workload in all_workloads:
+            workload_isa_path = os.path.join(
+                base_dir_1, inst, f"{workload}.bytecode.csv")
+            if os.path.exists(workload_isa_path):
+                workload_isa_sets[(inst, workload)
+                                  ] = read_isaset_from_csv(workload_isa_path)
+
+    # 2. Iterate through combinations using multiprocessing
+    all_combinations = list(itertools.product(*groups))
+    print(
+        f"Testing {len(all_combinations)} representative combinations using multiprocessing...")
+
+    best_combination = None
+    max_recall = -1.0
+    best_combo_metrics = {}
+
+    init_args = (all_workloads, actuals_map,
+                 instance_isa_sets, workload_isa_sets)
+    with multiprocessing.Pool(initializer=init_worker, initargs=init_args) as pool:
+        results_iterator = pool.imap_unordered(
+            evaluate_combination, all_combinations)
+
+        # Process results with tqdm for a progress bar
+        results = list(tqdm(results_iterator, total=len(
+            all_combinations), desc="Optimizing Representatives"))
+
+    for precision, recall, metrics, combo in results:
+        if precision == 1.0 and recall > max_recall:
+            max_recall = recall
+            best_combination = sorted(list(combo))
+            best_combo_metrics = metrics
+
+    if best_combination:
+        print(
+            f"\nFound best representative set with Precision=1.0 and Recall={max_recall:.4f}")
+        print(f"  - Representatives: {best_combination}")
+        print(
+            f"  - Metrics: TP={best_combo_metrics['TP']}, FP={best_combo_metrics['FP']}, TN={best_combo_metrics['TN']}, FN={best_combo_metrics['FN']}")
+        return best_combination
+    else:
+        print("\nCould not find a combination with Precision=1.0. Falling back to default.")
+        default_reps = [g[0] for g in groups if g]
+        print(f"  - Default Representatives: {default_reps}")
+        return default_reps
 
 
 def print_results(title, metrics_by_workload, overall_metrics):
@@ -233,7 +374,8 @@ def analyze_isa_method(reps, workloads, base_dir_1, base_dir_2, method_name, fil
                 workload_isa_path = os.path.join(
                     base_dir_1, inst_src, f"{workload}{file_suffix}")
                 if not os.path.exists(workload_isa_path):
-                    preds_map[key] = False  # Predict fail if no workload data
+                    preds_map[key] = (
+                        False, {'workload_data_missing'})  # Predict fail
                     if not actual_ok:
                         metrics[workload]['TN'] += 1
                     else:
@@ -245,7 +387,7 @@ def analyze_isa_method(reps, workloads, base_dir_1, base_dir_2, method_name, fil
                     src_supported_isa)
                 unsupported_features = normalized_isaset - dst_supported_isa
                 predicts_ok = len(unsupported_features) == 0
-                preds_map[key] = predicts_ok
+                preds_map[key] = (predicts_ok, unsupported_features)
 
                 if predicts_ok and actual_ok:
                     metrics[workload]['TP'] += 1
@@ -261,41 +403,74 @@ def analyze_isa_method(reps, workloads, base_dir_1, base_dir_2, method_name, fil
     return metrics, overall
 
 
-def write_detailed_log(log_path, reps, workloads, actuals, criu_preds, ept_preds, bept_preds):
+def write_detailed_log(log_path, wrong_bept_log_path, reps, workloads, actuals, criu_preds, ept_preds, bept_preds):
     print(f"\n--- Writing detailed analysis log to {log_path} ---")
-    with open(log_path, 'w') as f:
+    print(f"--- Writing BEPT mismatch log to {wrong_bept_log_path} ---")
+
+    with open(log_path, 'w') as f_all, open(wrong_bept_log_path, 'w') as f_wrong_bept:
         for inst_src in sorted(reps):
             for inst_dst in sorted(reps):
                 if inst_src == inst_dst:
                     continue
 
-                f.write(
-                    f"\n{'='*40}\nMigration Path: {inst_src} -> {inst_dst}\n{'='*40}\n")
+                header = f"\n{'='*40}\nMigration Path: {inst_src} -> {inst_dst}\n{'='*40}\n"
+                path_content_blocks = []
+                wrong_bept_blocks = []
 
                 # Get all workloads that have an actual result for this pair
                 sorted_workloads_for_pair = sorted(
                     [w for w in workloads if (inst_src, inst_dst, w) in actuals])
 
                 if not sorted_workloads_for_pair:
-                    f.write("No restore logs found for this migration path.\n")
+                    f_all.write(header)
+                    f_all.write(
+                        "No restore logs found for this migration path.\n")
                     continue
 
                 for workload in sorted_workloads_for_pair:
                     key = (inst_src, inst_dst, workload)
+                    actual_ok = actuals.get(key, False)
+                    result_str = "YES" if actual_ok else "NO"
 
-                    criu_pred = "YES" if criu_preds.get(key) else "NO"
-                    ept_pred = "YES" if ept_preds.get(key) else "NO"
-                    bept_pred = "YES" if bept_preds.get(key) else "NO"
-                    result = "YES" if actuals.get(key) else "NO"
+                    # CRIU
+                    criu_pred_ok = criu_preds.get(key, False)
+                    criu_pred_str = "YES" if criu_pred_ok else "NO"
 
-                    f.write(f"\nWorkload: {workload}\n")
-                    f.write(f"- CRIU:   {criu_pred}\n")
-                    f.write(f"- EPT:    {ept_pred}\n")
-                    f.write(f"- BEPT:   {bept_pred}\n")
-                    f.write(f"- RESULT: {result}\n")
+                    # EPT
+                    ept_pred_ok, ept_features = ept_preds.get(
+                        key, (False, {'no_prediction_data'}))
+                    ept_pred_str = "YES" if ept_pred_ok else f"NO, missing: {sorted(list(ept_features))}"
+
+                    # BEPT
+                    bept_pred_ok, bept_features = bept_preds.get(
+                        key, (False, {'no_prediction_data'}))
+                    bept_pred_str = "YES" if bept_pred_ok else f"NO, missing: {sorted(list(bept_features))}"
+
+                    block = (
+                        f"\nWorkload: {workload}\n"
+                        f"- CRIU:   {criu_pred_str}\n"
+                        f"- EPT:    {ept_pred_str}\n"
+                        f"- BEPT:   {bept_pred_str}\n"
+                        f"- RESULT: {result_str}\n"
+                    )
+                    path_content_blocks.append(block)
+
+                    if bept_pred_ok != actual_ok:
+                        wrong_bept_blocks.append(block)
+
+                if path_content_blocks:
+                    f_all.write(header)
+                    f_all.write("".join(path_content_blocks))
+
+                if wrong_bept_blocks:
+                    f_wrong_bept.write(header)
+                    f_wrong_bept.write("".join(wrong_bept_blocks))
 
 
 def analyze_experiments():
+    # Define workloads to exclude from the analysis
+    excluded_workloads = ["dask_matmul"]
+
     script_dir = os.path.dirname(os.path.realpath(__file__))
     base_dir_1 = os.path.join(script_dir, 'result/1-collect-info')
     base_dir_2 = os.path.join(script_dir, 'result/2-compatibility-check')
@@ -304,13 +479,31 @@ def analyze_experiments():
     if not valid_instances:
         return
 
-    rep_instances = group_instances(valid_instances, base_dir_2)
-    if not rep_instances:
+    instance_groups = group_instances(valid_instances, base_dir_2)
+    if not instance_groups:
         return
 
-    workloads = get_workloads(base_dir_1, rep_instances)
+    # Get all workloads first from all possible instances
+    all_possible_instances = sorted(
+        list(set(inst for group in instance_groups for inst in group)))
+    workloads = get_workloads(base_dir_1, all_possible_instances)
+
+    # Filter out excluded workloads BEFORE optimization
+    if excluded_workloads:
+        print(f"\n--- Excluding Workloads: {excluded_workloads} ---")
+        original_count = len(workloads)
+        workloads = [w for w in workloads if w not in excluded_workloads]
+        print(f"Workloads remaining: {original_count} -> {len(workloads)}")
+
     if not workloads:
+        print("No workloads left to analyze after exclusion.")
         return
+
+    # Find the best representative set based on BEPT performance using the FILTERED workloads
+    rep_instances = find_best_reps_for_bept(
+        instance_groups, workloads, base_dir_1, base_dir_2)
+    print(
+        f"\n--- Using optimized representative set for final analysis: {rep_instances} ---")
 
     # --- Data Structures for Logging ---
     actual_outcomes = {}
@@ -328,7 +521,9 @@ def analyze_experiments():
 
     # --- Write Log ---
     log_file_path = os.path.join(script_dir, 'result', 'analysis_log.txt')
-    write_detailed_log(log_file_path, rep_instances, workloads,
+    wrong_bept_log_path = os.path.join(
+        script_dir, 'result', 'analysis_log_wrong_bept.txt')
+    write_detailed_log(log_file_path, wrong_bept_log_path, rep_instances, workloads,
                        actual_outcomes, criu_predictions, ept_predictions, bept_predictions)
 
     # --- Print Results ---

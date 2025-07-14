@@ -34,9 +34,9 @@ const (
 	AMI_ID = "ami-0dddef6e36aee75f7" // Ubuntu 22.04 LTS + 0-ami.sh (1-collect-info)
 
 	// DISK_SIZE int32 = 32 // 1-collect-info
-	DISK_SIZE int32 = 120 // 2-restore-check
+	DISK_SIZE int32 = 140 // 2-restore-check
 
-	MAX_THREADS                 = 38               // 최대 동시 실행 스레드 수
+	MAX_THREADS                 = 47               // 최대 동시 실행 스레드 수
 	SPOT_REQUEST_TIMEOUT        = 5 * time.Hour    // 스팟 인스턴스 요청 유효시간 (긴 실험 대응)
 	INSTANCE_START_TIMEOUT      = 1 * time.Minute  // 인스턴스 시작 대기 시간
 	EXPERIMENT_MAX_TIMEOUT      = 5 * time.Hour    // 실험 최대 실행 시간
