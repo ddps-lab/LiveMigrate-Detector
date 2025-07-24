@@ -1,1 +1,1 @@
-pip install beautifulsoup4 fastapi uvicorn requests matplotlib numpy torch tensorflow transformers
+pip install beautifulsoup4 fastapi uvicorn requests matplotlib numpy torch tensorflow transformers tf-keras
