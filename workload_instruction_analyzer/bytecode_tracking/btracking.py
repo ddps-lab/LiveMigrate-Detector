@@ -284,3 +284,24 @@ def main(SCRIPT_PATH):
     module_count = len(modules_info)
 
     return set_c_functions, addr_collect_time, module_count
+
+if __name__ == '__main__':
+    # python3 btracking.py /home/ubuntu/workload_instruction_analyzer/compare/beautifulsoup4/bs4_example.py
+    if len(sys.argv) != 2:
+        print("Usage: python3 btracking.py <script_path>")
+        sys.exit(1)
+    
+    script_path = sys.argv[1]
+    
+    try:
+        c_functions, addr_collect_time, module_count = main(script_path)
+        print(f"Script analyzed: {script_path}")
+        print(f"Analysis time: {addr_collect_time:.2f} seconds")
+        print(f"Modules processed: {module_count}")
+        print(f"C functions found: {len(c_functions)}")
+        print("\nC function addresses:")
+        for addr in sorted(c_functions):
+            print(f"  {addr}")
+    except Exception as e:
+        print(f"Error analyzing script: {e}")
+        sys.exit(1)
