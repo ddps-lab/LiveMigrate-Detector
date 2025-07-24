@@ -1,0 +1,1 @@
+pip install beautifulsoup4 fastapi uvicorn requests matplotlib numpy torch tensorflow transformers
