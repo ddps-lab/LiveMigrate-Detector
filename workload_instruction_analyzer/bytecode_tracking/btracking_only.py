@@ -273,7 +273,7 @@ def main(SCRIPT_PATH):
 
     # # C_functions = C_functions1
 
-    # set_c_functions = set()
+    set_c_functions = set()
 
     # for _, addr in C_functions.items():
     #     set_c_functions.add(addr)
