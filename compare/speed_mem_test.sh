@@ -4,12 +4,13 @@
 if [ $# -eq 0 ]; then
     echo "❌ 오류: 분석할 명령어를 인자로 전달해야 합니다."
     echo "사용법: $0 <your_command_and_its_arguments>"
-    echo "예시:   $0 python3 your_script.py --arg value"
+    echo "예시:   $0 python3 -c \"import time; time.sleep(1)\""
     exit 1
 fi
 
-# 스크립트에 전달된 모든 인자($@)를 분석할 명령어로 사용
-COMMAND="$@"
+# 스크립트에 전달된 모든 인자($@)를 배열(array)로 저장
+# 이렇게 하면 공백이나 특수문자가 포함된 인자가 그대로 보존됨
+COMMAND=("$@")
 RUNS=5
 WARMUP=2 # 제외할 앞부분 실행 횟수
 SAMPLES=$((RUNS - WARMUP))
@@ -18,7 +19,8 @@ SAMPLES=$((RUNS - WARMUP))
 declare -a mem_usages
 declare -a elapsed_times
 
-echo "분석 대상 명령어: \"${COMMAND}\""
+# 따옴표를 포함하여 실제 실행될 명령어를 사용자에게 보여줌
+echo "분석 대상 명령어: \"${COMMAND[@]}\""
 echo "스크립트 성능 측정을 시작합니다... (총 ${RUNS}회 실행)"
 echo "----------------------------------------"
 
@@ -28,7 +30,8 @@ do
     echo "=> 실행 ${i}/${RUNS}"
     
     # /usr/bin/time -v의 출력은 stderr로 나오므로 stdout으로 리디렉션(2>&1)하여 변수에 저장
-    output=$(/usr/bin/time -v $COMMAND 2>&1)
+    # "${COMMAND[@]}"와 같이 배열을 확장하여 명령어를 정확하게 실행
+    output=$(/usr/bin/time -v "${COMMAND[@]}" 2>&1)
     
     # 최대 메모리 사용량 (kbytes) 추출
     mem=$(echo "$output" | grep "Maximum resident set size" | awk '{print $NF}')
