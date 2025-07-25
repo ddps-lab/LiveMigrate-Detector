@@ -1,17 +1,15 @@
 #!/bin/bash
 
-# 첫 번째 인자가 비어있는지 확인하여 사용법 안내
-if [ -z "$1" ]; then
-    echo "❌ 오류: 분석할 Python 스크립트 경로를 인자로 전달해야 합니다."
-    echo "사용법: $0 <path_to_your_python_script.py>"
+# 스크립트에 전달된 인자가 없는 경우, 사용법을 안내하고 종료
+if [ $# -eq 0 ]; then
+    echo "❌ 오류: 분석할 명령어를 인자로 전달해야 합니다."
+    echo "사용법: $0 <your_command_and_its_arguments>"
+    echo "예시:   $0 python3 your_script.py --arg value"
     exit 1
 fi
 
-# 인자로 받은 Python 스크립트 경로를 변수에 저장
-PYTHON_SCRIPT_PATH=$1
-
-# 분석할 명령어 정의 (인자 사용)
-COMMAND="python3 btracking_only.py ${PYTHON_SCRIPT_PATH}"
+# 스크립트에 전달된 모든 인자($@)를 분석할 명령어로 사용
+COMMAND="$@"
 RUNS=5
 WARMUP=2 # 제외할 앞부분 실행 횟수
 SAMPLES=$((RUNS - WARMUP))
@@ -20,7 +18,7 @@ SAMPLES=$((RUNS - WARMUP))
 declare -a mem_usages
 declare -a elapsed_times
 
-echo "분석 대상: ${PYTHON_SCRIPT_PATH}"
+echo "분석 대상 명령어: \"${COMMAND}\""
 echo "스크립트 성능 측정을 시작합니다... (총 ${RUNS}회 실행)"
 echo "----------------------------------------"
 
