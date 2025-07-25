@@ -4,7 +4,6 @@ import time
 
 import bcode_parser
 import bcode_utils
-import func_mapping
 
 # get python builtin modules
 from stdlib_list import stdlib_list
@@ -268,19 +267,41 @@ def main(SCRIPT_PATH):
 
     not_pymodules = extract_c_func(modules_info, called_map)
 
-    C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
-    C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
-    C_functions = C_functions1 | C_functions2
+    # C_functions1 = func_mapping.check_PyMethodDef(not_pymodules)
+    # C_functions2 = func_mapping.check_PyMethodDef(C_functions_with_decorators)
+    # C_functions = C_functions1 | C_functions2
 
-    # C_functions = C_functions1
+    # # C_functions = C_functions1
 
-    set_c_functions = set()
+    # set_c_functions = set()
 
-    for _, addr in C_functions.items():
-        set_c_functions.add(addr)
+    # for _, addr in C_functions.items():
+    #     set_c_functions.add(addr)
 
     addr_collect_end_time = time.time()
     addr_collect_time = addr_collect_end_time - addr_collect_start_time
     module_count = len(modules_info)
 
     return set_c_functions, addr_collect_time, module_count
+
+
+if __name__ == '__main__':
+    # python3 btracking.py /home/ubuntu/workload_instruction_analyzer/compare/beautifulsoup4/bs4_example.py
+    if len(sys.argv) != 2:
+        print("Usage: python3 btracking.py <script_path>")
+        sys.exit(1)
+
+    script_path = sys.argv[1]
+
+    try:
+        c_functions, addr_collect_time, module_count = main(script_path)
+        print(f"Script analyzed: {script_path}")
+        print(f"Analysis time: {addr_collect_time:.2f} seconds")
+        print(f"Modules processed: {module_count}")
+        print(f"C functions found: {len(c_functions)}")
+        print("\nC function addresses:")
+        for addr in sorted(c_functions):
+            print(f"  {addr}")
+    except Exception as e:
+        print(f"Error analyzing script: {e}")
+        sys.exit(1)
