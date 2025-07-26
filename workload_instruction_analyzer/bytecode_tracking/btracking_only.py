@@ -178,7 +178,7 @@ def search_module_path(called_map, pycaches):
             pycaches[__origin_name] = module_path
         except AttributeError:
             # 가상 모듈 구분
-            if not loaded_module.__spec__.origin:
+            if (loaded_module.__spec__ is not None) and (not loaded_module.__spec__.origin):
                 pycaches[__origin_name] = '__virtual_pymodule'
             else:
                 pycaches[__origin_name] = '__not_pymodule'
