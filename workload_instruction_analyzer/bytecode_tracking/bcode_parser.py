@@ -65,6 +65,9 @@ def func_classification(func, called_objs, obj_sets, obj_map):
       2. 외부 모듈의 객체
       3. 파이썬 내장 객체
     '''
+    if func is None:
+        return '__builtin'
+    
     if '.' in func:
         root_obj = func.split('.')[0]
 
