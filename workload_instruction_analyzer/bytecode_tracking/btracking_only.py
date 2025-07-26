@@ -1,6 +1,7 @@
 import sys
 import importlib
 import time
+import traceback
 
 import bcode_parser
 import bcode_utils
@@ -304,4 +305,5 @@ if __name__ == '__main__':
             print(f"  {addr}")
     except Exception as e:
         print(f"Error analyzing script: {e}")
+        print(traceback.format_exc())
         sys.exit(1)
