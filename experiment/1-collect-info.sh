@@ -2,7 +2,7 @@
 export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
 export LD_BIND_NOW=1
 
-pip3 install capstone
+pip3 install capstone tqdm
 
 cd /home/ubuntu/LiveMigrate-Detector
 git pull
