@@ -120,7 +120,7 @@ class ExperimentValidator:
                     issues.append(f"❌ Missing {workload}/{req_file}")
 
         # Check .csv files
-        for suffix in ["native.csv", "bytecode.csv"]:
+        for suffix in ["native.csv", "bytecode.csv", "text_segment_full_scan.csv", "bytecode_only_ept.csv"]:
             csv_file = os.path.join(instance_path, f"{workload}.{suffix}")
             if not os.path.exists(csv_file):
                 issues.append(f"❌ Missing {workload}.{suffix}")
@@ -134,14 +134,12 @@ class ExperimentValidator:
         elif os.path.getsize(log_file) <= 1:
             issues.append(f"⚠️  {workload}.log too small (≤1 byte)")
 
-        # Check _ept.log files (execution path tracking)
-        for suffix in ["native_ept.log", "bytecode_ept.log"]:
-            ept_log_file = os.path.join(
-                instance_path, f"{workload}_{suffix}")
-            if not os.path.exists(ept_log_file):
-                issues.append(
-                    f"⚠️  Missing {workload}_{suffix} (execution path tracking)")
-            elif os.path.getsize(ept_log_file) <= 1:
+        # Check additional log files
+        for suffix in ["native_ept.log", "bytecode_ept.log", "text_segment_full_scan.log", "bytecode_only_ept.log"]:
+            log_file = os.path.join(instance_path, f"{workload}_{suffix}")
+            if not os.path.exists(log_file):
+                issues.append(f"⚠️  Missing {workload}_{suffix}")
+            elif os.path.getsize(log_file) <= 1:
                 issues.append(f"⚠️  {workload}_{suffix} too small (≤1 byte)")
 
         return issues, max_pid

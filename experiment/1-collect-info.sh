@@ -2,6 +2,8 @@
 export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
 export LD_BIND_NOW=1
 
+pip3 install capstone
+
 cd /home/ubuntu/LiveMigrate-Detector
 git pull
 
@@ -101,6 +103,28 @@ for test in "${test_array[@]}"; do
     # 추적 결과 복사
     cp log/isa_set.csv "$result_path/$test_dir.bytecode.csv"
     echo "  -> Result copied to $result_path/$test_dir.bytecode.csv"
+
+    # 이전 추적 결과 삭제
+    rm -rf log/isa_set.csv
+
+    # text segment full scan 시작
+    echo "  -> Running text segment full scan for $pid..."
+    sudo -E ./text_segment_full_scan.sh $pid &> "$result_path/${test_dir}_text_segment_full_scan.log"
+
+    # 추적 결과 복사
+    cp log/isa_set.csv "$result_path/$test_dir.text_segment_full_scan.csv"
+    echo "  -> Result copied to $result_path/$test_dir.text_segment_full_scan.csv"
+
+    # 이전 추적 결과 삭제
+    rm -rf log/isa_set.csv
+
+    # bytecode only execution path tracking 시작
+    echo "  -> Running bytecode only execution path tracking for $pid..."
+    sudo -E ./bytecode_only_execution_path_tracking.sh $pid python "$root_path/$test" &> "$result_path/${test_dir}_bytecode_only_ept.log"
+
+    # 추적 결과 복사
+    cp log/isa_set.csv "$result_path/$test_dir.bytecode_only_ept.csv"
+    echo "  -> Result copied to $result_path/$test_dir.bytecode_only_ept.csv"
 
     # 프로세스 상태 덤프
     echo "  -> Dumping process $pid..."
