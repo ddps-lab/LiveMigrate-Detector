@@ -2,7 +2,7 @@
 export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
 export LD_BIND_NOW=1
 
-pip3 install capstone tqdm
+pip3 install capstone tqdm beautifulsoup4 fastapi uvicorn requests matplotlib scikit-learn
 
 cd /home/ubuntu/LiveMigrate-Detector
 git pull
@@ -16,20 +16,24 @@ result_path="/home/ubuntu/result"
 # 각 테스트와 매칭되는 "준비 완료" 문자열을 저장하는 연관 배열
 # IMPORTANT: 각 테스트에 맞는 실제 출력 문자열로 반드시 수정해주세요.
 declare -A ready_strings
+ready_strings["beautifulsoup4/bs4_example.py"]="Main div"
 ready_strings["dask_matmul/dask_matmul.py"]="]]"
 ready_strings["dask_uuid/dask_uuid.py"]="Final Result"
 ready_strings["falcon_http/falcon_http.py"]="healthy"
+ready_strings["fastapi/fastapi_example.py"]="Created"
 ready_strings["int8dot/int8dot_test.py"]="Execution time"
 ready_strings["llm/llm.py"]="remaining 1 prompt tokens to eval"
 ready_strings["matmul/matmul.py"]="]]"
+ready_strings["matplotlib/matplotlib_example.py"]="Histogram generated"
 ready_strings["pku/pku_test.py"]="Memory has been released"
 ready_strings["rand/rand.py"]="Generated random number"
 ready_strings["rsa/rsa_test.py"]="Encrypted text"
 ready_strings["sha/sha_test.py"]="SHA-256 hash"
+ready_strings["sklearn/sklearn_example.py"]="Their importance scores"
 ready_strings["xgboost/xgb_example.py"]="mlogloss"
 
 # 실행할 테스트 목록
-test_array=("dask_matmul/dask_matmul.py" "dask_uuid/dask_uuid.py" "falcon_http/falcon_http.py" "int8dot/int8dot_test.py" "llm/llm.py" "matmul/matmul.py" "pku/pku_test.py" "rand/rand.py" "rsa/rsa_test.py" "sha/sha_test.py" "xgboost/xgb_example.py")
+test_array=("beautifulsoup4/bs4_example.py" "dask_matmul/dask_matmul.py" "dask_uuid/dask_uuid.py" "falcon_http/falcon_http.py" "fastapi/fastapi_example.py" "int8dot/int8dot_test.py" "llm/llm.py" "matmul/matmul.py" "matplotlib/matplotlib_example.py" "pku/pku_test.py" "rand/rand.py" "rsa/rsa_test.py" "sha/sha_test.py" "sklearn/sklearn_example.py" "xgboost/xgb_example.py")
 
 # --- 스크립트 시작 ---
 

@@ -18,8 +18,8 @@ class ExperimentValidator:
 
         # Expected workloads from the script
         self.expected_workloads = [
-            "dask_matmul", "dask_uuid", "falcon_http", "int8dot", "llm",
-            "matmul", "pku", "rand", "rsa", "sha", "xgboost"
+            "beautifulsoup4", "dask_matmul", "dask_uuid", "falcon_http", "fastapi", "int8dot", "llm",
+            "matmul", "matplotlib", "pku", "rand", "rsa", "sha", "sklearn", "xgboost"
         ]
 
         # Expected CRIU files in workload directories

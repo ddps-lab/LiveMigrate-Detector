@@ -19,16 +19,20 @@ cd /home/ubuntu/LiveMigrate-Detector/cpu_feature_collector/
 
 # 각 워크로드와 매칭되는 "준비 완료" 문자열
 declare -A ready_strings
+ready_strings["beautifulsoup4"]="Main div"
 ready_strings["dask_matmul"]="]]"
 ready_strings["dask_uuid"]="Final Result"
 ready_strings["falcon_http"]="healthy"
+ready_strings["fastapi"]="Created"
 ready_strings["int8dot"]="Execution time"
 ready_strings["llm"]="remaining 1 prompt tokens to eval"
 ready_strings["matmul"]="]]"
+ready_strings["matplotlib"]="Histogram generated"
 ready_strings["pku"]="Memory has been released"
 ready_strings["rand"]="Generated random number"
 ready_strings["rsa"]="Encrypted text"
 ready_strings["sha"]="SHA-256 hash"
+ready_strings["sklearn"]="Their importance scores"
 ready_strings["xgboost"]="mlogloss"
 
 # --- 스크립트 시작 ---
