@@ -46,7 +46,7 @@ def get_text_sections():
 
 def disas(start_addr, end_addr, seen, buffered_output, name):
     current_addr = start_addr
-    progress = tqdm(total=end_addr-start_addr, desc=f'{name}', unit="B")
+    progress = tqdm(total=end_addr-start_addr, desc=f'{name}', unit="B", mininterval=10)
 
     while current_addr <= end_addr:
         try:
