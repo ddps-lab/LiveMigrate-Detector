@@ -31,7 +31,7 @@ const (
 	AWS_REGION = "us-west-2" // AWS 리전
 	USE_SPOT   = true        // 스팟 인스턴스 사용 여부
 
-	AMI_ID = "ami-0dddef6e36aee75f7" // Ubuntu 22.04 LTS + 0-ami.sh (1-collect-info)
+	AMI_ID = "ami-0faba773f72b475ef" // Ubuntu 22.04 LTS + 0-ami.sh (1-collect-info)
 
 	// DISK_SIZE int32 = 32 // 1-collect-info
 	DISK_SIZE int32 = 140 // 2-restore-check

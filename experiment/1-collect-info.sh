@@ -2,8 +2,6 @@
 export LD_LIBRARY_PATH=/home/ubuntu/xed/obj:$LD_LIBRARY_PATH
 export LD_BIND_NOW=1
 
-pip3 install capstone tqdm beautifulsoup4 fastapi uvicorn requests matplotlib scikit-learn
-
 cd /home/ubuntu/LiveMigrate-Detector
 git pull
 

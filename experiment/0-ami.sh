@@ -17,7 +17,7 @@ apt update
 NEEDRESTART_MODE=a apt install -y git curl wget criu python3-pip python3-dbg build-essential gdb libssl-dev gpg-agent pkg-config libcurl4-openssl-dev cmake libssl3-dbgsym
 
 pip3 install --upgrade pip setuptools packaging
-pip3 install numpy dask psutil pyelftools stdlib-list pandas falcon xgboost scikit-learn llama-cpp-python ray
+pip3 install numpy dask psutil pyelftools stdlib-list pandas falcon xgboost scikit-learn llama-cpp-python ray capstone tqdm beautifulsoup4 fastapi uvicorn requests matplotlib scikit-learn
 pip3 install Cython
 
 git clone https://github.com/intelxed/xed.git
