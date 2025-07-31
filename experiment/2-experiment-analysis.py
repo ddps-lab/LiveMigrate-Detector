@@ -213,12 +213,12 @@ def calculate_metrics(results):
     return precision, recall
 
 
-def find_best_reps_for_bept(groups, all_workloads, base_dir_1, base_dir_2):
+def find_best_reps_for_proposed_method(groups, all_workloads, base_dir_1, base_dir_2):
     """
     Finds the best set of representative instances by testing all combinations
-    to maximize BEPT Recall while keeping Precision at 1.0.
+    to maximize Recall for the proposed method (Bytecode + EPT) while keeping Precision at 1.0.
     """
-    print("\n--- Step 2.5: Optimizing Representative Set for BEPT (Precision=1, Max Recall) ---")
+    print("\n--- Step 2.5: Optimizing Representative Set for Proposed Method (Bytecode + EPT) (Precision=1, Max Recall) ---")
 
     # 1. Pre-calculate all possible actuals and ISA sets to avoid re-reading files.
     all_instances = sorted(
@@ -247,6 +247,7 @@ def find_best_reps_for_bept(groups, all_workloads, base_dir_1, base_dir_2):
     workload_isa_sets = {}
     for inst in all_instances:
         for workload in all_workloads:
+            # NOTE: This optimization is based on "Bytecode + EPT" which uses '.bytecode.csv'
             workload_isa_path = os.path.join(
                 base_dir_1, inst, f"{workload}.bytecode.csv")
             if os.path.exists(workload_isa_path):
@@ -350,7 +351,7 @@ def analyze_criu_performance(reps, workloads, base_dir_2, actuals_map, preds_map
 
 
 def analyze_isa_method(reps, workloads, base_dir_1, base_dir_2, method_name, file_suffix, actuals_map, preds_map):
-    """Generic analyzer for ISA-based methods (EPT, BEPT)."""
+    """Generic analyzer for ISA-based methods."""
     print(f"\n--- Step 3.2: Calculating {method_name} Precision & Recall ---")
     metrics = {w: defaultdict(int) for w in workloads}
     overall = defaultdict(int)
@@ -403,11 +404,12 @@ def analyze_isa_method(reps, workloads, base_dir_1, base_dir_2, method_name, fil
     return metrics, overall
 
 
-def write_detailed_log(log_path, wrong_bept_log_path, reps, workloads, actuals, criu_preds, ept_preds, bept_preds):
+def write_detailed_log(log_path, wrong_proposed_log_path, reps, workloads, actuals, criu_preds, ept_preds, bytecode_only_preds, text_segment_preds, proposed_preds):
     print(f"\n--- Writing detailed analysis log to {log_path} ---")
-    print(f"--- Writing BEPT mismatch log to {wrong_bept_log_path} ---")
+    print(
+        f"--- Writing Proposed Method (Bytecode + EPT) mismatch log to {wrong_proposed_log_path} ---")
 
-    with open(log_path, 'w') as f_all, open(wrong_bept_log_path, 'w') as f_wrong_bept:
+    with open(log_path, 'w') as f_all, open(wrong_proposed_log_path, 'w') as f_wrong_proposed:
         for inst_src in sorted(reps):
             for inst_dst in sorted(reps):
                 if inst_src == inst_dst:
@@ -415,7 +417,7 @@ def write_detailed_log(log_path, wrong_bept_log_path, reps, workloads, actuals, 
 
                 header = f"\n{'='*40}\nMigration Path: {inst_src} -> {inst_dst}\n{'='*40}\n"
                 path_content_blocks = []
-                wrong_bept_blocks = []
+                wrong_proposed_blocks = []
 
                 # Get all workloads that have an actual result for this pair
                 sorted_workloads_for_pair = sorted(
@@ -441,30 +443,42 @@ def write_detailed_log(log_path, wrong_bept_log_path, reps, workloads, actuals, 
                         key, (False, {'no_prediction_data'}))
                     ept_pred_str = "YES" if ept_pred_ok else f"NO, missing: {sorted(list(ept_features))}"
 
-                    # BEPT
-                    bept_pred_ok, bept_features = bept_preds.get(
+                    # Bytecode Only
+                    bo_pred_ok, bo_features = bytecode_only_preds.get(
                         key, (False, {'no_prediction_data'}))
-                    bept_pred_str = "YES" if bept_pred_ok else f"NO, missing: {sorted(list(bept_features))}"
+                    bo_pred_str = "YES" if bo_pred_ok else f"NO, missing: {sorted(list(bo_features))}"
+
+                    # Text Segment Full Scan
+                    ts_pred_ok, ts_features = text_segment_preds.get(
+                        key, (False, {'no_prediction_data'}))
+                    ts_pred_str = "YES" if ts_pred_ok else f"NO, missing: {sorted(list(ts_features))}"
+
+                    # Proposed Method (Bytecode + EPT)
+                    proposed_pred_ok, proposed_features = proposed_preds.get(
+                        key, (False, {'no_prediction_data'}))
+                    proposed_pred_str = "YES" if proposed_pred_ok else f"NO, missing: {sorted(list(proposed_features))}"
 
                     block = (
                         f"\nWorkload: {workload}\n"
-                        f"- CRIU:   {criu_pred_str}\n"
-                        f"- EPT:    {ept_pred_str}\n"
-                        f"- BEPT:   {bept_pred_str}\n"
-                        f"- RESULT: {result_str}\n"
+                        f"- CRIU:                     {criu_pred_str}\n"
+                        f"- EPT:                      {ept_pred_str}\n"
+                        f"- Bytecode Only:            {bo_pred_str}\n"
+                        f"- Text Segment Full Scan:   {ts_pred_str}\n"
+                        f"- Bytecode + EPT (Proposed):{proposed_pred_str}\n"
+                        f"- RESULT:                   {result_str}\n"
                     )
                     path_content_blocks.append(block)
 
-                    if bept_pred_ok != actual_ok:
-                        wrong_bept_blocks.append(block)
+                    if proposed_pred_ok != actual_ok:
+                        wrong_proposed_blocks.append(block)
 
                 if path_content_blocks:
                     f_all.write(header)
                     f_all.write("".join(path_content_blocks))
 
-                if wrong_bept_blocks:
-                    f_wrong_bept.write(header)
-                    f_wrong_bept.write("".join(wrong_bept_blocks))
+                if wrong_proposed_blocks:
+                    f_wrong_proposed.write(header)
+                    f_wrong_proposed.write("".join(wrong_proposed_blocks))
 
 
 def analyze_experiments():
@@ -499,8 +513,8 @@ def analyze_experiments():
         print("No workloads left to analyze after exclusion.")
         return
 
-    # Find the best representative set based on BEPT performance using the FILTERED workloads
-    rep_instances = find_best_reps_for_bept(
+    # Find the best representative set based on the proposed method's performance
+    rep_instances = find_best_reps_for_proposed_method(
         instance_groups, workloads, base_dir_1, base_dir_2)
     print(
         f"\n--- Using optimized representative set for final analysis: {rep_instances} ---")
@@ -509,27 +523,38 @@ def analyze_experiments():
     actual_outcomes = {}
     criu_predictions = {}
     ept_predictions = {}
-    bept_predictions = {}
+    bytecode_only_predictions = {}
+    text_segment_predictions = {}
+    proposed_method_predictions = {}
 
     # --- Run Analyses ---
     criu_metrics, criu_overall = analyze_criu_performance(
         rep_instances, workloads, base_dir_2, actual_outcomes, criu_predictions)
     ept_metrics, ept_overall = analyze_isa_method(
         rep_instances, workloads, base_dir_1, base_dir_2, "EPT", ".native.csv", actual_outcomes, ept_predictions)
-    bept_metrics, bept_overall = analyze_isa_method(
-        rep_instances, workloads, base_dir_1, base_dir_2, "BEPT (Proposed)", ".bytecode.csv", actual_outcomes, bept_predictions)
+    bytecode_only_metrics, bytecode_only_overall = analyze_isa_method(
+        rep_instances, workloads, base_dir_1, base_dir_2, "Bytecode Only", ".bytecode_only_ept.csv", actual_outcomes, bytecode_only_predictions)
+    text_segment_metrics, text_segment_overall = analyze_isa_method(
+        rep_instances, workloads, base_dir_1, base_dir_2, "Text Segment Full Scan", ".text_segment_full_scan.csv", actual_outcomes, text_segment_predictions)
+    proposed_metrics, proposed_overall = analyze_isa_method(
+        rep_instances, workloads, base_dir_1, base_dir_2, "Bytecode + EPT (Proposed)", ".bytecode.csv", actual_outcomes, proposed_method_predictions)
 
     # --- Write Log ---
     log_file_path = os.path.join(script_dir, 'result', 'analysis_log.txt')
-    wrong_bept_log_path = os.path.join(
-        script_dir, 'result', 'analysis_log_wrong_bept.txt')
-    write_detailed_log(log_file_path, wrong_bept_log_path, rep_instances, workloads,
-                       actual_outcomes, criu_predictions, ept_predictions, bept_predictions)
+    wrong_proposed_log_path = os.path.join(
+        script_dir, 'result', 'analysis_log_wrong_proposed.txt')
+    write_detailed_log(log_file_path, wrong_proposed_log_path, rep_instances, workloads,
+                       actual_outcomes, criu_predictions, ept_predictions, bytecode_only_predictions, text_segment_predictions, proposed_method_predictions)
 
     # --- Print Results ---
     print_results("CRIU", criu_metrics, criu_overall)
     print_results("EPT", ept_metrics, ept_overall)
-    print_results("BEPT (Proposed Method)", bept_metrics, bept_overall)
+    print_results("Bytecode Only", bytecode_only_metrics,
+                  bytecode_only_overall)
+    print_results("Text Segment Full Scan",
+                  text_segment_metrics, text_segment_overall)
+    print_results("Bytecode + EPT (Proposed)",
+                  proposed_metrics, proposed_overall)
 
 
 if __name__ == '__main__':
