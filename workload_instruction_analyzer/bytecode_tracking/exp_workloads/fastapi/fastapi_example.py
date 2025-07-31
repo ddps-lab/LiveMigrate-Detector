@@ -23,20 +23,20 @@ async def create_item(name: str, price: float):
 
 
 def run_server():
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")
+    uvicorn.run(app, host="127.0.0.1", port=8001, log_level="error")
 
 
 def make_requests():
     time.sleep(2)
     while True:
         try:
-            response1 = requests.get('http://127.0.0.1:8000/')
+            response1 = requests.get('http://127.0.0.1:8001/')
             print(f"Root: {response1.json()}", flush=True)
 
-            response2 = requests.get('http://127.0.0.1:8000/items/123?q=test')
+            response2 = requests.get('http://127.0.0.1:8001/items/123?q=test')
             print(f"Item: {response2.json()}", flush=True)
 
-            response3 = requests.post('http://127.0.0.1:8000/items/',
+            response3 = requests.post('http://127.0.0.1:8001/items/',
                                       params={'name': 'laptop', 'price': 999.99})
             print(f"Created: {response3.json()}", flush=True)
         except Exception as e:
