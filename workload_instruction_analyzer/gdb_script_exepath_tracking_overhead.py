@@ -343,8 +343,6 @@ def calculate_list_memory_size(lst):
 
 
 def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
-    start_time = time.time()
-
     executable_instructions = []
     tracking_functions = set()
     list_tracking_functions = []
@@ -354,6 +352,9 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     global addr_collect_time
     global btracking_time
     global module_count
+
+    global tracking_time
+    global dis_time
 
     btracking_start_time = 0
     btracking_end_time = 0
@@ -403,9 +404,12 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
         b_tracking_time = time.time() - b_tracking_start_time
         print(f'B_exe_path_tracking 추가된 메모리 사용량: {record_memory_end()} MB')
         print(f'B_exe_path_tracking 소요 시간: {b_tracking_time:.6f} sec')
+        print(f"B_exe_path_tracking disassemble 소요 시간: {dis_time:.6f} sec")
+        dis_time = 0
         list_tracking_functions = []
 
     record_memory_start()
+    start_time = time.time()
     # search the starting point of tracking
     start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
     # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
@@ -444,6 +448,8 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
                 if dst_addr:
                     tracking_functions.add(dst_addr)
                     list_tracking_functions.append(dst_addr)
+    end_time = time.time()
+    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
 
     # list_size_in_bytes = calculate_list_memory_size(executable_instructions)
     # list_size_in_mb = list_size_in_bytes / 1024 / 1024  # MB 단위로 변환
@@ -456,14 +462,8 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
 
     btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
-    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
 
-    end_time = time.time()
-    global tracking_time
-    global dis_time
-
-    tracking_time = end_time - start_time - \
-        dis_time - btracking_time - addr_collect_time
+    tracking_time = end_time - start_time - dis_time
 
 
 def measure_initial_memory_usage():
