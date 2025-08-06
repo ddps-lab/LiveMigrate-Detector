@@ -1,4 +1,3 @@
-import utils
 import capstone
 import gdb
 import os
@@ -13,6 +12,7 @@ import ctypes
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
+import utils
 
 # xed wrapper 라이브러리 로드
 libxedwrapper = ctypes.CDLL(
