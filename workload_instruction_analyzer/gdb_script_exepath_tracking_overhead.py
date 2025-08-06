@@ -410,9 +410,10 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
         list_tracking_functions = []
         record_memory_start()
         btracking_start_time = time.time()
-        tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(
+        tracking_functions_b, addr_collect_time, module_count = bytecode_tracking.btracking.main(
             SCRIPT_PATH)
-        list_tracking_functions = list(tracking_functions)
+        list_tracking_functions = list(tracking_functions_b)
+        tracking_functions.update(tracking_functions_b)
         btracking_end_time = time.time()
         btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
         print(f'Btracking 추가된 메모리 사용량: {record_memory_end()} MB')
