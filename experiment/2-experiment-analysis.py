@@ -82,6 +82,7 @@ def read_isaset_from_csv(filepath):
             df = pd.read_csv(filepath, header=0)
             if df.empty or 'ISA_SET' not in df.columns:
                 return set()
+            df = df[df['ISA_SET'] != 'Error']
             return set(df['ISA_SET'].astype(str).tolist())
 
         # Format for 2-compatibility-check isaset.csv
