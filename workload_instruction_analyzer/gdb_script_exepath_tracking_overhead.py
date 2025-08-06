@@ -10,6 +10,7 @@ import os
 
 import ctypes
 import time
+import gc
 
 rootdir = str(Path(__file__).resolve().parent)
 sys.path.append(rootdir)
@@ -315,6 +316,7 @@ def monitor_memory_usage():
 
 
 def record_memory_start():
+    gc.collect()
     global start_memory, monitoring
     start_memory = process.memory_info().rss
     monitoring = True
