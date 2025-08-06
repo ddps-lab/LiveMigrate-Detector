@@ -403,7 +403,7 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
                         list_tracking_functions.append(dst_addr)
         b_tracking_time = time.time() - b_tracking_start_time
         print(f'B_exe_path_tracking 추가된 메모리 사용량: {record_memory_end()} MB')
-        print(f'B_exe_path_tracking 소요 시간: {b_tracking_time:.6f} sec')
+        print(f'B_exe_path_tracking 소요 시간: {b_tracking_time-dis_time:.6f} sec')
         print(f"B_exe_path_tracking disassemble 소요 시간: {dis_time:.6f} sec")
         dis_time = 0
         list_tracking_functions = []
