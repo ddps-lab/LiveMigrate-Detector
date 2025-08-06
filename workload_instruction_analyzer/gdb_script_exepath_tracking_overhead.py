@@ -461,8 +461,6 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     tracked_func_count = len(tracking_functions)
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
 
-    btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
-
     tracking_time = end_time - start_time - dis_time
 
 
