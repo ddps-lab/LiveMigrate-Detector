@@ -357,10 +357,57 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     global tracking_time
     global dis_time
 
+    record_memory_start()
+    start_time = time.time()
+    # search the starting point of tracking
+    start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
+    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
+    start_addr = "0x{:016x}".format(int(start_addr, 16))
+
+    tracking_functions.add(start_addr)
+    list_tracking_functions.append(start_addr)
+
+    for function_address in list_tracking_functions:
+        func = dis_func(function_address, tracked_instructions)
+
+        if func is None:
+            continue
+
+        for instruction_hex, instruction_meta in func.items():
+            instruction_addr = instruction_meta[0]
+            is_func_call = instruction_meta[1]
+            gdb_comment = instruction_meta[2]
+
+            instruction_data = {}
+
+            result = libxedwrapper.print_isa_set(instruction_hex.encode())
+
+            instruction_data['ISA_SET'] = result.isa_set.decode(
+                'utf-8') if result.isa_set else "Error"
+            instruction_data['SHORT'] = result.disassembly.decode(
+                'utf-8') if result.disassembly else "Error"
+
+            executable_instructions.append(instruction_data)
+
+            # Calculate the target address in case of a transfer instruction
+            if is_func_call:
+                dst_addr = address_calculation(
+                    instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions)
+
+                if dst_addr:
+                    tracking_functions.add(dst_addr)
+                    list_tracking_functions.append(dst_addr)
+    end_time = time.time()
+    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
+    tracking_time = end_time - start_time - dis_time
+
+    ori_dis_time = dis_time
     btracking_start_time = 0
     btracking_end_time = 0
 
     if LANGUAGE_TYPE == 'python':
+        dis_time = 0
+        list_tracking_functions = []
         record_memory_start()
         btracking_start_time = time.time()
         tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(
@@ -406,51 +453,7 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
         print(f'B_exe_path_tracking 추가된 메모리 사용량: {record_memory_end()} MB')
         print(f'B_exe_path_tracking 소요 시간: {b_tracking_time-dis_time:.6f} sec')
         print(f"B_exe_path_tracking disassemble 소요 시간: {dis_time:.6f} sec")
-        dis_time = 0
-        list_tracking_functions = []
-
-    record_memory_start()
-    start_time = time.time()
-    # search the starting point of tracking
-    start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
-    # start_addr = gdb.execute(f"p/x (long) _start", to_string=True).split(' ')[-1]
-    start_addr = "0x{:016x}".format(int(start_addr, 16))
-
-    tracking_functions.add(start_addr)
-    list_tracking_functions.append(start_addr)
-
-    for function_address in list_tracking_functions:
-        func = dis_func(function_address, tracked_instructions)
-
-        if func is None:
-            continue
-
-        for instruction_hex, instruction_meta in func.items():
-            instruction_addr = instruction_meta[0]
-            is_func_call = instruction_meta[1]
-            gdb_comment = instruction_meta[2]
-
-            instruction_data = {}
-
-            result = libxedwrapper.print_isa_set(instruction_hex.encode())
-
-            instruction_data['ISA_SET'] = result.isa_set.decode(
-                'utf-8') if result.isa_set else "Error"
-            instruction_data['SHORT'] = result.disassembly.decode(
-                'utf-8') if result.disassembly else "Error"
-
-            executable_instructions.append(instruction_data)
-
-            # Calculate the target address in case of a transfer instruction
-            if is_func_call:
-                dst_addr = address_calculation(
-                    instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions)
-
-                if dst_addr:
-                    tracking_functions.add(dst_addr)
-                    list_tracking_functions.append(dst_addr)
-    end_time = time.time()
-    print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
+        dis_time = ori_dis_time
 
     # list_size_in_bytes = calculate_list_memory_size(executable_instructions)
     # list_size_in_mb = list_size_in_bytes / 1024 / 1024  # MB 단위로 변환
@@ -461,8 +464,6 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     global tracked_func_count
     tracked_func_count = len(tracking_functions)
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
-
-    tracking_time = end_time - start_time - dis_time
 
 
 def measure_initial_memory_usage():
