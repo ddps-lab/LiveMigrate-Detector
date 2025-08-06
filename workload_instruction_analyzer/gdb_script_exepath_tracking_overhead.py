@@ -1,7 +1,6 @@
 import psutil
 import threading
 import bytecode_tracking.btracking
-import utils
 import gdb
 
 from pathlib import Path
@@ -14,6 +13,8 @@ import gc
 
 rootdir = str(Path(__file__).resolve().parent)
 sys.path.append(rootdir)
+
+import utils
 
 
 glibc_rtm_enable = False
