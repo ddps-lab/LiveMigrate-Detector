@@ -44,7 +44,8 @@ module_count = 0
 
 start_memory = 0
 max_memory = 0
-monitoring = False
+monitoring_event = threading.Event()
+monitoring_thread = None
 
 
 def get_got_sections():
@@ -308,8 +309,8 @@ process = psutil.Process(os.getpid())
 
 
 def monitor_memory_usage():
-    global max_memory, monitoring
-    while monitoring:
+    global max_memory, monitoring_event
+    while monitoring_event.is_set():
         current_memory = process.memory_info().rss
         max_memory = max(max_memory, current_memory)
         time.sleep(0.01)  # 10ms 간격으로 체크
@@ -317,17 +318,19 @@ def monitor_memory_usage():
 
 def record_memory_start():
     gc.collect()
-    global start_memory, monitoring
+    global start_memory, monitoring_event, max_memory, monitoring_thread
     start_memory = process.memory_info().rss
-    monitoring = True
+    max_memory = start_memory
+    monitoring_event.set()
     # 별도의 스레드로 메모리 모니터링 시작
-    thread = threading.Thread(target=monitor_memory_usage)
-    thread.start()
+    monitoring_thread = threading.Thread(target=monitor_memory_usage)
+    monitoring_thread.start()
 
 
 def record_memory_end():
-    global monitoring
-    monitoring = False
+    global monitoring_event, monitoring_thread
+    monitoring_event.clear()
+    monitoring_thread.join()
     memory_diff = max_memory - start_memory
     return memory_diff / 1024 / 1024
 
