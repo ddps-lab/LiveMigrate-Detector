@@ -7,5 +7,5 @@ test_array=("beautifulsoup4/bs4_example.py" "dask_matmul/dask_matmul.py" "dask_u
 for test in "${test_array[@]}"; do
     test_dir="${test%/*}"
     test_file="${test##*/}"
-    strace -e trace=openat python3 /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/btracking_only.py /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/exp_workloads/$test | sed -n '/exp_workloads/,$ { /\.pyc", O_RDONLY|O_CLOEXEC) = 3/p }' > result/3-get-tracked-module-btracking/$test_dir.txt
+    strace -e trace=openat python3 /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/btracking_only.py /home/ubuntu/LiveMigrate-Detector/workload_instruction_analyzer/bytecode_tracking/exp_workloads/$test 2>&1 | sed -n '/exp_workloads/,$ { /\.pyc", O_RDONLY|O_CLOEXEC) = 3/p }' > result/3-get-tracked-module-btracking/$test_dir.txt
 done
