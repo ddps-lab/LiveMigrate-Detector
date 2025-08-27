@@ -206,18 +206,19 @@ def dis_func(addr, tracked_instructions):
         is_func_call = None
         if instruction in transfer_instructions:
             # 레지스터 콜 제외..
-            call_non_regi.append(line)
             if gdb_comment.startswith('<'):
                 if '@plt' in gdb_comment:
+                    call_non_regi.append(line)
                     is_func_call = 'plt'
                 elif '+' in gdb_comment:
                     pass
                 else:
+                    call_non_regi.append(line)
                     is_func_call = 'func'
             elif gdb_comment.startswith('0x'):
-                call_non_regi.append(line)
                 abs_addr = int(gdb_comment, 16)
                 if got_addr[0] <= abs_addr <= got_addr[1]:
+                    call_non_regi.append(line)
                     is_func_call = 'got'
             # FIXME
             else:
