@@ -470,6 +470,10 @@ if __name__ == '__main__':
     print(f"total time: {total_time:.6f} sec")
     print(f"Number of modules searched: {module_count}")
 
+    print(f'compile_indirect: {len(compile_indirect)}')
+    print(f'runtime_indirect: {len(runtime_indirect)}')
+    print(f'call_regi: {len(call_regi)}')
+
     exit()
 
     # with open('tracked_functions.txt', 'w') as f:
