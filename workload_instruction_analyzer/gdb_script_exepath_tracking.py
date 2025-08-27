@@ -477,6 +477,7 @@ if __name__ == '__main__':
     print(f'compile_indirect: {len(compile_indirect)}')
     print(f'runtime_indirect: {len(runtime_indirect)}')
     print(f'call_regi: {len(call_regi)}')
+    print(f"call_non_regi: {len(call_non_regi)}")
 
     exit()
 
