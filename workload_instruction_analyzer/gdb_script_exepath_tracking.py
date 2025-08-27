@@ -117,6 +117,7 @@ def dis_func(addr, tracked_instructions):
     global compile_indirect
     global runtime_indirect
     global call_regi
+    global call_non_regi
 
     tsx_enabled_glibc_functions = [
         '__GI___lll_lock_elision', '__GI___lll_unlock_elision']
@@ -205,6 +206,7 @@ def dis_func(addr, tracked_instructions):
         is_func_call = None
         if instruction in transfer_instructions:
             # 레지스터 콜 제외..
+            call_non_regi.append(line)
             if gdb_comment.startswith('<'):
                 if '@plt' in gdb_comment:
                     is_func_call = 'plt'
@@ -213,6 +215,7 @@ def dis_func(addr, tracked_instructions):
                 else:
                     is_func_call = 'func'
             elif gdb_comment.startswith('0x'):
+                call_non_regi.append(line)
                 abs_addr = int(gdb_comment, 16)
                 if got_addr[0] <= abs_addr <= got_addr[1]:
                     is_func_call = 'got'
@@ -454,6 +457,7 @@ if __name__ == '__main__':
     compile_indirect = []
     runtime_indirect = []
     call_regi = []
+    call_non_regi = []
 
     tracking(LANGUAGE_TYPE, SCRIPT_PATH)
 
