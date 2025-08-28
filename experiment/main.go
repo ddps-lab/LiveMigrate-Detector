@@ -767,6 +767,7 @@ func processInstance(client *ec2.Client, instance *QueueValue, securityGroupID *
 	log.Printf("Terminating instance %s (%s)", instance.instance, instanceID)
 	if _, err := client.TerminateInstances(context.TODO(), &ec2.TerminateInstancesInput{
 		InstanceIds: []string{instanceID},
+		Force:       aws.Bool(true),
 	}); err != nil {
 		log.Printf("Failed to initiate termination for instance %s: %v", instanceID, err)
 		return false // Do NOT release quota.
@@ -776,7 +777,7 @@ func processInstance(client *ec2.Client, instance *QueueValue, securityGroupID *
 	termWaiter := ec2.NewInstanceTerminatedWaiter(client)
 	describeInput := &ec2.DescribeInstancesInput{InstanceIds: []string{instanceID}}
 
-	const instanceTerminationTimeout = 5 * time.Minute
+	const instanceTerminationTimeout = 30 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), instanceTerminationTimeout)
 	defer cancel()
 

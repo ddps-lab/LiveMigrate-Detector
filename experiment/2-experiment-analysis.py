@@ -140,6 +140,36 @@ def get_valid_instances(base_dir):
     return final_valid_instances
 
 
+# def group_instances(valid_instances, base_dir):
+#     """Groups instances based on their isaset.csv files."""
+#     print("\n--- Step 2: Grouping Instances by ISA set ---")
+#     groups_by_isaset = defaultdict(list)
+
+#     for instance in valid_instances:
+#         isaset_path = os.path.join(base_dir, instance, 'isaset.csv')
+#         try:
+#             with open(isaset_path, 'r', encoding='utf-8') as f:
+#                 # Read file content and use as a key.
+#                 # Sorting lines to handle same content with different order.
+#                 isaset_content = "".join(sorted(f.readlines()))
+#                 if isaset_content:
+#                     groups_by_isaset[isaset_content].append(instance)
+#                 else:
+#                     print(f"  - Warning: isaset.csv for {instance} is empty.")
+#         except FileNotFoundError:
+#             print(f"  - Warning: isaset.csv not found for {instance}.")
+#             continue
+
+#     # Convert dictionary values to a list of groups
+#     groups = [sorted(group) for group in groups_by_isaset.values()]
+
+#     print("Instance Groups:")
+#     for i, group in enumerate(groups):
+#         print(f"  Group {i+1}: {group}")
+
+#     return groups
+
+
 def group_instances(valid_instances, base_dir):
     """Groups instances based on mutual migration compatibility."""
     print("\n--- Step 2: Grouping Instances ---")

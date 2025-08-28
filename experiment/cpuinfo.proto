@@ -1,0 +1,27 @@
+// cpuinfo.proto
+syntax = "proto2";
+
+message cpuinfo_x86_entry {
+    enum vendor {
+        UNKNOWN		= 0;
+        INTEL		= 1;
+        AMD		    = 2;
+    }
+
+    required vendor			vendor_id	= 1;
+    required uint32			cpu_family	= 2;
+    required uint32			model		= 3;
+    required uint32			stepping	= 4;
+    required uint32			capability_ver	= 5;
+    repeated uint32			capability	= 6;
+
+    optional string			model_id	= 7;
+
+    optional uint64			xfeatures_mask	= 8;
+    optional uint32			xsave_size	= 9;
+    optional uint32			xsave_size_max	= 10;
+}
+
+message cpuinfo_entry {
+    repeated cpuinfo_x86_entry x86_entry = 1;
+}
