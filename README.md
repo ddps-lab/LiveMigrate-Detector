@@ -8,14 +8,6 @@ computing provides a variety of distinct computing resources on demand. Supporti
 
 Various instance types, even a few hundred with unique CPU features, are offered by public cloud service providers. The CPU feature collector module gathers CPU features of unique instance types off-line to make a prompt decision about migratable instance types. In systems with X86 architecture, CPU features can be extracted using the CPUID instruction. 
 
-**How to run?**  
-Step 1: Deploy /cpu_feature_collector/get_cpuid/ to the instance and create an AMI.  
-Step 2: Create a S3 bucket to upload the collected CPU feature data and modify /cpu_feature_collector/infrastructure/modules/EC2/ec2.tf (modify the user_data).  
-Step 3: Update the AMI and key in /cpu_feature_collector/infrastructure/variables.tf. At this step, you can choose the desired region and availability zone.  
-Step 4: Simply run it. cpu_feature_collector.py will automatically collect the CPUID.  
-
-> If you want to collect data for specific instance types or update the list of instances, please modify the file /cpu_feature_collector/infrastructure/AWS x86 instances(us-west-2, 23.07.07).csv.
-
 ## Workload Instruction Analyzer
 
 The proposed system analyzes the operations of a workload with respect to the CPU features that the workload needs in a new host. To extract the CPU features, we propose two methods: the text-segment full scan and execution path tracking. These methods analyze the text section of the process memory, which contains all instructions and function calls from an executable binary file and the shared libraries that might be executed during the program runtime. For the extracted operations, the system applies the Intel X86 Encoder Decoder (XED), which can encode and decode details of X86 instructions, to identify the mapping of an instruction to a CPU feature.
@@ -25,9 +17,6 @@ The text-segment full scan method analyzes all executable code loaded into a pro
 On the other hand, execution path tracking traces branching instructions such as call and jmp. Therefore, it includes only code that is likely to be actually executed, ensuring low overhead and very high accuracy. **We recommend this method.**
 
 In Python, the source code is not loaded into the process memory as executable instructions, making it impossible to perform accurate compatibility checks using Execution Path Tracking. Bytecode Tracking is **recommended for Python workloads**, as it traces the native functions invoked by the intermediate representation (bytecode) interpreted and executed by the Python Virtual Machine. It then collects the CPU features used by these native functions to ensure accurate compatibility checks.
-
-**How to run?**  
-You can simply analyze the desired process by running the workload_instruction_analyzer/execution_path_tracking.sh script. The results can be checked in the log, and by migrating to a system where the extracted CPU features exist, you can ensure perfect stability!
 
 ### Mandatory requirements
 
@@ -44,9 +33,22 @@ You can easily enable now binding by setting environment variables as follows an
 
 The compatibility checker module determines the compatibility of the source and destination hosts based on the CPU features of a process extracted from the workload instruction analyzer and the CPU feature collector. Compatibility checking is conducted by comparing whether the CPU features used in the migrating workload on the source hosts are present on the destination host. Although this evaluation method is similar to the default CRIU implementation, it focuses on the CPU features that a target workload uses.
 
-**How to run?**  
-Step 1: Merge the collected CPU features into a Google Spreadsheet.
-Step 2: Modify the parameter of the read_gspread function in compatibility_checker/verification/migratable_instances.py to be the spreadsheet name.
-Step 3: Update the S3 bucket name and prefix in migratable_instances.py to point to the storage where CPU features extracted from the workload are located.
-Step 4: Configure the instanceTypes in migratable_instances.py.
-Step 5: Simply run it.
+## Reproducing the Experiments
+
+All experiment procedures are conducted within the `experiment` folder. If you encounter issues with Spot Instances during any step, you can disable them by setting `USE_SPOT` to `false` in `main.go`.
+
+**Step 1: AWS CLI Setup** Install and log in to the AWS CLI.
+
+**Step 2: Create a Base AMI** Navigate to the EC2 console and create a `t2.medium` instance (or any instance with at least 4GB RAM) using an Ubuntu 22.04 image. Ensure it has ample storage (approx. 140GB). Copy and execute the contents of `experiment/0-ami.sh` on the instance to set it up. After setup, create an AMI from this configured instance. Finally, update the `AMI_ID` variable in `experiment/main.go` with your new AMI ID.
+
+**Step 3: Collect and Group CPU Information** First, create an `instance.txt` file and populate it with all target AWS instance types. Run `go run main.go 0-cpuinfo.sh` to collect the CPU data. Afterward, group the instances using `0-cpuinfo-group.py` and update `instance.txt` with the representative instance from each group. For validation, rename the `experiment/result/0-cpuinfo` folder to `0-cpuinfo-all`, and re-run `go run main.go 0-cpuinfo.sh`. You can then verify the collection with `0-cpuinfo-all-check.py`.
+
+**Step 4: Collect Workload Instruction Data** Execute `go run main.go 1-collect-info.sh` to run the workloads and dump the process information for various methods (CRIU, Pygration). You can validate the process using `1-collect-info-validate.py`.
+
+**Step 5: Upload Results to S3** Compress the results folder (`experiment/result/1-collect-info`) using a command like `tar --no-xattr -c 1-collect-info | zstd -5 > 1-collect-info.tar.zst`. Upload the compressed archive to an S3 bucket. Ensure the uploaded file has public read access, as the experiment scripts download it using the `--no-sign-request` flag. Finally, update the S3 path in `experiment/2-compatibility-check.sh` accordingly.
+
+**Step 6: Run Compatibility Check** Run `go run main.go 2-compatibility-check.sh` to collect the final compatibility results. You can analyze and verify these results using `2-experiment-analysis.py`.
+
+---
+
+If you are interested in our pre-collected results without running the full experiment pipeline, you can find them in the compressed archive: [Download Link](https://example.com).
