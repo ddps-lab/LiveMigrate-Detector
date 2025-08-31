@@ -51,4 +51,4 @@ All experiment procedures are conducted within the `experiment` folder. If you e
 
 ---
 
-If you are interested in our pre-collected results without running the full experiment pipeline, you can find them in the compressed archive: [Download Link](https://example.com).
+If you are interested in our pre-collected results without running the full experiment pipeline, you can find them in the compressed archive: [Download Link](https://drive.google.com/file/d/1O1Lzyi-cPuFbRoET7uMwkNUAKY4C91nq/view?usp=sharing).
