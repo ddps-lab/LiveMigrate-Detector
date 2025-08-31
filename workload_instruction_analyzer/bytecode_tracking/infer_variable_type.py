@@ -2,6 +2,7 @@ import subprocess
 import struct
 from elftools.elf.elffile import ELFFile
 
+
 def get_func_list(binary_file):
     command = (
         "readelf -Ws -s "
@@ -9,13 +10,15 @@ def get_func_list(binary_file):
         " | awk '$4 == \"FUNC\" && ($6 == \"DEFAULT\" || $6 == \"HIDDEN\" || $6 == \"PROTECTED\") && $7 != \"UND\" {print $2}'"
     )
 
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    result = subprocess.run(command, shell=True,
+                            capture_output=True, text=True)
 
     func_addrs = set()
     for addr in result.stdout.splitlines():
-        func_addrs.add(hex(int(addr,16)))
+        func_addrs.add(hex(int(addr, 16)))
 
     return func_addrs
+
 
 def get_file_offset(elffile, address):
     # 프로그램 헤더를 통해 가상 주소를 파일 오프셋으로 변환
@@ -28,11 +31,13 @@ def get_file_offset(elffile, address):
                 return address - vaddr + offset
     return None
 
+
 def read_binary_data(binary_file, offset, size):
     # 바이너리 파일에서 특정 오프셋의 데이터를 읽습니다.
     with open(binary_file, 'rb') as f:
         f.seek(offset)
         return f.read(size)
+
 
 def extract_string(data):
     # 문자열 추출 (예시로 첫 번째 null-terminated 문자열만 추출)
@@ -44,6 +49,7 @@ def extract_string(data):
         pass
     return string_value
 
+
 def get_filtered_variables(lib):
     def get_section_idx():
         command = (
@@ -53,7 +59,8 @@ def get_filtered_variables(lib):
         )
 
         # .data, .data.rel.ro -> 프로그램 시작 시 초기화된 후, 읽기 전용으로 변환되는 데이터를 포함. 예를 들어, const 로 선언된 변수들.
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True,
+                                capture_output=True, text=True)
 
         indexes = result.stdout.splitlines()
         idx1 = result.stdout.splitlines()[0]
@@ -64,15 +71,16 @@ def get_filtered_variables(lib):
             idx2 = None
 
         return idx1, idx2
-    
+
     def get_variables(idx1, idx2):
         command = (
             "readelf -Ws --syms "
             f"{lib} "
             f"| awk '$4 == \"OBJECT\" && ($7 == \"{idx1}\" || $7 == \"{idx2}\") && $3 >= 32'"
         )
-    
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+        result = subprocess.run(command, shell=True,
+                                capture_output=True, text=True)
         variables_addr = []
         variables_name = []
         for line in result.stdout.splitlines():
@@ -82,7 +90,6 @@ def get_filtered_variables(lib):
 
             variables_addr.append(addr)
             variables_name.append(name)
-
 
         return variables_addr, variables_name
 
@@ -104,6 +111,8 @@ struct PyMethodDef {
 };
 typedef struct PyMethodDef PyMethodDef;
 '''
+
+
 def infer_global_variable_type(binary_file):
     '''
     METH_VARARGS : 0x1
@@ -121,58 +130,64 @@ def infer_global_variable_type(binary_file):
     METH_METHOD : 0x200 # 다른 플래그와 조합해서만 사용 가능
     METH_METHOD | METH_FASTCALL | METH_KEYWORDS : 0x282
     '''
-    ml_flags = (0x1, 0x3, 0x4, 0x8, 0x10, 0x18, 0x20, 0x40, 0x80, 0x82, 0x100, 0x282)
+    ml_flags = (0x1, 0x3, 0x4, 0x8, 0x10, 0x18,
+                0x20, 0x40, 0x80, 0x82, 0x100, 0x282)
 
     variables_addr, variables_name = get_filtered_variables(binary_file)
     pointer_size = 8
     pointer_format = '<Q'  # 64비트 포인터 (리틀 엔디안)
 
-    variables = {name: (addr, pointer_size) for name, addr in zip(variables_name, variables_addr)}
+    variables = {name: (addr, pointer_size)
+                 for name, addr in zip(variables_name, variables_addr)}
 
     infer_results = {}
     func_addrs = get_func_list(binary_file)
 
     with open(binary_file, 'rb') as f:
         elffile = ELFFile(f)
-        
+
         for var_name, (struct_address, pointer_size) in variables.items():
             # 메모리 주소를 파일 오프셋으로 변환
             struct_offset = get_file_offset(elffile, struct_address)
-            
+
             # 구조체의 첫 번째 필드를 읽음 (포인터)
-            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            pointer_data = read_binary_data(
+                binary_file, struct_offset, pointer_size)
             (string_address,) = struct.unpack(pointer_format, pointer_data)
-            
+
             # 첫 번째 필드의 값(문자열이 담긴 주소)를 파일 오프셋으로 변환
             string_offset = get_file_offset(elffile, string_address)
             # 포인터가 가리키는 값이 주소가 아닌 경우
             if string_offset is None:
                 continue
-            
+
             # 포인터가 가리키는 주소에서 문자열 읽기
-            string_data = read_binary_data(binary_file, string_offset, 256)  # 최대 256 바이트 읽기 (필요에 따라 조정)
+            string_data = read_binary_data(
+                binary_file, string_offset, 256)  # 최대 256 바이트 읽기 (필요에 따라 조정)
             # 문자열 추출
             c_func_name = extract_string(string_data)
             if c_func_name == None:
                 continue
-            
+
             # 구조체의 두 번째 필드
             struct_offset = get_file_offset(elffile, struct_address + 8)
-            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            pointer_data = read_binary_data(
+                binary_file, struct_offset, pointer_size)
             (string_address,) = struct.unpack(pointer_format, pointer_data)
-            
+
             # 구조체의 두 번째 필드의 값(C 함수의 주소)이 바이너리에 정의된 함수를 가리키지 않는 경우
             if hex(string_address) not in func_addrs:
                 continue
 
             # 구조체의 세 번째 필드
             struct_offset = get_file_offset(elffile, struct_address + 16)
-            pointer_data = read_binary_data(binary_file, struct_offset, pointer_size)
+            pointer_data = read_binary_data(
+                binary_file, struct_offset, pointer_size)
             (string_address,) = struct.unpack(pointer_format, pointer_data)
 
             if string_address not in ml_flags:
                 continue
 
             infer_results[var_name] = c_func_name
-    
+
     return infer_results

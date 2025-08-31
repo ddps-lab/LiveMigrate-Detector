@@ -7,6 +7,11 @@ rootdir = str(Path(__file__).resolve().parent)
 workload_isa_file = f'{rootdir}/log/isa_set.csv'
 
 def create_csv(workload_data_list, is_tsx_run=None, xtest_enable=None):
+    if len(workload_data_list) == 0:
+        with open(workload_isa_file, 'w') as f:
+            f.write('ISA_SET,SHORT\n')
+        return
+    
     # Convert workload_data_list to DataFrame and save as csv
     workload_df = pd.DataFrame(workload_data_list)
     workload_df = workload_df.drop_duplicates(subset='ISA_SET')

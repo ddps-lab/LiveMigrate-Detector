@@ -1,3 +1,7 @@
+import psutil
+import threading
+import bytecode_tracking.btracking
+import utils
 import gdb
 
 from pathlib import Path
@@ -10,9 +14,6 @@ import time
 rootdir = str(Path(__file__).resolve().parent)
 sys.path.append(rootdir)
 
-import utils
-
-import bytecode_tracking.btracking
 
 glibc_rtm_enable = False
 LD_BIND_NOW = False
@@ -21,6 +22,7 @@ is_tsx_run = False
 
 # xed wrapper 라이브러리 로드
 libxedwrapper = ctypes.CDLL(f'{rootdir}/xedlib/libxedwrapper.so')
+
 
 class XedResult(ctypes.Structure):
     _fields_ = [("isa_set", ctypes.c_char_p),
@@ -42,6 +44,7 @@ start_memory = 0
 max_memory = 0
 monitoring = False
 
+
 def get_got_sections():
     files = gdb.execute("info files", to_string=True)
 
@@ -61,6 +64,7 @@ def get_got_sections():
 
     return got_addr
 
+
 def get_text_sections():
     files = gdb.execute("info files", to_string=True)
 
@@ -73,12 +77,15 @@ def get_text_sections():
         # The format is 0x0000564c59c75ae0 - 0x0000564c59f24b9e is .text
         if ".text" in line:
             addresses = line.split()
-            sections.append((int(addresses[0], 16), int(addresses[2], 16), ' '.join(addresses[4:])))
+            sections.append((int(addresses[0], 16), int(
+                addresses[2], 16), ' '.join(addresses[4:])))
 
     return sections
 
 # glibc는 항상 TSX를 지원하도록 컴파일되지만 TSX는 애플리케이션을 실행하기 전에(예: 를 실행하여 ) 환경 변수가 glibc.elision.enable1로 설정된 경우에만 사용됨.
 # TSX를 사용하도록 환경변수가 설정되지 않았다면 glibc의 내부 함수에서 TSX를 사용하는 __GI___lll_lock_elision, __GI___lll_unlock_elision 를 트래킹에서 제외함.
+
+
 def glibc_tunables_check():
     global glibc_rtm_enable
 
@@ -88,6 +95,7 @@ def glibc_tunables_check():
 
         if 'glibc.elision.enable=1' in env_data:
             glibc_rtm_enable = True
+
 
 def binding_check(PID):
     global LD_BIND_NOW
@@ -99,6 +107,7 @@ def binding_check(PID):
         if 'LD_BIND_NOW=1' in env_data:
             LD_BIND_NOW = True
 
+
 def dis_func(addr, tracked_instructions):
     global xtest_enable
     global is_tsx_run
@@ -108,13 +117,15 @@ def dis_func(addr, tracked_instructions):
     global compile_indirect
     global runtime_indirect
     global call_regi
-    
-    tsx_enabled_glibc_functions = ['__GI___lll_lock_elision', '__GI___lll_unlock_elision']
+    global call_non_regi
+
+    tsx_enabled_glibc_functions = [
+        '__GI___lll_lock_elision', '__GI___lll_unlock_elision']
 
     func = {}
 
-    transfer_instructions = set(('call', 'jmp', 'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je', 'jz', 'jnc', 'jne', 'jnz', 
-    'jnp', 'jpo', 'jp', 'jpe', 'jcxz', 'jecxz', 'jg', 'jnle', 'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'))
+    transfer_instructions = set(('call', 'jmp', 'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je', 'jz', 'jnc', 'jne', 'jnz',
+                                 'jnp', 'jpo', 'jp', 'jpe', 'jcxz', 'jecxz', 'jg', 'jnle', 'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'))
 
     special_instruction = transfer_instructions.copy()
     special_instruction.add('lea')
@@ -123,8 +134,8 @@ def dis_func(addr, tracked_instructions):
         start_time = time.time()
         disas_result = gdb.execute(f"disas /r {addr}", to_string=True)
         end_time = time.time()
-        global dis_time 
-        dis_time += end_time - start_time        
+        global dis_time
+        dis_time += end_time - start_time
     except gdb.error as e:
         print(f'error: {addr}')
         return None
@@ -149,7 +160,7 @@ def dis_func(addr, tracked_instructions):
 
         # If there's no instruction part, skip this line
         if len(parts) < 2:
-            continue        
+            continue
 
         # ex) "48 8d 3d bb 02 00 00	lea    rdi,[rip+0x2bb]        # 0x56116174033a <main>"
         instruction_part = parts[1].strip()
@@ -161,7 +172,7 @@ def dis_func(addr, tracked_instructions):
         elif instruction in tracked_instructions:
             continue
         else:
-            tracked_instructions.add(instruction)        
+            tracked_instructions.add(instruction)
 
         gdb_comment = instruction_part.split(' ')[-1]
 
@@ -197,19 +208,22 @@ def dis_func(addr, tracked_instructions):
             # 레지스터 콜 제외..
             if gdb_comment.startswith('<'):
                 if '@plt' in gdb_comment:
+                    call_non_regi.append(line)
                     is_func_call = 'plt'
                 elif '+' in gdb_comment:
                     pass
                 else:
+                    call_non_regi.append(line)
                     is_func_call = 'func'
             elif gdb_comment.startswith('0x'):
                 abs_addr = int(gdb_comment, 16)
                 if got_addr[0] <= abs_addr <= got_addr[1]:
+                    call_non_regi.append(line)
                     is_func_call = 'got'
             # FIXME
             else:
                 call_regi.append(line)
-        
+
         # if instruction == 'lea':
         #     if gdb_comment.startswith('<'):
         #         if '+' in gdb_comment:
@@ -228,19 +242,21 @@ def dis_func(addr, tracked_instructions):
 
     return func
 
+
 def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions):
     def check_address_in_range(address):
         for start, end, _ in sections:
             if start <= int(address, 16) <= end:
                 return True
         return False
-    
+
     global LD_BIND_NOW
 
     instruction_addr = ctypes.c_int64(int(instruction_addr, 16)).value
 
     if is_func_call == 'got':
-        address = gdb.execute(f'x/g {gdb_comment}', to_string=True).split(':')[-1].strip()
+        address = gdb.execute(f'x/g {gdb_comment}',
+                              to_string=True).split(':')[-1].strip()
     else:
         # Calculate Call Address
         address = instruction_data["SHORT"].split(' ')
@@ -256,7 +272,8 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
             except:
                 symbol = gdb_comment.replace('<', '')
                 symbol = symbol.replace('>', '')
-                address = gdb.execute(f'info address {symbol}', to_string=True).split(' ')[-1].split('.')[0]
+                address = gdb.execute(f'info address {symbol}', to_string=True).split(
+                    ' ')[-1].split('.')[0]
         elif is_func_call == 'lea':
             address = gdb_comment.split(' ')[0].strip()
             address = "0x{:016x}".format(int(address, 16))
@@ -264,18 +281,21 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
             if not check_address_in_range(address):
                 return None
 
-    # if address is not function start address 
+    # if address is not function start address
     if is_func_call == 'plt':
         if LD_BIND_NOW:
-            plt_addr = gdb.execute(f'disas {address}', to_string=True).split('#')[-1].strip()
+            plt_addr = gdb.execute(
+                f'disas {address}', to_string=True).split('#')[-1].strip()
             plt_addr = plt_addr.split(' ')[0].strip()
-            address = gdb.execute(f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
+            address = gdb.execute(
+                f'x/g {plt_addr}', to_string=True).split(':')[-1].strip().split(' ')[0]
         else:
             # 트래킹 불가
             if '*ABS*' in gdb_comment:
                 return None
             symbol = gdb_comment.split('@')[0].split('<')[1]
-            address = gdb.execute(f'info address {symbol}', to_string=True).split(' ')
+            address = gdb.execute(
+                f'info address {symbol}', to_string=True).split(' ')
             # '0x'로 시작하는 항목을 찾습니다.
             address = [part for part in address if part.startswith('0x')]
             address = ''.join(address)
@@ -285,9 +305,9 @@ def address_calculation(instruction_data, instruction_addr, is_func_call, gdb_co
     else:
         return None
 
-import psutil
-import threading
+
 process = psutil.Process(os.getpid())
+
 
 def monitor_memory_usage():
     global max_memory, monitoring
@@ -295,6 +315,7 @@ def monitor_memory_usage():
         current_memory = process.memory_info().rss
         max_memory = max(max_memory, current_memory)
         time.sleep(0.01)  # 10ms 간격으로 체크
+
 
 def record_memory_start():
     global start_memory, monitoring
@@ -304,17 +325,20 @@ def record_memory_start():
     thread = threading.Thread(target=monitor_memory_usage)
     thread.start()
 
+
 def record_memory_end():
     global monitoring
     monitoring = False
     memory_diff = max_memory - start_memory
     return memory_diff / 1024 / 1024
 
+
 def calculate_list_memory_size(lst):
     total_size = sys.getsizeof(lst)  # 리스트 객체 자체의 크기
     for item in lst:
         total_size += sys.getsizeof(item)  # 리스트 내부 각 요소의 크기 합산
     return total_size
+
 
 def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     start_time = time.time()
@@ -328,15 +352,20 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     global addr_collect_time
     global btracking_time
     global module_count
+
+    btracking_start_time = 0
+    btracking_end_time = 0
+
     if LANGUAGE_TYPE == 'python':
         record_memory_start()
         btracking_start_time = time.time()
-        tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(SCRIPT_PATH)
+        tracking_functions, addr_collect_time, module_count = bytecode_tracking.btracking.main(
+            SCRIPT_PATH)
         list_tracking_functions = list(tracking_functions)
         btracking_end_time = time.time()
         btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
         print(f'Btracking 추가된 메모리 사용량: {record_memory_end()} MB')
-        
+
     record_memory_start()
     # search the starting point of tracking
     start_addr = gdb.execute(f"p/x (long) main", to_string=True).split(' ')[-1]
@@ -361,16 +390,19 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
 
             result = libxedwrapper.print_isa_set(instruction_hex.encode())
 
-            instruction_data['ISA_SET'] = result.isa_set.decode('utf-8') if result.isa_set else "Error"
-            instruction_data['SHORT'] = result.disassembly.decode('utf-8') if result.disassembly else "Error"
+            instruction_data['ISA_SET'] = result.isa_set.decode(
+                'utf-8') if result.isa_set else "Error"
+            instruction_data['SHORT'] = result.disassembly.decode(
+                'utf-8') if result.disassembly else "Error"
 
             executable_instructions.append(instruction_data)
 
             # Calculate the target address in case of a transfer instruction
             if is_func_call:
-                dst_addr = address_calculation(instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions)
+                dst_addr = address_calculation(
+                    instruction_data, instruction_addr, is_func_call, gdb_comment, tracking_functions)
 
-                if dst_addr: 
+                if dst_addr:
                     tracking_functions.add(dst_addr)
                     list_tracking_functions.append(dst_addr)
 
@@ -383,20 +415,23 @@ def tracking(LANGUAGE_TYPE, SCRIPT_PATH):
     global tracked_func_count
     tracked_func_count = len(tracking_functions)
     utils.create_csv(executable_instructions, is_tsx_run, xtest_enable)
-    
+
     btracking_time = btracking_end_time - btracking_start_time - addr_collect_time
     print(f'exe path tracking 추가된 메모리 사용량: {record_memory_end()} MB')
-    
+
     end_time = time.time()
     global tracking_time
     global dis_time
 
-    tracking_time = end_time - start_time - dis_time - btracking_time - addr_collect_time
+    tracking_time = end_time - start_time - \
+        dis_time - btracking_time - addr_collect_time
+
 
 def measure_initial_memory_usage():
     process = psutil.Process(os.getpid())
     mem_usage = process.memory_info().rss / 1024 / 1024  # MB 단위로 변환
     return mem_usage
+
 
 if __name__ == '__main__':
     print(f"프로세스 시작 시점의 메모리 사용량: {measure_initial_memory_usage()} MB")
@@ -408,7 +443,7 @@ if __name__ == '__main__':
 
     logging_functions = []
     gdb.execute(f"set pagination off")
-    
+
     # 쉘 스크립트에서 전달된 workload PID 가져오기
     PID = int(os.getenv('WORKLOAD_PID', '0'))
     LANGUAGE_TYPE = os.getenv('LANGUAGE_TYPE', '0')
@@ -416,13 +451,14 @@ if __name__ == '__main__':
 
     glibc_tunables_check()
     binding_check(PID)
-    
+
     got_addr = get_got_sections()
     sections = get_text_sections()
 
     compile_indirect = []
     runtime_indirect = []
     call_regi = []
+    call_non_regi = []
 
     tracking(LANGUAGE_TYPE, SCRIPT_PATH)
 
@@ -435,18 +471,22 @@ if __name__ == '__main__':
     print(f"addr collect time: {addr_collect_time:.6f} sec")
     print(f"disassemble time: {dis_time:.6f} sec")
     print(f"exe path tracking time: {tracking_time:.6f} sec")
-    print(f'additionally tracked: {tracked_func_count - 1764}')
+    print(f'additionally tracked: {tracked_func_count - 1663}')
     print(f"total time: {total_time:.6f} sec")
     print(f"Number of modules searched: {module_count}")
 
+    print(f'compile_indirect: {len(compile_indirect)}')
+    print(f'runtime_indirect: {len(runtime_indirect)}')
+    print(f'call_regi: {len(call_regi)}')
+    print(f"call_non_regi: {len(call_non_regi)}")
 
     exit()
 
     # with open('tracked_functions.txt', 'w') as f:
-    #     f.write('\n'.join(logging_functions))   
+    #     f.write('\n'.join(logging_functions))
     # with open('compile_indirect.txt', 'w') as f:
-    #     f.write('\n'.join(compile_indirect))   
+    #     f.write('\n'.join(compile_indirect))
     # with open('runtime_indirect.txt', 'w') as f:
-    #     f.write('\n'.join(runtime_indirect))   
+    #     f.write('\n'.join(runtime_indirect))
     # with open('call_regi.txt', 'w') as f:
-    #     f.write('\n'.join(call_regi))           
+    #     f.write('\n'.join(call_regi))

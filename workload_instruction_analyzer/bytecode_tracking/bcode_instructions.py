@@ -2,10 +2,11 @@ import re
 
 pattern = re.compile(r'\((.*?)\)')
 
+
 def import_name(idx, shared_variables):
     byte_code = shared_variables.byte_code
     keys_list = shared_variables.keys_list
-    
+
     line = byte_code[keys_list[idx]]
 
     try:
@@ -25,7 +26,7 @@ def import_name(idx, shared_variables):
 
         shared_variables.LOAD.pop(0)
         shared_variables.LOAD.pop(0)
-        shared_variables.LOAD.insert(0, module)        
+        shared_variables.LOAD.insert(0, module)
 
         return None, None
 
@@ -55,11 +56,12 @@ def import_name(idx, shared_variables):
     # from문이 사용된 경우 모듈 자체에 alias 지정 불가.
     return module, module
 
+
 def import_from(idx, shared_variables):
     byte_code = shared_variables.byte_code
     keys_list = shared_variables.keys_list
     line = byte_code[keys_list[idx]]
-        
+
     func = (pattern.search(line).group(1))
     shared_variables.LOAD.insert(0, func)
 
@@ -71,13 +73,14 @@ def import_from(idx, shared_variables):
         if shared_variables.from_list:
             module = func
             return module, alias
-        
+
         return func, alias
 
     if shared_variables.from_list:
-        return module, None    
-    
+        return module, None
+
     return func, None
+
 
 def raise_varargs(content, shared_variables):
     LOAD = shared_variables.LOAD
@@ -86,22 +89,28 @@ def raise_varargs(content, shared_variables):
     for _ in range(operation_option):
         LOAD.pop(0)
 
+
 def reraise(shared_variables):
     LOAD = shared_variables.LOAD
 
     if LOAD and LOAD[0] == 'tryblock':
         LOAD.pop(0)
 
+
 def load_build_class(shared_variables):
     shared_variables.LOAD.insert(0, '__build_class__')
 
+
 def load_attr(content, shared_variables):
-    value = shared_variables.LOAD.pop(0) + '.' + pattern.search(content).group(1)
+    value = shared_variables.LOAD.pop(
+        0) + '.' + pattern.search(content).group(1)
     shared_variables.LOAD.insert(0, value)
+
 
 def load_etc(content, shared_variables):
     shared_variables.LOAD.insert(0, pattern.search(content).group(1))
-    
+
+
 def load(content, shared_variables):
     LOAD = shared_variables.LOAD
 
@@ -121,6 +130,7 @@ def load(content, shared_variables):
         LOAD.insert(0, 'AssertionError')
     else:
         LOAD.insert(0, pattern.search(content).group(1))
+
 
 def make_function(idx, content, shared_variables):
     def pop(options, LOAD):
@@ -147,13 +157,14 @@ def make_function(idx, content, shared_variables):
         for _ in range(pop_count - 1):
             LOAD.pop(0)
         LOAD.insert(0, value)
-    
+
     byte_code = shared_variables.byte_code
     keys_list = shared_variables.keys_list
     LOAD = shared_variables.LOAD
     addr_map = shared_variables.addr_map
-    
-    operation_option = int(content.split('MAKE_FUNCTION')[1].strip().split()[0])
+
+    operation_option = int(content.split(
+        'MAKE_FUNCTION')[1].strip().split()[0])
     maked_func = LOAD[0].strip("'")
     pop(operation_option, LOAD)
 
@@ -162,25 +173,28 @@ def make_function(idx, content, shared_variables):
     # 생성되는 함수가 특정 클래스에 종속적인 경우
     if 'LOAD_CONST' in prev_line:
         if '.' in (pattern.search(prev_line).group(1)):
-            parents_object = pattern.search(prev_line).group(1).split('.')[0].replace("'", "")
-            child_object = pattern.search(prev_line).group(1).split('.')[-1].replace("'", "")
+            parents_object = pattern.search(prev_line).group(
+                1).split('.')[0].replace("'", "")
+            child_object = pattern.search(prev_line).group(
+                1).split('.')[-1].replace("'", "")
             while True:
                 # 클래스에서 정의되는 메서드가 구현될 주소 파악
                 if '(<code object' in prev_line:
                     obj_addr = prev_line.split('at ')[1].split(',')[0].strip()
-                    addr_map[obj_addr] = {parents_object:child_object}
+                    addr_map[obj_addr] = {parents_object: child_object}
                     break
                 offset -= 1
                 if idx + offset == 0:
                     break
                 prev_line = byte_code[keys_list[idx + offset]]
-    
+
     if hasattr(shared_variables, 'decorator_map'):
         next_line = byte_code[keys_list[idx + 1]]
         if 'CALL_FUNCTION' in next_line:
-            func_offset = int(next_line.split('CALL_FUNCTION')[1].strip())   
+            func_offset = int(next_line.split('CALL_FUNCTION')[1].strip())
             shared_variables.decorator_map[maked_func] = LOAD[func_offset]
             shared_variables.decorators.add(LOAD[func_offset])
+
 
 def build(content, shared_variables):
     LOAD = shared_variables.LOAD
@@ -196,7 +210,7 @@ def build(content, shared_variables):
         merge_list = ''
         if args_count == 0:
             LOAD.insert(0, '[]')
-        else:    
+        else:
             for _ in range(args_count):
                 merge_list += LOAD.pop(0)
             LOAD.insert(0, '[' + merge_list + ']')
@@ -205,7 +219,7 @@ def build(content, shared_variables):
         merge_list = ''
         if args_count == 0:
             LOAD.insert(0, '\{\}')
-        else:    
+        else:
             for _ in range(args_count * 2):
                 merge_list += LOAD.pop(0)
             LOAD.insert(0, '{' + merge_list + '}')
@@ -214,7 +228,7 @@ def build(content, shared_variables):
         merge_list = ''
         if args_count == 0:
             LOAD.insert(0, '()')
-        else:    
+        else:
             for _ in range(args_count):
                 merge_list += LOAD.pop(0)
             LOAD.insert(0, '(' + merge_list + ')')
@@ -228,6 +242,7 @@ def build(content, shared_variables):
             for _ in range(args_count + 1):
                 merge_list += LOAD.pop(0)
             LOAD.insert(0, 'KEY_MAP')
+
 
 def store_attr(idx, shared_variables):
     byte_code = shared_variables.byte_code
@@ -255,6 +270,7 @@ def store_attr(idx, shared_variables):
         return result
     return None
 
+
 def call_function(func_offset, shared_variables):
     LOAD = shared_variables.LOAD
     called_func = None
@@ -266,8 +282,9 @@ def call_function(func_offset, shared_variables):
             called_func = LOAD[func_offset]
     except:
         return '__bug__'
-    
+
     return called_func
+
 
 def call_function_stack(func_offset, shared_variables):
     # FIXME: 함수 결과를 np.ediff1d(('to_begin', 'to_end'to_endto_beginunique_pcts) 이렇게 모호하게 하지 말고 result of np.ediff1d 처럼 저장하는게 좋을듯
@@ -289,7 +306,7 @@ def call_method(content, shared_variables):
 
     method_offset = int(content.split('CALL_METHOD')[1].strip())
     called_method = LOAD[method_offset]
-    
+
     call_result = ''
     # 호출되는 메서드와 상위 객체, 인자들을 pop
     for _ in range(method_offset + 1):
@@ -302,25 +319,30 @@ def call_method(content, shared_variables):
 
     return called_method
 
+
 def list_extend(content, shared_variables):
     # 스택의 상단부터 취합해 N 번째에 있는 리스트를 확장하지만 확장된 리스트 정보는 필요하지 않으므로 pop만 수행함.
     args_count = int(content.split('LIST_EXTEND')[1].strip())
     for i in range(args_count):
         shared_variables.LOAD.pop(0)
 
+
 def pop2_push1(shared_variables):
     shared_variables.LOAD.pop(0)
     shared_variables.LOAD.pop(0)
     shared_variables.LOAD.insert(0, 'pop2_push1')
-    
+
+
 def setup_finally(shared_variables):
     shared_variables.LOAD.insert(0, 'tryblock')
+
 
 def pop(shared_variables):
     try:
         shared_variables.LOAD.pop(0)
     except IndexError:
         return
+
 
 def dup(shared_variables):
     shared_variables.LOAD.insert(0, shared_variables.LOAD[0])

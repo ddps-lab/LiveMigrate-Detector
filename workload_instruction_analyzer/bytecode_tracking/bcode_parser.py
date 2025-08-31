@@ -6,17 +6,18 @@ import re
 
 pattern = re.compile(r'\((.*?)\)')
 
+
 def module_classification(__module, __from):
     '''
     Python에서 모듈을 임포트할 때의 우선순위
     1.  현재 디렉토리 (또는 스크립트의 디렉토리):
-	    •	Python 스크립트가 실행되는 디렉토리.
-	2.	PYTHONPATH 환경 변수:
-	    •	환경 변수 PYTHONPATH에 설정된 경로.
-	3.	표준 라이브러리 디렉토리:
-	    •	Python 설치 경로에 있는 표준 라이브러리 디렉토리. 예를 들어, Unix 시스템에서는 /usr/lib/python3.x와 같은 경로.
-	4.	외부 패키지 디렉토리:
-	    •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
+            •	Python 스크립트가 실행되는 디렉토리.
+        2.	PYTHONPATH 환경 변수:
+            •	환경 변수 PYTHONPATH에 설정된 경로.
+        3.	표준 라이브러리 디렉토리:
+            •	Python 설치 경로에 있는 표준 라이브러리 디렉토리. 예를 들어, Unix 시스템에서는 /usr/lib/python3.x와 같은 경로.
+        4.	외부 패키지 디렉토리:
+            •	설치된 패키지의 경로로, 일반적으로 site-packages 디렉토리에 위치. 예를 들어, Unix 시스템에서는 /usr/local/lib/python3.x/site-packages와 같은 경로.
     '''
 
     # 아래 순서로 import를 시도하여 모듈을 구분함.
@@ -24,7 +25,7 @@ def module_classification(__module, __from):
     # 1. numpy.ma.extras.core - numpy.ma.extras가 numpy.ma의 서브 패키지인 경우
     # 2. numpy.ma.core - numpy.ma.extras가 numpy.ma의 모듈인 경우
     # 3. numpy.core - 상위 경로의 모듈을 import 하는 경우
-    # 4. from ...module 와 같이 두 단계 이상 경로의 모듈을 import 하는 경우. 
+    # 4. from ...module 와 같이 두 단계 이상 경로의 모듈을 import 하는 경우.
     #    이론 상 from .........module도 가능하나 3단계 이상은 잘 없으므로 3단계 까지 검사함.
     # 5. core - 외부 패키지
     case1 = __from + '.' + __module
@@ -37,7 +38,7 @@ def module_classification(__module, __from):
     for module in modules:
         # 모듈이 이미 로드된 경우를 처리
         if module in sys.modules:
-            return module        
+            return module
 
         # main, xgboost와 같은 최상위 패키지에서 import하는 경우 .numpy와 같이 잘못 생성된 import path를 건너뜀
         if module.startswith('.'):
@@ -56,6 +57,7 @@ def module_classification(__module, __from):
         except AssertionError as e:
             return e
 
+
 def func_classification(func, called_objs, obj_sets, obj_map):
     '''
     함수 또는 메서드를 를 아래 세 가지 범주로 분류함.
@@ -63,6 +65,9 @@ def func_classification(func, called_objs, obj_sets, obj_map):
       2. 외부 모듈의 객체
       3. 파이썬 내장 객체
     '''
+    if func is None:
+        return '__builtin'
+    
     if '.' in func:
         root_obj = func.split('.')[0]
 
@@ -79,7 +84,7 @@ def func_classification(func, called_objs, obj_sets, obj_map):
     # 파싱중인 스크립트에 정의된 함수 호출
     elif func in obj_sets:
         return '__user_def'
-    
+
     # alias로 사용되는 외부 모듈의 함수 또는 메서드
     for outer_key, inner_dict in called_objs.items():
         if '__func_alias' not in inner_dict:
@@ -89,6 +94,7 @@ def func_classification(func, called_objs, obj_sets, obj_map):
 
     return '__builtin'
 
+
 def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
     quotes = re.compile(r"'([^']*)'")
     module = quotes.search(cap_stack[0]).group(1)
@@ -96,17 +102,20 @@ def lazy_loading(byte_code, idx, keys_list, called_objs, cap_stack):
     if module not in called_objs.keys():
         next_line = byte_code[keys_list[idx + 1]]
         store = (pattern.search(next_line).group(1)).replace("'", '')
-        called_objs[store] = {'__called':set(), '__origin_name':module}    
+        called_objs[store] = {'__called': set(), '__origin_name': module}
+
 
 def parse_import_instructions(content, called_objs, shared_variables, i):
     if 'IMPORT_NAME' in content:
-        module, shared_variables.alias = bcode_instructions.import_name(i, shared_variables)
-        
+        module, shared_variables.alias = bcode_instructions.import_name(
+            i, shared_variables)
+
         # 상대경로로 import 하여 IMPORT_FROM을 확인해야 하는 경우.
         if module == None:
             return True
-        
-        module_path = module_classification(module, shared_variables.current_module)
+
+        module_path = module_classification(
+            module, shared_variables.current_module)
         if module_path == None:
             return False
 
@@ -119,17 +128,20 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         elif isinstance(module_path, AssertionError):
             return True
 
-        called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
+        called_objs[shared_variables.alias] = {
+            '__origin_name': module_path, '__called': set(), '__from': shared_variables.current_module}
     elif 'IMPORT_FROM' in content:
         # IMPORT_FROM 으로 모듈을 로드하는 경우에 대한 처리
         if shared_variables.from_list:
             shared_variables.from_list.pop(0)
-            module, shared_variables.alias = bcode_instructions.import_from(i, shared_variables)
-            
-            module_path = module_classification(module, shared_variables.current_module)
+            module, shared_variables.alias = bcode_instructions.import_from(
+                i, shared_variables)
+
+            module_path = module_classification(
+                module, shared_variables.current_module)
             if module_path == None:
-                return False      
-            
+                return False
+
             if isinstance(module_path, ModuleNotFoundError):
                 module_path = module
             elif isinstance(module_path, AttributeError):
@@ -139,9 +151,10 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             elif isinstance(module_path, AssertionError):
                 return True
 
-            called_objs[shared_variables.alias] = {'__origin_name':module_path, '__called':set(), '__from':shared_variables.current_module}
+            called_objs[shared_variables.alias] = {
+                '__origin_name': module_path, '__called': set(), '__from': shared_variables.current_module}
             return True
-        
+
         '''
         72 IMPORT_NAME             13 (collections.abc)
         74 IMPORT_FROM             14 (abc)
@@ -154,8 +167,9 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
             return True
 
         # IMPORT_FROM으로 함수 또는 메서드 객체를 로드하는 경우(본래 역할) 처리
-        from_func, from_alias = bcode_instructions.import_from(i, shared_variables)
-        
+        from_func, from_alias = bcode_instructions.import_from(
+            i, shared_variables)
+
         # import할 수 없는 모듈이어서 생략하는 경우 ex) 특정 os 전용 모듈
         if shared_variables.alias not in called_objs:
             return True
@@ -170,6 +184,7 @@ def parse_import_instructions(content, called_objs, shared_variables, i):
         return True
 
     return False
+
 
 def parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
     # 아래와 같은 경우 조건이 else라면 분기 전 스택을 기준으로 동작함.
@@ -259,7 +274,7 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
         else:   # rollback cap1, pop cap1
             f15()
     '''
-    
+
     if offset in branch_shared_variables.branch_targets:
         shared_variables.LOAD = branch_shared_variables.stack_cap[-1].copy()
 
@@ -270,28 +285,32 @@ def parse_branch_instructions(content, offset, branch_shared_variables, shared_v
         bcode_instructions.pop(shared_variables)
 
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
-        branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
+        branch_shared_variables.branch_targets.add(
+            int((pattern.search(content).group(1)).split()[1]))
 
         return True
     elif 'JUMP_IF_FALSE_OR_POP' in content:
         branch_shared_variables.stack_cap.append(shared_variables.LOAD.copy())
-        branch_shared_variables.branch_targets.add(int((pattern.search(content).group(1)).split()[1]))
+        branch_shared_variables.branch_targets.add(
+            int((pattern.search(content).group(1)).split()[1]))
 
         bcode_instructions.pop(shared_variables)
 
     if 'JUMP_FORWARD' in content:
-        branch_shared_variables.jp_offset.add(int((pattern.search(content).group(1)).split()[1]))
+        branch_shared_variables.jp_offset.add(
+            int((pattern.search(content).group(1)).split()[1]))
         return True
 
+
 def parse_shared_instructions(content, shared_variables):
-    binary_operations = {'BINARY_POWER', 'BINARY_MULTIPLY', 'BINARY_MATRIX_MULTIPLY', 'BINARY_FLOOR_DIVIDE', 
-                     'BINARY_TRUE_DIVIDE', 'BINARY_MODULO', 'BINARY_ADD', 'BINARY_SUBTRACT', 'BINARY_SUBSCR', 
-                     'BINARY_LSHIFT', 'BINARY_RSHIFT', 'BINARY_AND', 'BINARY_XOR', 'BINARY_OR'}
-    
+    binary_operations = {'BINARY_POWER', 'BINARY_MULTIPLY', 'BINARY_MATRIX_MULTIPLY', 'BINARY_FLOOR_DIVIDE',
+                         'BINARY_TRUE_DIVIDE', 'BINARY_MODULO', 'BINARY_ADD', 'BINARY_SUBTRACT', 'BINARY_SUBSCR',
+                         'BINARY_LSHIFT', 'BINARY_RSHIFT', 'BINARY_AND', 'BINARY_XOR', 'BINARY_OR'}
+
     inplace_operations = {'INPLACE_ADD', 'INPLACE_SUBTRACT', 'INPLACE_MULTIPLY',
-                        'INPLACE_DIVIDE', 'INPLACE_FLOOR_DIVIDE', 'INPLACE_TRUE_DIVIDE',
-                        'INPLACE_MODULO', 'INPLACE_POWER', 'INPLACE_LSHIFT',
-                        'INPLACE_RSHIFT', 'INPLACE_AND', 'INPLACE_XOR', 'INPLACE_OR'}
+                          'INPLACE_DIVIDE', 'INPLACE_FLOOR_DIVIDE', 'INPLACE_TRUE_DIVIDE',
+                          'INPLACE_MODULO', 'INPLACE_POWER', 'INPLACE_LSHIFT',
+                          'INPLACE_RSHIFT', 'INPLACE_AND', 'INPLACE_XOR', 'INPLACE_OR'}
 
     instruction = content.split()[0]
     if 'LOAD' in instruction:
@@ -348,13 +367,15 @@ def parse_shared_instructions(content, shared_variables):
         [bcode_instructions.pop(shared_variables) for _ in range(3)]
     elif 'DELETE_SUBSCR' in instruction:
         [bcode_instructions.pop(shared_variables) for _ in range(2)]
-        
+
     elif instruction in binary_operations:
         bcode_instructions.pop2_push1(shared_variables)
 
+
 def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, module):
     called_objs = set()
-    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
+    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'",
+                      "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
     class BRANCH_SHARED_VARIABLES:
         def __init__(self):
@@ -374,9 +395,10 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
 
             self.pass_offset = 0
 
-            self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
-            self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
-            self.alias = 0 # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
+            self.from_list = []  # IMPORT_FROM 으로 import 되는 모듈
+            # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+            self.from_pass = 0
+            self.alias = 0  # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
 
     # FIXME: 검증용 스택, 추후 제거
     verification = []
@@ -394,7 +416,7 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
         # 해석하지 않을 바이트코드 명령 (사용자 코드가 아닌 내부 처리 코드)
         if offset < shared_variables.pass_offset:
             continue
-        
+
         # FIXME: 파라미터로 전달하는 called_objs는 set이 아니고 dict여야함.
         # 해결하지 않으면 함수 내에서 모듈을 import 하는 것을 처리할 수 없음
         # if parse_import_instructions(content, called_objs, shared_variables, i):
@@ -414,16 +436,19 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
                 parents_obj = list(addr_map[obj_addr].keys())[0]
                 result = bcode_instructions.store_attr(i - 2, shared_variables)
                 if result != None:
-                    obj_map[parents_obj + '.' + result] = shared_variables.LOAD[-1].replace('(', '').replace(')', '')
+                    obj_map[parents_obj + '.' +
+                            result] = shared_variables.LOAD[-1].replace('(', '').replace(')', '')
             bcode_instructions.pop(shared_variables)
             bcode_instructions.pop(shared_variables)
         elif 'CALL_FUNCTION' in content:
             if 'CALL_FUNCTION_KW' in content:
                 # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
-                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
+                func_offset = int(content.split(
+                    'CALL_FUNCTION_KW')[1].strip()) + 1
             elif 'CALL_FUNCTION_EX' in content:
                 # args 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
-                func_offset = int(content.split('CALL_FUNCTION_EX')[1].strip()) + 1
+                func_offset = int(content.split(
+                    'CALL_FUNCTION_EX')[1].strip()) + 1
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
@@ -436,10 +461,12 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
             # 248 LOAD_FAST                6 (to_end)
             # 250 LOAD_CONST              11 (('to_begin', 'to_end'))
             # 252 CALL_FUNCTION_KW         3
-            func = bcode_instructions.call_function(func_offset, shared_variables)
+            func = bcode_instructions.call_function(
+                func_offset, shared_variables)
             # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
             if func in comprehensions:
-                bcode_instructions.call_function_stack(func_offset, shared_variables)
+                bcode_instructions.call_function_stack(
+                    func_offset, shared_variables)
                 continue
 
             called_objs.add(func)
@@ -449,8 +476,9 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
             if 'STORE_NAME' in next_content or 'STORE_FAST' in next_content:
                 result = (pattern.search(next_content).group(1))
                 obj_map[result] = func
-            
-            bcode_instructions.call_function_stack(func_offset, shared_variables)
+
+            bcode_instructions.call_function_stack(
+                func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             method = bcode_instructions.call_method(content, shared_variables)
             called_objs.add(method)
@@ -462,9 +490,11 @@ def parse_def(byte_code, addr_map, obj_map, def_bcode_block_start_offsets, modul
             parse_shared_instructions(content, shared_variables)
     return called_objs
 
+
 def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_offsets, module):
-    called_objs = {'__builtin':set(), '__user_def':set()}
-    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'", "function object for '<setcomp>'", "function object for '<genexpr>'"]
+    called_objs = {'__builtin': set(), '__user_def': set()}
+    comprehensions = ["function object for '<listcomp>'", "function object for '<dictcomp>'",
+                      "function object for '<setcomp>'", "function object for '<genexpr>'"]
 
     class BRANCH_SHARED_VARIABLES:
         def __init__(self):
@@ -484,9 +514,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
             self.pass_offset = 0
 
-            self.from_list = [] # IMPORT_FROM 으로 import 되는 모듈
-            self.from_pass = 0 # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
-            self.alias = 0 # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
+            self.from_list = []  # IMPORT_FROM 으로 import 되는 모듈
+            # alias를 위해 로드되는 모듈이 있으면 IMPORT_FROM 을 생략(스택 변화만 적용)
+            self.from_pass = 0
+            self.alias = 0  # module alias -> IMPORT_FROM이 로드하는 객체가 어느 모듈에 속하는지 파악하기 위해 사용
 
             self.decorator_map = dict()
             self.decorators = set()
@@ -506,7 +537,7 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
         if parse_branch_instructions(content, offset, branch_shared_variables, shared_variables, verification):
             continue
-        
+
         if parse_import_instructions(content, called_objs, shared_variables, i):
             continue
 
@@ -519,33 +550,39 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                 obj_map[result] = shared_variables.LOAD[-1]
 
             bcode_instructions.pop(shared_variables)
-            bcode_instructions.pop(shared_variables)                
+            bcode_instructions.pop(shared_variables)
         elif 'CALL_FUNCTION' in content:
             if 'CALL_FUNCTION_KW' in content:
                 # keyword 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
-                func_offset = int(content.split('CALL_FUNCTION_KW')[1].strip()) + 1
+                func_offset = int(content.split(
+                    'CALL_FUNCTION_KW')[1].strip()) + 1
             elif 'CALL_FUNCTION_EX' in content:
                 # args 까지 스택에 푸시되므로 해당 키워드를 건너뛰고 호출하는 함수가 있는 offset
-                func_offset = int(content.split('CALL_FUNCTION_EX')[1].strip()) + 1
+                func_offset = int(content.split(
+                    'CALL_FUNCTION_EX')[1].strip()) + 1
             else:
                 func_offset = int(content.split('CALL_FUNCTION')[1].strip())
 
-            func = bcode_instructions.call_function(func_offset, shared_variables)
+            func = bcode_instructions.call_function(
+                func_offset, shared_variables)
 
             if func in shared_variables.decorators:
                 continue
-            
+
             # comprehensions 함수를 호출하는 경우(실제 함수가 아님)
             if func in comprehensions:
-                bcode_instructions.call_function_stack(func_offset, shared_variables)
+                bcode_instructions.call_function_stack(
+                    func_offset, shared_variables)
                 continue
 
             # __build_class__
             if func == None:
-                bcode_instructions.call_function_stack(func_offset, shared_variables)
+                bcode_instructions.call_function_stack(
+                    func_offset, shared_variables)
                 continue
 
-            category = func_classification(func, called_objs, obj_sets, obj_map)
+            category = func_classification(
+                func, called_objs, obj_sets, obj_map)
             # 함수 또는 메서드의 호출 반환이 객체인 경우 정보를 저장
             next_line = byte_code[shared_variables.keys_list[i + 1]]
             if 'STORE_NAME' in next_line or 'STORE_FAST' in next_line:
@@ -562,9 +599,10 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     if '.'.join(assign[:i]) in called_objs.keys():
                         external_module = '.'.join(assign[:i])
                         obj_func = '.'.join(assign[i:])
-                
+
                 if external_module and obj_func:
-                    called_objs[external_module]['__called'].add(obj_func + '.' + '.'.join(func.split('.')[1:]))
+                    called_objs[external_module]['__called'].add(
+                        obj_func + '.' + '.'.join(func.split('.')[1:]))
                     continue
 
             if category == '__builtin' or category == '__user_def':
@@ -577,13 +615,15 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
 
                 called_objs[category]['__called'].add(called_func)
 
-            bcode_instructions.call_function_stack(func_offset, shared_variables)
+            bcode_instructions.call_function_stack(
+                func_offset, shared_variables)
         elif 'CALL_METHOD' in content:
             cap_stack = shared_variables.LOAD.copy()
             method = bcode_instructions.call_method(content, shared_variables)
 
             if method == 'importlib.import_module' or method == 'ctypes.CDLL':
-                lazy_loading(byte_code, i, shared_variables.keys_list, called_objs, cap_stack)
+                lazy_loading(byte_code, i, shared_variables.keys_list,
+                             called_objs, cap_stack)
 
             # 함수 또는 메서드의 호출 반환이 객체인 경우 정보를 저장
             next_line = byte_code[shared_variables.keys_list[i + 1]]
@@ -602,18 +642,20 @@ def parse_main(byte_code, addr_map, obj_sets, obj_map, main_bcode_block_start_of
                     if '.'.join(assign[:i]) in called_objs.keys():
                         external_module = '.'.join(assign[:i])
                         obj_method = '.'.join(assign[i:])
-                
+
                 if external_module and obj_method:
-                    called_objs[external_module]['__called'].add(obj_method + '.' + '.'.join(method.split('.')[1:]))
+                    called_objs[external_module]['__called'].add(
+                        obj_method + '.' + '.'.join(method.split('.')[1:]))
                     continue
 
-            category = func_classification(method, called_objs, obj_sets, obj_map)
+            category = func_classification(
+                method, called_objs, obj_sets, obj_map)
 
             if category == '__builtin' or category == '__user_def':
                 called_objs[category].add(method)
             else:
                 if category not in called_objs.keys():
-                    called_objs[category] = {'__called':set()}
+                    called_objs[category] = {'__called': set()}
                 called_objs[category]['__called'].add(method.split('.')[-1])
         else:
             parse_shared_instructions(content, shared_variables)
